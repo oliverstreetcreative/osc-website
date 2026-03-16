@@ -1,0 +1,17 @@
+BEGIN:VCARD
+VERSION:3.0
+FN:Sam Patton
+N:Patton;Sam;;;
+ORG:Oliver Street Creative
+TITLE:Founder
+PHOTO;VALUE=URL:https://oliverstreetcreative.com/media/logo.png
+TEL:+1-859-512-1419
+EMAIL:sam@oliverstreetcreative.com
+URL:https://oliverstreetcreative.com
+ADR:;;521 Oliver St;Covington;KY;41014;USA
+X-SOCIALPROFILE;TYPE=instagram:https://www.instagram.com/oliverstreetcreative/
+X-SOCIALPROFILE;TYPE=twitter:https://x.com/oliverstreet521
+X-SOCIALPROFILE;TYPE=nostr:https://njump.me/npub16c7k38sxnnstuck76na404mpwx0usv8244m203tf9zh6trl6u8fqd43ctq
+X-NOSTR-PUBKEY:npub16c7k38sxnnstuck76na404mpwx0usv8244m203tf9zh6trl6u8fqd43ctq
+NOTE:Video Production in Covington, KY • Stories that move hearts, build trust, and close deals.
+END:VCARD
