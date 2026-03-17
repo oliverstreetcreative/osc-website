@@ -1,9 +1,6 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Menu, X } from "lucide-react"
 
 interface TMDBData {
   person: any
@@ -12,10 +9,9 @@ interface TMDBData {
 }
 
 export default function HomePage() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [videoModalSrc, setVideoModalSrc] = useState<string | null>(null)
   const [tmdbData, setTmdbData] = useState<TMDBData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const filmCreditsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -35,8 +31,9 @@ export default function HomePage() {
     fetchTMDBData()
   }, [])
 
+  // Auto-scroll animation for film credits
   useEffect(() => {
-    if (filmCreditsRef.current) {
+    if (filmCreditsRef.current && tmdbData) {
       const container = filmCreditsRef.current
       let isHovered = false
       let isTouching = false
@@ -72,690 +69,547 @@ export default function HomePage() {
     }
   }, [tmdbData])
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % 3)
-    }, 4000)
-    return () => clearInterval(interval)
-  }, [])
-
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "var(--ink)", color: "var(--paper)" }}>
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 px-4 py-2 rounded font-medium"
-        style={{ backgroundColor: "var(--orange)", color: "var(--paper)" }}
-      >
-        Skip to main content
-      </a>
-
-      {/* Navigation - with film perforation aesthetic */}
-      <nav className="fixed top-0 w-full z-40 filmstrip-texture" style={{ backgroundColor: "rgba(20, 20, 18, 0.95)", backdropFilter: "blur(8px)", borderBottom: "1px solid #2A2A26" }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16 sm:h-20">
-            <a href="#hero" className="text-lg sm:text-xl font-bold uppercase tracking-tight" style={{ color: "var(--paper)" }}>
-              Oliver Street Creative
-            </a>
-
-            <div className="hidden md:flex items-center space-x-6">
-              {[
-                { href: "#hero", label: "Home" },
-                { href: "#about", label: "About" },
-                { href: "#portfolio", label: "Portfolio" },
-                { href: "#connect", label: "Contact" },
-              ].map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className="text-sm font-medium transition-colors"
-                  style={{ color: "#9A9A95" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = "var(--orange)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = "#9A9A95")}
-                >
-                  {item.label}
-                </a>
-              ))}
-              <a
-                href="https://portal.oliverstreetcreative.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm font-medium transition-colors"
-                style={{ color: "#9A9A95" }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--orange)")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "#9A9A95")}
-              >
-                Client Portal
-              </a>
-              <Button
-                asChild
-                className="text-sm font-semibold"
-                style={{ backgroundColor: "var(--orange)", color: "var(--paper)", border: "none" }}
-              >
-                <a href="https://cal.com/oliverstreetcreative" target="_blank" rel="noopener noreferrer">
-                  Book Call
-                </a>
-              </Button>
-            </div>
-
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2"
-              style={{ color: "var(--paper)" }}
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+    <div className="min-h-screen" style={{ backgroundColor: "#141412", color: "#F7F6F3" }}>
+      {/* Video Modal */}
+      {videoModalSrc && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.95)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "40px",
+          }}
+          onClick={() => setVideoModalSrc(null)}
+        >
+          <div
+            style={{ width: "100%", maxWidth: "1200px", aspectRatio: "16/9" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <iframe
+              src={videoModalSrc}
+              className="w-full h-full border-0"
+              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+              allowFullScreen
+            />
           </div>
+          <button
+            onClick={() => setVideoModalSrc(null)}
+            style={{
+              position: "absolute",
+              top: "20px",
+              right: "20px",
+              color: "white",
+              fontSize: "40px",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Navigation */}
+      <nav style={{ position: "fixed", top: 0, width: "100%", zIndex: 100, backgroundColor: "#141412", borderBottom: "3px solid #E07830", height: "80px", padding: "0 48px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ fontWeight: 800, fontSize: "18px", letterSpacing: "0.05em", textTransform: "uppercase", color: "#F7F6F3" }}>
+          Oliver Street <span style={{ color: "#E07830" }}>Creative</span>
         </div>
 
-        {mobileMenuOpen && (
-          <div className="md:hidden" style={{ backgroundColor: "var(--ink)", borderTop: "1px solid #2A2A26" }}>
-            <div className="px-4 py-4 space-y-4">
-              {[
-                { href: "#hero", label: "Home" },
-                { href: "#about", label: "About" },
-                { href: "#portfolio", label: "Portfolio" },
-                { href: "#connect", label: "Contact" },
-              ].map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block text-lg py-2 transition-colors"
-                  style={{ color: "#9A9A95" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = "var(--orange)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = "#9A9A95")}
-                >
-                  {item.label}
-                </a>
-              ))}
-              <Button
-                size="lg"
-                asChild
-                className="w-full text-lg"
-                style={{ backgroundColor: "var(--orange)", color: "var(--paper)" }}
-              >
-                <a href="https://cal.com/oliverstreetcreative" target="_blank" rel="noopener noreferrer">
-                  Schedule Consultation
-                </a>
-              </Button>
-            </div>
-          </div>
-        )}
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <a
+            href="#services"
+            style={{ color: "#8A8A84", fontSize: "13px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", textDecoration: "none", marginLeft: "32px", transition: "color 0.2s" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#F7F6F3")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#8A8A84")}
+          >
+            Work
+          </a>
+          <a
+            href="#credits"
+            style={{ color: "#8A8A84", fontSize: "13px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", textDecoration: "none", marginLeft: "32px", transition: "color 0.2s" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#F7F6F3")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#8A8A84")}
+          >
+            Credits
+          </a>
+          <a
+            href="#portfolio"
+            style={{ color: "#8A8A84", fontSize: "13px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", textDecoration: "none", marginLeft: "32px", transition: "color 0.2s" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#F7F6F3")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#8A8A84")}
+          >
+            Portfolio
+          </a>
+          <a
+            href="#contact"
+            style={{ color: "#8A8A84", fontSize: "13px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", textDecoration: "none", marginLeft: "32px", transition: "color 0.2s" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#F7F6F3")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#8A8A84")}
+          >
+            Contact
+          </a>
+        </div>
       </nav>
 
-      <main id="main-content">
-        {/* Hero Section */}
-        <section id="hero" className="pt-20 sm:pt-24 min-h-screen flex items-center">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
-            <div className="text-center">
-              <div className="mb-8 sm:mb-12">
-                <img
-                  src="/logo.png"
-                  alt="Oliver Street Creative - Professional Video Production"
-                  className="mx-auto h-48 sm:h-64 md:h-80 lg:h-96 w-auto"
-                />
-              </div>
+      <main>
+        {/* HERO — INK */}
+        <section id="hero" style={{ backgroundColor: "#141412", padding: "160px 80px 120px 80px" }}>
+          <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "#8A8A84" }}>
+            Covington, KY
+          </div>
+          
+          <h1 style={{ fontSize: "clamp(56px, 7vw, 96px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, color: "#F7F6F3", marginBottom: "40px", maxWidth: "900px" }}>
+            Stories that move hearts, build trust, and{" "}
+            <span style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontWeight: 400, color: "#E07830" }}>
+              close deals.
+            </span>
+          </h1>
 
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-8 sm:mb-12 leading-tight">
-                <span className="block" style={{ color: "var(--paper)" }}>Stories that move hearts,</span>
-                <span className="block" style={{ color: "var(--paper)" }}>build trust and</span>
-                <span className="block">
-                  <span style={{ color: "var(--orange)" }}>close deals</span>
-                  <span style={{ color: "var(--paper)" }}>.</span>
-                </span>
-              </h1>
-
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center">
-                <Button
-                  size="lg"
-                  asChild
-                  className="w-full sm:w-auto text-lg px-8 py-4"
-                  style={{ backgroundColor: "var(--orange)", color: "var(--paper)" }}
-                >
-                  <a href="https://cal.com/oliverstreetcreative" target="_blank" rel="noopener noreferrer">
-                    Book A Call
-                  </a>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  asChild
-                  className="w-full sm:w-auto text-lg px-8 py-4"
-                  style={{ borderColor: "var(--orange)", color: "var(--orange)", backgroundColor: "transparent" }}
-                >
-                  <a href="#about">Learn More</a>
-                </Button>
-              </div>
-            </div>
+          <div style={{ display: "flex", gap: "16px" }}>
+            <a
+              href="https://cal.com/oliverstreetcreative"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ padding: "16px 40px", backgroundColor: "#E07830", color: "#141412", fontSize: "14px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", textDecoration: "none", transition: "background 0.2s" }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#c86820")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#E07830")}
+            >
+              Book A Call
+            </a>
+            <a
+              href="#services"
+              style={{ padding: "14px 40px", border: "2px solid #E07830", color: "#E07830", backgroundColor: "transparent", fontSize: "14px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", textDecoration: "none", transition: "all 0.2s" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#E07830"
+                e.currentTarget.style.color = "#141412"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent"
+                e.currentTarget.style.color = "#E07830"
+              }}
+            >
+              Learn More
+            </a>
           </div>
         </section>
 
-        {/* Strategic Video Section - with purple label */}
-        <section className="py-16 sm:py-24 label-border-purple" style={{ backgroundColor: "#1A1A18", paddingLeft: "1rem" }}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-              <div className="aspect-[4/3] relative overflow-hidden rounded-lg">
-                <img
-                  src="/images/strategic-videos-hero-new.png"
-                  alt="Professional videographer holding cinema camera"
-                  className="w-full h-full object-cover"
-                />
+        {/* SERVICES — PURPLE BAND */}
+        <section id="services" style={{ backgroundColor: "#7B4D9E", color: "white", padding: "120px 80px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 520px", gap: "64px", alignItems: "center" }}>
+            <div>
+              <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "rgba(255,255,255,0.5)" }}>
+                What We Do
               </div>
 
-              <div className="text-center lg:text-left">
-                <div className="inline-block px-3 py-1 mb-4 rounded text-xs font-bold uppercase tracking-wider" style={{ backgroundColor: "var(--purple)", color: "var(--paper)" }}>
-                  What We Do
-                </div>
-                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 leading-tight" style={{ color: "var(--paper)" }}>
-                  We make strategic videos for businesses and non-profits
-                </h2>
-                <p className="text-lg sm:text-xl mb-8 leading-relaxed" style={{ color: "#9A9A95" }}>
-                  With our own gear and hands-on management, we are full-service from concept to delivery. We bring
-                  speed, flexibility, and higher production value—crafting video stories that move both your audience
-                  and your bottom line.
-                </p>
-
-                <div className="flex justify-start w-full">
-                  <img
-                    src="/images/strategic-video-icons.png"
-                    alt="Production process icons"
-                    className="w-full max-w-md h-auto"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Film Credits Section - with blue label */}
-        <section className="py-12 sm:py-16 label-border-blue overflow-hidden" style={{ backgroundColor: "var(--ink)", paddingLeft: "1rem" }}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-8 sm:mb-12">
-              <div className="inline-block px-3 py-1 mb-4 rounded text-xs font-bold uppercase tracking-wider" style={{ backgroundColor: "var(--blue)", color: "var(--paper)" }}>
-                Experience
-              </div>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6" style={{ color: "var(--paper)" }}>
-                We've worked on a lot of movies.
+              <h2 style={{ fontSize: "clamp(48px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px" }}>
+                We make strategic videos for businesses and non-profits
               </h2>
-              <p className="text-lg sm:text-xl max-w-2xl mx-auto" style={{ color: "#9A9A95" }}>
-                We've spent years on Hollywood film sets, and that experience shapes every video we make.
-              </p>
+
+              <div style={{ fontSize: "18px", fontWeight: 400, lineHeight: 1.7, maxWidth: "640px", color: "rgba(255,255,255,0.75)" }}>
+                With our own gear and hands-on management, we are full-service from concept to delivery. We bring speed, flexibility, and higher production value—crafting video stories that move both your audience and your bottom line.
+              </div>
             </div>
 
-            {loading ? (
-              <div className="text-center py-8">
-                <div
-                  className="inline-block animate-spin rounded-full h-8 w-8 border-b-2"
-                  style={{ borderBottomColor: "var(--orange)" }}
-                ></div>
-                <p className="mt-4" style={{ color: "#9A9A95" }}>Loading filmography...</p>
-              </div>
-            ) : tmdbData ? (
-              <div className="relative">
-                <div
-                  ref={filmCreditsRef}
-                  className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide scroll-smooth"
-                  style={{
-                    scrollbarWidth: "none",
-                    msOverflowStyle: "none",
-                    touchAction: "pan-x",
-                  }}
-                >
-                  {(() => {
-                    const jobImportance: Record<string, number> = {
-                      Director: 1,
-                      Producer: 2,
-                      "Executive Producer": 2,
-                      "Co-Producer": 2,
-                      "Associate Producer": 2,
-                      "Unit Production Manager": 3,
-                      "Production Supervisor": 4,
-                      "Production Accountant": 5,
-                      "Production Coordinator": 8,
-                      "Production Assistant": 12,
-                    }
+            <img
+              src="/images/strategic-videos-hero-new.png"
+              alt="Videographer with camera"
+              style={{ width: "520px", aspectRatio: "4/3", objectFit: "cover", boxShadow: "0 16px 48px rgba(0,0,0,0.3)" }}
+              loading="lazy"
+            />
+          </div>
+        </section>
 
-                    const getJobPriority = (job: string) => {
-                      if (jobImportance[job]) return jobImportance[job]
-                      if (job.toLowerCase().includes("director")) return 1
-                      if (job.toLowerCase().includes("producer")) return 2
-                      return 13
-                    }
+        {/* FILM CREDITS — INK BREATHER */}
+        <section id="credits" style={{ backgroundColor: "#141412", color: "#F7F6F3", padding: "120px 0" }}>
+          <div style={{ paddingLeft: "80px", paddingRight: "80px" }}>
+            <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "#2E6B9C" }}>
+              Film Credits
+            </div>
 
-                    const allCredits = new Map()
+            <h2 style={{ fontSize: "clamp(48px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px" }}>
+              We've worked on a lot of movies.
+            </h2>
 
-                    tmdbData.movie_credits?.crew?.forEach((movie: any) => {
-                      const key = `movie-${movie.id}`
-                      if (allCredits.has(key)) {
-                        const existing = allCredits.get(key)
-                        existing.jobs = [...new Set([...existing.jobs, movie.job])]
-                      } else {
-                        allCredits.set(key, {
-                          ...movie,
-                          type: "movie",
-                          jobs: [movie.job],
-                          year: movie.release_date?.split("-")[0],
-                        })
-                      }
+            <div style={{ fontSize: "18px", fontWeight: 400, lineHeight: 1.7, maxWidth: "640px", color: "#8A8A84", marginBottom: "48px" }}>
+              We've spent years on Hollywood film sets, and that experience shapes every video we make.
+            </div>
+          </div>
+
+          {loading ? (
+            <div style={{ textAlign: "center", padding: "64px 0" }}>
+              <div
+                className="inline-block animate-spin rounded-full h-12 w-12 border-b-2"
+                style={{ borderBottomColor: "#E07830" }}
+              ></div>
+            </div>
+          ) : tmdbData ? (
+            <div
+              ref={filmCreditsRef}
+              className="flex gap-4 overflow-x-auto scrollbar-hide"
+              style={{
+                paddingLeft: "80px",
+                paddingRight: "80px",
+                scrollBehavior: "smooth",
+              }}
+            >
+              {(() => {
+                const jobImportance: Record<string, number> = {
+                  Director: 1,
+                  Producer: 2,
+                  "Executive Producer": 2,
+                  "Co-Producer": 2,
+                  "Associate Producer": 2,
+                  "Unit Production Manager": 3,
+                  "Production Supervisor": 4,
+                  "Production Accountant": 5,
+                  "Production Coordinator": 8,
+                  "Production Assistant": 12,
+                }
+
+                const getJobPriority = (job: string) => {
+                  if (jobImportance[job]) return jobImportance[job]
+                  if (job.toLowerCase().includes("director")) return 1
+                  if (job.toLowerCase().includes("producer")) return 2
+                  return 13
+                }
+
+                const allCredits = new Map()
+
+                tmdbData.movie_credits?.crew?.forEach((movie: any) => {
+                  const key = `movie-${movie.id}`
+                  if (allCredits.has(key)) {
+                    const existing = allCredits.get(key)
+                    existing.jobs = [...new Set([...existing.jobs, movie.job])]
+                  } else {
+                    allCredits.set(key, {
+                      ...movie,
+                      type: "movie",
+                      jobs: [movie.job],
+                      year: movie.release_date?.split("-")[0],
                     })
+                  }
+                })
 
-                    tmdbData.tv_credits?.crew?.forEach((show: any) => {
-                      const key = `tv-${show.id}`
-                      if (allCredits.has(key)) {
-                        const existing = allCredits.get(key)
-                        existing.jobs = [...new Set([...existing.jobs, show.job])]
-                      } else {
-                        allCredits.set(key, {
-                          ...show,
-                          type: "tv",
-                          title: show.name,
-                          jobs: [show.job],
-                          year: show.first_air_date?.split("-")[0],
-                        })
-                      }
+                tmdbData.tv_credits?.crew?.forEach((show: any) => {
+                  const key = `tv-${show.id}`
+                  if (allCredits.has(key)) {
+                    const existing = allCredits.get(key)
+                    existing.jobs = [...new Set([...existing.jobs, show.job])]
+                  } else {
+                    allCredits.set(key, {
+                      ...show,
+                      type: "tv",
+                      title: show.name,
+                      jobs: [show.job],
+                      year: show.first_air_date?.split("-")[0],
                     })
+                  }
+                })
 
-                    return Array.from(allCredits.values())
-                      .map((credit: any) => ({
-                        ...credit,
-                        sortedJobs: credit.jobs.sort((a: string, b: string) => getJobPriority(a) - getJobPriority(b)),
-                        topJobPriority: Math.min(...credit.jobs.map(getJobPriority)),
-                        releaseDate: credit.type === "movie" ? credit.release_date : credit.first_air_date,
-                      }))
-                      .sort((a: any, b: any) => {
-                        if (a.topJobPriority !== b.topJobPriority) {
-                          return a.topJobPriority - b.topJobPriority
-                        }
-                        if (a.releaseDate && b.releaseDate) {
-                          return new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime()
-                        }
-                        return 0
-                      })
-                      .map((credit: any) => (
-                        <div key={`${credit.type}-${credit.id}`} className="flex-shrink-0 group relative">
-                          <div className="w-32 sm:w-40 aspect-[2/3] rounded-lg overflow-hidden shadow-lg relative" style={{ backgroundColor: "#262622" }}>
-                            {credit.poster_path ? (
-                              <img
-                                src={`https://image.tmdb.org/t/p/w300${credit.poster_path}`}
-                                alt={credit.title}
-                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <span className="text-xs text-center px-2" style={{ color: "#9A9A95" }}>{credit.title}</span>
-                              </div>
-                            )}
+                return Array.from(allCredits.values())
+                  .map((credit: any) => ({
+                    ...credit,
+                    sortedJobs: credit.jobs.sort((a: string, b: string) => getJobPriority(a) - getJobPriority(b)),
+                    topJobPriority: Math.min(...credit.jobs.map(getJobPriority)),
+                    releaseDate: credit.type === "movie" ? credit.release_date : credit.first_air_date,
+                  }))
+                  .sort((a: any, b: any) => {
+                    if (a.topJobPriority !== b.topJobPriority) {
+                      return a.topJobPriority - b.topJobPriority
+                    }
+                    if (a.releaseDate && b.releaseDate) {
+                      return new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime()
+                    }
+                    return 0
+                  })
+                  .map((credit: any) => (
+                    <div key={`${credit.type}-${credit.id}`} className="flex-shrink-0 group relative">
+                      <div style={{ width: "140px", aspectRatio: "2/3", overflow: "hidden", backgroundColor: "#262622", boxShadow: "0 8px 24px rgba(0,0,0,0.3)" }}>
+                        {credit.poster_path ? (
+                          <img
+                            src={`https://image.tmdb.org/t/p/w300${credit.poster_path}`}
+                            alt={credit.title}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center p-4">
+                            <span style={{ fontSize: "12px", textAlign: "center", fontWeight: 500, color: "#8A8A84" }}>{credit.title}</span>
+                          </div>
+                        )}
 
-                            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center items-center p-3 text-center" style={{ backgroundColor: "rgba(20, 20, 18, 0.95)" }}>
-                              <h3 className="font-bold text-sm mb-1 uppercase" style={{ color: "var(--paper)" }}>{credit.title}</h3>
-                              {credit.year && <p className="text-xs mb-2" style={{ color: "#9A9A95" }}>({credit.year})</p>}
-                              <div className="text-xs" style={{ color: "var(--orange)" }}>
-                                {credit.sortedJobs.filter(Boolean).join(", ")}
-                              </div>
-                            </div>
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center items-center p-4 text-center" style={{ backgroundColor: "rgba(20, 20, 18, 0.95)" }}>
+                          <h3 style={{ fontSize: "14px", fontWeight: 700, textTransform: "uppercase", marginBottom: "4px", color: "#F7F6F3" }}>{credit.title}</h3>
+                          {credit.year && <p style={{ fontSize: "12px", marginBottom: "8px", color: "#8A8A84" }}>({credit.year})</p>}
+                          <div style={{ fontSize: "12px", fontWeight: 500, color: "#E07830" }}>
+                            {credit.sortedJobs.filter(Boolean).join(", ")}
                           </div>
                         </div>
-                      ))
-                  })()}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <p style={{ color: "#9A9A95" }}>Unable to load filmography at this time.</p>
-              </div>
-            )}
-          </div>
+                      </div>
+                    </div>
+                  ))
+              })()}
+            </div>
+          ) : null}
         </section>
 
-        {/* Testimonials Section - with gold label for accent quotes */}
-        <section id="about" className="py-16 sm:py-24 label-border-gold" style={{ backgroundColor: "#1A1A18", paddingLeft: "1rem" }}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12 sm:mb-16">
-              <div className="inline-block px-3 py-1 mb-4 rounded text-xs font-bold uppercase tracking-wider" style={{ backgroundColor: "var(--gold)", color: "var(--ink)" }}>
-                Testimonials
+        {/* TESTIMONIALS — GOLD BAND (video + quotes together) */}
+        <section style={{ backgroundColor: "#F2C14E", color: "#141412", padding: "120px 80px", textAlign: "center" }}>
+          <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", color: "rgba(20,20,18,0.4)" }}>
+            Testimonials
+          </div>
+
+          <h2 style={{ fontSize: "clamp(48px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px" }}>
+            People like working with us.
+          </h2>
+
+          <p style={{ fontSize: "18px", lineHeight: 1.7, maxWidth: "800px", margin: "0 auto 64px auto" }}>
+            Don't just take our word for it—hear from the founders, nonprofits, and developers we've helped tell their stories.
+          </p>
+
+          <div style={{ maxWidth: "800px", margin: "0 auto 64px auto", aspectRatio: "16/9", boxShadow: "0 20px 60px rgba(0,0,0,0.25)", backgroundColor: "#000" }}>
+            <iframe
+              src="https://player.mux.com/4YKpfx6WR7jjcdOfh2LcZfflSqwvz2k52TMNUcXbA28?accent-color=%23E07830"
+              className="w-full h-full border-0"
+              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+              allowFullScreen
+              title="Client Testimonials"
+            />
+          </div>
+
+          <blockquote style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 400, lineHeight: 1.4, maxWidth: "800px", margin: "0 auto 24px auto" }}>
+            "The partnership with Oliver Street Creative was so valuable in understanding our goals and our values and the mission and impact that we wanted to communicate."
+          </blockquote>
+
+          <div style={{ fontSize: "14px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(20,20,18,0.5)" }}>
+            — Jordan Huizinga, VP of Development, Beech Acres
+          </div>
+
+          <div style={{ width: "60px", height: "1px", backgroundColor: "rgba(20,20,18,0.2)", margin: "48px auto" }}></div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "48px", maxWidth: "800px", margin: "0 auto", textAlign: "left" }}>
+            <div>
+              <div style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontSize: "20px", lineHeight: 1.5, marginBottom: "12px" }}>
+                "It comes down to content, creativity, creative editing, and storytelling. That's what separates the crowd from working with Oliver Street."
               </div>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6" style={{ color: "var(--paper)" }}>
-                People like working with us.
-              </h2>
-              <p className="text-lg sm:text-xl max-w-3xl mx-auto leading-relaxed" style={{ color: "#9A9A95" }}>
-                Don't just take our word for it—hear from the founders, nonprofits, and developers we've helped tell
-                their stories.
-              </p>
+              <div style={{ fontSize: "12px", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: "rgba(20,20,18,0.5)" }}>
+                — Al Haehnle, Director, Landslide Films
+              </div>
             </div>
 
-            <div className="max-w-4xl mx-auto mb-12 sm:mb-16">
-              <div className="relative aspect-video rounded-lg overflow-hidden shadow-2xl" style={{ backgroundColor: "#262622" }}>
-                <iframe
-                  src="https://player.mux.com/4YKpfx6WR7jjcdOfh2LcZfflSqwvz2k52TMNUcXbA28?accent-color=%23E07830"
-                  style={{ width: "100%", height: "100%", border: "none", aspectRatio: "16/9" }}
-                  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                  allowFullScreen
-                  title="Client Testimonial Video"
-                />
+            <div>
+              <div style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontSize: "20px", lineHeight: 1.5, marginBottom: "12px" }}>
+                "Oliver Street brought a level of depth and soul to our production that we wouldn't have had otherwise."
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12 sm:mb-16">
-              {[
-                {
-                  quote: "The partnership with Oliver Street Creative was so valuable in understanding our goals and our values and the mission and impact that we wanted to communicate.",
-                  name: "Jordan Huizinga",
-                  title: "VP of Development, Beech Acres",
-                },
-                {
-                  quote: "It comes down to content, creativity, creative editing, and storytelling. That's what separates the crowd from working with Oliver Street.",
-                  name: "Al Haehnle",
-                  title: "Director, Landslide Films",
-                },
-                {
-                  quote: "Oliver Street brought a level of depth and soul to our production that we wouldn't have had otherwise.",
-                  name: "Louis Kelly",
-                  title: "Boone County Prosecutor",
-                },
-              ].map((testimonial, idx) => (
-                <Card key={idx} className="p-6 sm:p-8 border-0 shadow-lg" style={{ backgroundColor: "#262622", borderTop: "3px solid var(--gold)" }}>
-                  <div className="mb-4">
-                    <p className="font-accent text-xl leading-relaxed" style={{ color: "var(--gold)" }}>
-                      "{testimonial.quote}"
-                    </p>
-                  </div>
-                  <div className="border-t pt-4" style={{ borderColor: "#3A3A36" }}>
-                    <p className="font-semibold" style={{ color: "var(--paper)" }}>{testimonial.name}</p>
-                    <p className="text-sm" style={{ color: "#9A9A95" }}>{testimonial.title}</p>
-                  </div>
-                </Card>
-              ))}
+              <div style={{ fontSize: "12px", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: "rgba(20,20,18,0.5)" }}>
+                — Louis Kelly, Boone County Prosecutor
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Differentiators Section - with orange label */}
-        <section className="py-16 sm:py-24 label-border-orange" style={{ backgroundColor: "var(--ink)", paddingLeft: "1rem" }}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12 sm:mb-16">
-              <div className="inline-block px-3 py-1 mb-4 rounded text-xs font-bold uppercase tracking-wider" style={{ backgroundColor: "var(--orange)", color: "var(--paper)" }}>
+        {/* WHY US — INK BREATHER */}
+        <section style={{ backgroundColor: "#141412", color: "#F7F6F3", padding: "120px 80px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 520px", gap: "64px", alignItems: "center" }}>
+            <div>
+              <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "#E07830" }}>
                 Why Us
               </div>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6" style={{ color: "var(--paper)" }}>
+
+              <h2 style={{ fontSize: "clamp(48px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px" }}>
                 We are different than other companies.
               </h2>
-              <p className="text-lg sm:text-xl max-w-3xl mx-auto leading-relaxed" style={{ color: "#9A9A95" }}>
+
+              <div style={{ fontSize: "18px", fontWeight: 400, lineHeight: 1.7, maxWidth: "640px", color: "#8A8A84" }}>
                 We are a partner, not just a vendor.
-              </p>
-            </div>
-
-            <div className="mb-12 sm:mb-16">
-              <div className="max-w-4xl mx-auto">
-                <div className="aspect-[3/2] relative overflow-hidden rounded-lg">
-                  {["/IMG_5148.png", "/IMG_5111.jpeg", "/IMG_5114.jpeg"].map((src, index) => (
-                    <img
-                      key={index}
-                      src={src}
-                      alt={`Professional video production behind the scenes ${index + 1}`}
-                      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
-                        index === currentImageIndex ? "opacity-100" : "opacity-0"
-                      }`}
-                    />
-                  ))}
-                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 sm:gap-12 max-w-6xl mx-auto">
-              {[
-                {
-                  icon: "/filmstrip.png",
-                  title: "We know what we're doing.",
-                  description: "We love telling stories with cameras. We obsess over the big picture and the smallest details. We strive to make each story we tell not just memorable, but unforgettable.",
-                },
-                {
-                  icon: "/shield.png",
-                  title: "We tell the truth.",
-                  description: "Most video companies churn out inauthentic ads and sterile corporate content. We create stories that build trust. For developers, nonprofits, and founders, truth—not hype—closes deals.",
-                },
-                {
-                  icon: "/trophy.png",
-                  title: "We win when you win.",
-                  description: "Owning our gear and managing every step gives us flexibility others can't match. We capture more, revise as needed, and pivot fast when plans change. We can even defer part of our compensation and tie it to your success—so when you win, we win together.",
-                },
-              ].map((item, idx) => (
-                <Card key={idx} className="p-6 sm:p-8 border-0 shadow-lg" style={{ backgroundColor: "#262622" }}>
-                  <div className="mb-6">
-                    <div
-                      className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
-                      style={{ backgroundColor: "#3A3A36" }}
-                    >
-                      <img src={item.icon} alt="" className="w-8 h-8" />
-                    </div>
-                    <h3 className="text-xl sm:text-2xl font-bold mb-4" style={{ color: "var(--paper)" }}>
-                      {item.title}
-                    </h3>
-                    <p className="leading-relaxed" style={{ color: "#9A9A95" }}>
-                      {item.description}
-                    </p>
-                  </div>
-                </Card>
-              ))}
-            </div>
+            <img
+              src="/IMG_5148.png"
+              alt="Behind the scenes"
+              style={{ width: "520px", aspectRatio: "4/3", objectFit: "cover", boxShadow: "0 16px 48px rgba(0,0,0,0.3)" }}
+              loading="lazy"
+            />
           </div>
-        </section>
 
-        {/* Portfolio Section - with green label */}
-        <section id="portfolio" className="py-16 sm:py-24 label-border-green" style={{ backgroundColor: "#1A1A18", paddingLeft: "1rem" }}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-8 sm:mb-12">
-              <div className="inline-block px-3 py-1 mb-4 rounded text-xs font-bold uppercase tracking-wider" style={{ backgroundColor: "var(--green)", color: "var(--paper)" }}>
-                Portfolio
-              </div>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6" style={{ color: "var(--paper)" }}>
-                Check out our work.
-              </h2>
-              <p className="text-lg sm:text-xl max-w-2xl mx-auto" style={{ color: "#9A9A95" }}>
-                Here are a few of the stories we've had the privilege to tell.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
-              {[
-                {
-                  title: "Janell's Story",
-                  client: "Client: Beech Acres, Love Grows Here Event 2024",
-                  embedSrc: "https://player.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co?metadata-video-title=Janell%27s+Story&video-title=Janell%27s+Story&accent-color=%23E07830",
-                },
-                {
-                  title: "Phoenix's Story",
-                  client: "Client: Learning Grove, Gala Event 2025",
-                  embedSrc: "https://player.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM?poster=https%3A%2F%2Fimage.mux.com%2FWZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM%2Fthumbnail.png%3Fwidth%3D1280%26height%3D720%26time%3D147",
-                },
-                {
-                  title: "2025 End-of-Year Report",
-                  client: "Client: Boone County Prosecutors' Office",
-                  embedSrc: "https://player.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8?poster=https%3A%2F%2Fimage.mux.com%2FIhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8%2Fthumbnail.png%3Fwidth%3D1280%26height%3D720%26time%3D11",
-                },
-              ].map((item, idx) => (
-                <Card
-                  key={idx}
-                  className="group overflow-hidden shadow-lg transition-all duration-300"
-                  style={{ backgroundColor: "#262622", border: "1px solid #3A3A36" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--orange)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#3A3A36")}
-                >
-                  <div className="aspect-video relative overflow-hidden" style={{ backgroundColor: "#1A1A18" }}>
-                    <iframe
-                      src={item.embedSrc}
-                      style={{ width: "100%", height: "100%", border: "none" }}
-                      allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                      allowFullScreen
-                      title={item.title}
-                    />
-                  </div>
-                  <div className="p-4 sm:p-6">
-                    <h3 className="text-2xl sm:text-3xl font-semibold mb-2" style={{ color: "var(--paper)" }}>{item.title}</h3>
-                    <p className="text-sm sm:text-base" style={{ color: "#9A9A95" }}>{item.client}</p>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Contact Section - with red label (urgent/action) */}
-        <section id="connect" className="py-16 sm:py-24 label-border-red" style={{ backgroundColor: "var(--ink)", paddingLeft: "1rem" }}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12 sm:mb-16">
-              <div className="inline-block px-3 py-1 mb-4 rounded text-xs font-bold uppercase tracking-wider" style={{ backgroundColor: "var(--red)", color: "var(--paper)" }}>
-                Get Started
-              </div>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6" style={{ color: "var(--paper)" }}>
-                Let's make something together.
-              </h2>
-              <p className="text-lg sm:text-xl max-w-3xl mx-auto leading-relaxed" style={{ color: "#9A9A95" }}>
-                Ready to tell your story? Get in touch and let's discuss your next video project.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 max-w-6xl mx-auto">
-              <Card className="p-6 sm:p-8 border-0 shadow-lg" style={{ backgroundColor: "#262622" }}>
-                <h3 className="text-2xl sm:text-3xl font-bold mb-6" style={{ color: "var(--paper)" }}>Get In Touch</h3>
-                <div className="space-y-6">
-                  <div className="flex items-start gap-4">
-                    <div className="w-6 h-6 mt-1 flex-shrink-0" style={{ color: "var(--orange)" }}>
-                      <svg fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-semibold mb-1" style={{ color: "var(--paper)" }}>Phone</p>
-                      <a
-                        href="tel:+18595121419"
-                        className="transition-colors"
-                        style={{ color: "var(--orange)" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--gold)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--orange)")}
-                      >
-                        (859) 512-1419
-                      </a>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4">
-                    <div className="w-6 h-6 mt-1 flex-shrink-0" style={{ color: "var(--orange)" }}>
-                      <svg fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M20,8L12,13L4,8V6L12,11L20,6M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-semibold mb-1" style={{ color: "var(--paper)" }}>Email</p>
-                      <a
-                        href="mailto:hello@oliverstreetcreative.com"
-                        className="transition-colors"
-                        style={{ color: "var(--orange)" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--gold)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--orange)")}
-                      >
-                        hello@oliverstreetcreative.com
-                      </a>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4">
-                    <div className="w-6 h-6 mt-1 flex-shrink-0" style={{ color: "var(--orange)" }}>
-                      <svg fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-semibold mb-1" style={{ color: "var(--paper)" }}>Studio</p>
-                      <p style={{ color: "#9A9A95" }}>
-                        521 Oliver St<br />
-                        Covington, KY 41014
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4">
-                    <div className="w-6 h-6 mt-1 flex-shrink-0" style={{ color: "var(--orange)" }}>
-                      <svg fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M14,2L20,8V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V4A2,2 0 0,1 6,2H14M18,20V9H13V4H6V20H18Z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-semibold mb-1" style={{ color: "var(--paper)" }}>Contact Card</p>
-                      <a
-                        href="/sam-patton-contact.vcf"
-                        download="Sam Patton - Oliver Street Creative.vcf"
-                        className="inline-flex items-center gap-2 text-sm transition-colors"
-                        style={{ color: "var(--orange)" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--gold)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--orange)")}
-                      >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z" />
-                        </svg>
-                        Download Contact Card
-                      </a>
-                    </div>
-                  </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "32px", marginTop: "64px" }}>
+            {[
+              {
+                number: "01",
+                title: "We know what we're doing.",
+                description: "We love telling stories with cameras. We obsess over the big picture and the smallest details. We strive to make each story we tell not just memorable, but unforgettable.",
+              },
+              {
+                number: "02",
+                title: "We tell the truth.",
+                description: "Most video companies churn out inauthentic ads and sterile corporate content. We create stories that build trust. For developers, nonprofits, and founders, truth—not hype—closes deals.",
+              },
+              {
+                number: "03",
+                title: "We win when you win.",
+                description: "Owning our gear and managing every step gives us flexibility others can't match. We capture more, revise as needed, and pivot fast when plans change. We can even defer part of our compensation and tie it to your success—so when you win, we win together.",
+              },
+            ].map((item, idx) => (
+              <div key={idx} style={{ padding: "32px", backgroundColor: "#1A1A18" }}>
+                <div style={{ fontSize: "64px", fontWeight: 900, color: "rgba(247, 246, 243, 0.08)", lineHeight: 1, marginBottom: "12px" }}>
+                  {item.number}
                 </div>
-              </Card>
-
-              <Card className="p-6 sm:p-8 border-0 shadow-lg" style={{ backgroundColor: "#262622" }}>
-                <h3 className="text-2xl sm:text-3xl font-bold mb-6" style={{ color: "var(--paper)" }}>Ready to Start?</h3>
-                <p className="mb-8 leading-relaxed" style={{ color: "#9A9A95" }}>
-                  Book a free consultation call to discuss your video production needs. We'll help you create content
-                  that moves hearts, builds trust, and closes deals.
+                <h3 style={{ fontSize: "20px", fontWeight: 800, marginBottom: "12px", color: "#F7F6F3" }}>
+                  {item.title}
+                </h3>
+                <p style={{ fontSize: "15px", lineHeight: 1.6, color: "#8A8A84" }}>
+                  {item.description}
                 </p>
-                <Button
-                  size="lg"
-                  asChild
-                  className="w-full text-lg py-4"
-                  style={{ backgroundColor: "var(--orange)", color: "var(--paper)" }}
-                >
-                  <a href="https://cal.com/oliverstreetcreative" target="_blank" rel="noopener noreferrer">
-                    Schedule Free Consultation
-                  </a>
-                </Button>
-              </Card>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* PORTFOLIO — GREEN BAND */}
+        <section id="portfolio" style={{ backgroundColor: "#3A8A5C", color: "white", padding: "120px 80px" }}>
+          <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", color: "rgba(255,255,255,0.5)" }}>
+            Portfolio
+          </div>
+
+          <h2 style={{ fontSize: "clamp(48px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px" }}>
+            Check out our work.
+          </h2>
+
+          <div style={{ fontSize: "18px", lineHeight: 1.7, maxWidth: "640px", color: "rgba(255,255,255,0.75)", marginBottom: "64px" }}>
+            Here are a few of the stories we've had the privilege to tell.
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px" }}>
+            {[
+              {
+                title: "Janell's Story",
+                client: "Beech Acres, Love Grows Here Event 2024",
+                embedSrc: "https://player.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co?accent-color=%23E07830",
+                thumbnail: "https://image.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co/thumbnail.jpg?time=10",
+              },
+              {
+                title: "Phoenix's Story",
+                client: "Learning Grove, Gala Event 2025",
+                embedSrc: "https://player.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM",
+                thumbnail: "https://image.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM/thumbnail.jpg?time=10",
+              },
+              {
+                title: "2025 End-of-Year Report",
+                client: "Boone County Prosecutors' Office",
+                embedSrc: "https://player.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8",
+                thumbnail: "https://image.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8/thumbnail.jpg?time=11",
+              },
+            ].map((item, idx) => (
+              <div key={idx} style={{ backgroundColor: "rgba(0,0,0,0.2)", overflow: "hidden", cursor: "pointer" }} onClick={() => setVideoModalSrc(item.embedSrc)}>
+                <div style={{ position: "relative", aspectRatio: "16/9", overflow: "hidden" }}>
+                  <img
+                    src={item.thumbnail}
+                    alt={item.title}
+                    style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s" }}
+                    loading="lazy"
+                    onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.03)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "50%",
+                      left: "50%",
+                      transform: "translate(-50%, -50%)",
+                      width: "56px",
+                      height: "56px",
+                      borderRadius: "50%",
+                      background: "rgba(255,255,255,0.9)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: 0.8,
+                      transition: "opacity 0.2s",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.8")}
+                  >
+                    <div
+                      style={{
+                        width: 0,
+                        height: 0,
+                        borderTop: "10px solid transparent",
+                        borderBottom: "10px solid transparent",
+                        borderLeft: "16px solid #141412",
+                        marginLeft: "3px",
+                      }}
+                    />
+                  </div>
+                </div>
+                <div style={{ padding: "20px" }}>
+                  <h3 style={{ fontSize: "18px", fontWeight: 800, marginBottom: "4px" }}>{item.title}</h3>
+                  <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)" }}>{item.client}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* CONTACT — RED BAND */}
+        <section id="contact" style={{ backgroundColor: "#D13B2E", color: "white", padding: "120px 80px", textAlign: "center" }}>
+          <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", color: "rgba(255,255,255,0.5)" }}>
+            Get Started
+          </div>
+
+          <h2 style={{ fontSize: "clamp(48px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "64px" }}>
+            Let's make something together.
+          </h2>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "32px", maxWidth: "900px", margin: "0 auto", textAlign: "left" }}>
+            <div style={{ padding: "32px", backgroundColor: "rgba(0,0,0,0.2)" }}>
+              <h3 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "20px" }}>Get In Touch</h3>
+              <p style={{ lineHeight: 1.8 }}>
+                <strong>Email</strong><br />
+                <a href="mailto:hello@oliverstreetcreative.com" style={{ color: "white", textDecoration: "underline", textUnderlineOffset: "4px" }}>
+                  hello@oliverstreetcreative.com
+                </a><br /><br />
+                <strong>Phone</strong><br />
+                <a href="tel:+18595121419" style={{ color: "white", textDecoration: "none" }}>
+                  (859) 512-1419
+                </a><br /><br />
+                <strong>Studio</strong><br />
+                521 Oliver St<br />
+                Covington, KY 41014
+              </p>
+            </div>
+
+            <div style={{ padding: "32px", backgroundColor: "rgba(0,0,0,0.2)" }}>
+              <h3 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "20px" }}>Ready to Start?</h3>
+              <p style={{ lineHeight: 1.8, marginBottom: "24px" }}>
+                Book a free consultation call to discuss your video production needs. We'll help you create content that moves hearts, builds trust, and closes deals.
+              </p>
+              <a
+                href="https://cal.com/oliverstreetcreative"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: "block", width: "100%", textAlign: "center", padding: "16px 40px", backgroundColor: "white", color: "#D13B2E", fontSize: "14px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", textDecoration: "none", transition: "opacity 0.2s" }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              >
+                Schedule Free Consultation
+              </a>
             </div>
           </div>
         </section>
-      </main>
 
-      {/* Footer */}
-      <footer className="py-8 sm:py-12" style={{ backgroundColor: "#0A0A08", borderTop: "1px solid #2A2A26" }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <p className="text-lg sm:text-xl font-bold mb-2" style={{ color: "var(--paper)" }}>Oliver Street Creative</p>
-            <p className="mb-4" style={{ color: "#9A9A95" }}>Professional Video Production in Covington, KY</p>
-            <div className="flex justify-center gap-6 mb-4">
-              <a
-                href="https://x.com/oliverstreet521"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 transition-colors"
-                style={{ color: "#9A9A95" }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--orange)")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "#9A9A95")}
-                aria-label="Follow us on Twitter"
-              >
-                <span className="text-sm">Twitter</span>
-              </a>
-              <a
-                href="https://www.instagram.com/oliverstreetcreative/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 transition-colors"
-                style={{ color: "#9A9A95" }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--orange)")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "#9A9A95")}
-                aria-label="Follow us on Instagram"
-              >
-                <span className="text-sm">Instagram</span>
-              </a>
-            </div>
-            <p className="text-sm" style={{ color: "#5A5A55" }}>© 2025 Oliver Street Creative. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+        {/* FOOTER */}
+        <footer style={{ backgroundColor: "#141412", padding: "48px 80px", fontSize: "13px", color: "#8A8A84", borderTop: "3px solid #E07830", display: "flex", justifyContent: "space-between" }}>
+          <div>© 2026 Oliver Street Creative</div>
+          <div>Covington, KY</div>
+        </footer>
+      </main>
     </div>
   )
 }
