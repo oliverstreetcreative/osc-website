@@ -480,7 +480,7 @@ export default function HomePage() {
             — Jordan Huizinga, VP of Development, Beech Acres
           </div>
 
-          <div style={{ width: "60px", height: "1px", backgroundColor: "rgba(20,20,18,0.2)", margin: "48px auto" }}></div>
+          <div style={{ height: "48px" }}></div>
 
           <div className="grid-2col-quotes" style={{ maxWidth: "800px", margin: "0 auto" }}>
             <div>
