@@ -14,9 +14,8 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const [logoOpacity, setLogoOpacity] = useState(1)
+  const [splashOpacity, setSplashOpacity] = useState(1)
   const filmCreditsRef = useRef<HTMLDivElement>(null)
-  const logoCardRef = useRef<HTMLDivElement>(null)
 
   // Rotate BTS photos in Why Us section
   useEffect(() => {
@@ -43,12 +42,21 @@ export default function HomePage() {
     fetchTMDBData()
   }, [])
 
-  // Auto-scroll animation for film credits (starts after logo card scrolls away)
+  // Splash logo fade on scroll
+  useEffect(() => {
+    const onScroll = () => {
+      const progress = Math.min(window.scrollY / (window.innerHeight * 0.6), 1)
+      setSplashOpacity(1 - progress)
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
+  // Auto-scroll animation for film credits
   useEffect(() => {
     if (filmCreditsRef.current && tmdbData) {
       const container = filmCreditsRef.current
-      let paused = true // Start paused — logo card is showing
-      let hasScrolledPastLogo = false
+      let paused = false
       let resumeTimer: ReturnType<typeof setTimeout> | null = null
 
       const pause = () => {
@@ -60,28 +68,10 @@ export default function HomePage() {
         resumeTimer = setTimeout(() => { paused = false }, delay)
       }
 
-      // Fade logo card based on scroll position
-      const onScroll = () => {
-        const logoWidth = logoCardRef.current?.offsetWidth || 300
-        const progress = Math.min(container.scrollLeft / logoWidth, 1)
-        setLogoOpacity(1 - progress)
-
-        // Once scrolled past logo, enable auto-scroll after a delay
-        if (!hasScrolledPastLogo && progress >= 0.9) {
-          hasScrolledPastLogo = true
-          scheduleResume(3000)
-        }
-      }
-
-      container.addEventListener("scroll", onScroll, { passive: true })
-
-      // Desktop: pause on hover
       const onMouseEnter = () => pause()
-      const onMouseLeave = () => { if (hasScrolledPastLogo) scheduleResume(500) }
-
-      // Mobile: pause on touch, resume 3s after finger lifts
+      const onMouseLeave = () => scheduleResume(500)
       const onTouchStart = () => pause()
-      const onTouchEnd = () => { if (hasScrolledPastLogo) scheduleResume(3000) }
+      const onTouchEnd = () => scheduleResume(3000)
 
       container.addEventListener("mouseenter", onMouseEnter)
       container.addEventListener("mouseleave", onMouseLeave)
@@ -105,7 +95,6 @@ export default function HomePage() {
       return () => {
         cancelAnimationFrame(animId)
         if (resumeTimer) clearTimeout(resumeTimer)
-        container.removeEventListener("scroll", onScroll)
         container.removeEventListener("mouseenter", onMouseEnter)
         container.removeEventListener("mouseleave", onMouseLeave)
         container.removeEventListener("touchstart", onTouchStart)
@@ -218,6 +207,31 @@ export default function HomePage() {
         <a href="#contact" onClick={handleNavClick}>Contact</a>
       </div>
 
+      {/* SPLASH — Full-screen logo, fades on scroll */}
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 110,
+          backgroundColor: "#141412",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          opacity: splashOpacity,
+          pointerEvents: splashOpacity < 0.05 ? "none" : "auto",
+        }}
+      >
+        <img
+          src="/logo.png"
+          alt="Oliver Street Creative"
+          style={{ width: "70%", maxWidth: "400px", height: "auto" }}
+          draggable={false}
+        />
+      </div>
+
+      {/* Spacer so hero starts below the splash viewport */}
+      <div style={{ height: "100vh" }} />
+
       <main>
         {/* HERO — INK */}
         <section id="hero" className="sp-hero" style={{ backgroundColor: "#141412" }}>
@@ -315,25 +329,6 @@ export default function HomePage() {
               className="flex gap-4 overflow-x-auto scrollbar-hide credits-px"
               style={{ touchAction: "pan-x", overflowY: "hidden", WebkitOverflowScrolling: "touch" }}
             >
-              {/* Logo intro card — fades as you scroll */}
-              <div
-                ref={logoCardRef}
-                className="flex-shrink-0 flex items-center justify-center credits-logo-card"
-                style={{
-                  aspectRatio: "2/3",
-                  opacity: logoOpacity,
-                  transition: "opacity 0.1s ease-out",
-                  pointerEvents: logoOpacity < 0.1 ? "none" : "auto",
-                }}
-              >
-                <img
-                  src="/logo-ink.svg"
-                  alt="Oliver Street Creative"
-                  style={{ width: "80%", maxWidth: "320px", height: "auto" }}
-                  draggable={false}
-                />
-              </div>
-
               {(() => {
                 const jobImportance: Record<string, number> = {
                   Director: 1,
