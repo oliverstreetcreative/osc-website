@@ -194,6 +194,12 @@ button:focus-visible {
   box-shadow: 0 16px 48px rgba(0,0,0,0.3);
 }
 
+/* Credits section vertical padding */
+.credits-section {
+  padding-top: 120px;
+  padding-bottom: 120px;
+}
+
 /* Credits horizontal scroll padding */
 .credits-px {
   padding-left: 80px;
@@ -263,6 +269,11 @@ button:focus-visible {
   /* Order: on mobile, show image first in Services */
   .grid-2col-img .img-responsive {
     order: -1;
+  }
+
+  .credits-section {
+    padding-top: 64px;
+    padding-bottom: 64px;
   }
 
   /* Credits scroll */

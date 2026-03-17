@@ -243,7 +243,7 @@ export default function HomePage() {
         </section>
 
         {/* FILM CREDITS — INK BREATHER */}
-        <section id="credits" style={{ backgroundColor: "#141412", color: "#F7F6F3", paddingTop: "120px", paddingBottom: "120px" }}>
+        <section id="credits" className="credits-section" style={{ backgroundColor: "#141412", color: "#F7F6F3" }}>
           <div className="credits-px">
             <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "#2E6B9C" }}>
               Film Credits
