@@ -87,3 +87,223 @@ button:focus-visible {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* ========================================
+   RESPONSIVE LAYOUT SYSTEM
+   ======================================== */
+
+/* Section padding */
+.sp {
+  padding: 120px 80px;
+}
+.sp-hero {
+  padding: 160px 80px 120px 80px;
+}
+
+/* Navigation */
+.nav-bar {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 100;
+  background-color: var(--ink);
+  border-bottom: 3px solid var(--orange);
+  height: 80px;
+  padding: 0 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.nav-links {
+  display: flex;
+  align-items: center;
+}
+.nav-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  color: var(--paper);
+}
+.mobile-menu {
+  display: none;
+  position: fixed;
+  top: 80px;
+  left: 0;
+  right: 0;
+  background: var(--ink);
+  flex-direction: column;
+  padding: 24px 20px;
+  border-bottom: 3px solid var(--orange);
+  z-index: 99;
+  gap: 0;
+}
+.mobile-menu.open {
+  display: flex;
+}
+.mobile-menu a {
+  padding: 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--quiet);
+  border-bottom: 1px solid rgba(138, 138, 132, 0.15);
+}
+.mobile-menu a:last-child {
+  border-bottom: none;
+}
+
+/* Grid: 2-col with image (Services, Why Us) */
+.grid-2col-img {
+  display: grid;
+  grid-template-columns: 1fr 520px;
+  gap: 64px;
+  align-items: center;
+}
+
+/* Grid: 3-col cards */
+.grid-3col {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+
+/* Grid: 2-col even (Contact, Testimonial quotes) */
+.grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+.grid-2col-quotes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  text-align: left;
+}
+
+/* Responsive image */
+.img-responsive {
+  width: 520px;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+}
+
+/* Credits horizontal scroll padding */
+.credits-px {
+  padding-left: 80px;
+  padding-right: 80px;
+}
+
+/* Footer */
+.footer-bar {
+  background-color: var(--ink);
+  padding: 48px 80px;
+  font-size: 13px;
+  color: var(--quiet);
+  border-top: 3px solid var(--orange);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ========================================
+   MOBILE BREAKPOINT (< 768px)
+   ======================================== */
+@media (max-width: 768px) {
+  .sp {
+    padding: 64px 20px;
+  }
+  .sp-hero {
+    padding: 100px 20px 48px 20px;
+  }
+
+  /* Nav */
+  .nav-bar {
+    height: 60px;
+    padding: 0 16px;
+  }
+  .nav-links {
+    display: none;
+  }
+  .nav-hamburger {
+    display: flex;
+  }
+  .mobile-menu {
+    top: 60px;
+  }
+
+  /* Grids → single column */
+  .grid-2col-img {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .grid-3col {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .grid-2col {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .grid-2col-quotes {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  /* Images fill width on mobile */
+  .img-responsive {
+    width: 100%;
+  }
+
+  /* Order: on mobile, show image first in Services */
+  .grid-2col-img .img-responsive {
+    order: -1;
+  }
+
+  /* Credits scroll */
+  .credits-px {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  /* Footer */
+  .footer-bar {
+    padding: 24px 20px;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* ========================================
+   TABLET BREAKPOINT (769px - 1024px)
+   ======================================== */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .sp {
+    padding: 80px 40px;
+  }
+  .sp-hero {
+    padding: 140px 40px 80px 40px;
+  }
+  .nav-bar {
+    padding: 0 32px;
+  }
+  .grid-2col-img {
+    grid-template-columns: 1fr 360px;
+    gap: 40px;
+  }
+  .img-responsive {
+    width: 360px;
+  }
+  .credits-px {
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+  .footer-bar {
+    padding: 40px;
+  }
+}

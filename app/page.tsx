@@ -12,6 +12,7 @@ export default function HomePage() {
   const [videoModalSrc, setVideoModalSrc] = useState<string | null>(null)
   const [tmdbData, setTmdbData] = useState<TMDBData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const filmCreditsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -69,6 +70,9 @@ export default function HomePage() {
     }
   }, [tmdbData])
 
+  // Close mobile menu on anchor click
+  const handleNavClick = () => setMobileMenuOpen(false)
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#141412", color: "#F7F6F3" }}>
       {/* Video Modal */}
@@ -82,7 +86,7 @@ export default function HomePage() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "40px",
+            padding: "20px",
           }}
           onClick={() => setVideoModalSrc(null)}
         >
@@ -116,62 +120,75 @@ export default function HomePage() {
       )}
 
       {/* Navigation */}
-      <nav style={{ position: "fixed", top: 0, width: "100%", zIndex: 100, backgroundColor: "#141412", borderBottom: "3px solid #E07830", height: "80px", padding: "0 48px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <nav className="nav-bar">
         <div style={{ fontWeight: 800, fontSize: "18px", letterSpacing: "0.05em", textTransform: "uppercase", color: "#F7F6F3" }}>
           Oliver Street <span style={{ color: "#E07830" }}>Creative</span>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <a
-            href="#services"
-            style={{ color: "#8A8A84", fontSize: "13px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", textDecoration: "none", marginLeft: "32px", transition: "color 0.2s" }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#F7F6F3")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#8A8A84")}
-          >
-            Work
-          </a>
-          <a
-            href="#credits"
-            style={{ color: "#8A8A84", fontSize: "13px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", textDecoration: "none", marginLeft: "32px", transition: "color 0.2s" }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#F7F6F3")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#8A8A84")}
-          >
-            Credits
-          </a>
-          <a
-            href="#portfolio"
-            style={{ color: "#8A8A84", fontSize: "13px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", textDecoration: "none", marginLeft: "32px", transition: "color 0.2s" }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#F7F6F3")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#8A8A84")}
-          >
-            Portfolio
-          </a>
-          <a
-            href="#contact"
-            style={{ color: "#8A8A84", fontSize: "13px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", textDecoration: "none", marginLeft: "32px", transition: "color 0.2s" }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#F7F6F3")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#8A8A84")}
-          >
-            Contact
-          </a>
+        {/* Desktop nav links */}
+        <div className="nav-links">
+          {[
+            { href: "#services", label: "Work" },
+            { href: "#credits", label: "Credits" },
+            { href: "#portfolio", label: "Portfolio" },
+            { href: "#contact", label: "Contact" },
+          ].map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              style={{ color: "#8A8A84", fontSize: "13px", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", textDecoration: "none", marginLeft: "32px", transition: "color 0.2s" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#F7F6F3")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#8A8A84")}
+            >
+              {link.label}
+            </a>
+          ))}
         </div>
+
+        {/* Mobile hamburger */}
+        <button
+          className="nav-hamburger"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          {mobileMenuOpen ? (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          ) : (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          )}
+        </button>
       </nav>
+
+      {/* Mobile menu overlay */}
+      <div className={`mobile-menu ${mobileMenuOpen ? "open" : ""}`}>
+        <a href="#services" onClick={handleNavClick}>Work</a>
+        <a href="#credits" onClick={handleNavClick}>Credits</a>
+        <a href="#portfolio" onClick={handleNavClick}>Portfolio</a>
+        <a href="#contact" onClick={handleNavClick}>Contact</a>
+      </div>
 
       <main>
         {/* HERO — INK */}
-        <section id="hero" style={{ backgroundColor: "#141412", padding: "160px 80px 120px 80px" }}>
+        <section id="hero" className="sp-hero" style={{ backgroundColor: "#141412" }}>
           <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "#8A8A84" }}>
             Covington, KY
           </div>
           
-          <h1 style={{ fontSize: "clamp(56px, 7vw, 96px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, color: "#F7F6F3", marginBottom: "40px", maxWidth: "900px" }}>
+          <h1 style={{ fontSize: "clamp(40px, 7vw, 96px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, color: "#F7F6F3", marginBottom: "40px", maxWidth: "900px" }}>
             Stories that move hearts, build trust, and{" "}
             <span style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontWeight: 400, color: "#E07830" }}>
               close deals.
             </span>
           </h1>
 
-          <div style={{ display: "flex", gap: "16px" }}>
+          <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
             <a
               href="https://cal.com/oliverstreetcreative"
               target="_blank"
@@ -200,14 +217,14 @@ export default function HomePage() {
         </section>
 
         {/* SERVICES — PURPLE BAND */}
-        <section id="services" style={{ backgroundColor: "#7B4D9E", color: "white", padding: "120px 80px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 520px", gap: "64px", alignItems: "center" }}>
+        <section id="services" className="sp" style={{ backgroundColor: "#7B4D9E", color: "white" }}>
+          <div className="grid-2col-img">
             <div>
               <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "rgba(255,255,255,0.5)" }}>
                 What We Do
               </div>
 
-              <h2 style={{ fontSize: "clamp(48px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px" }}>
+              <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px" }}>
                 We make strategic videos for businesses and non-profits
               </h2>
 
@@ -219,20 +236,20 @@ export default function HomePage() {
             <img
               src="/images/strategic-videos-hero-new.png"
               alt="Videographer with camera"
-              style={{ width: "520px", aspectRatio: "4/3", objectFit: "cover", boxShadow: "0 16px 48px rgba(0,0,0,0.3)" }}
+              className="img-responsive"
               loading="lazy"
             />
           </div>
         </section>
 
         {/* FILM CREDITS — INK BREATHER */}
-        <section id="credits" style={{ backgroundColor: "#141412", color: "#F7F6F3", padding: "120px 0" }}>
-          <div style={{ paddingLeft: "80px", paddingRight: "80px" }}>
+        <section id="credits" style={{ backgroundColor: "#141412", color: "#F7F6F3", paddingTop: "120px", paddingBottom: "120px" }}>
+          <div className="credits-px">
             <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "#2E6B9C" }}>
               Film Credits
             </div>
 
-            <h2 style={{ fontSize: "clamp(48px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px" }}>
+            <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px" }}>
               We've worked on a lot of movies.
             </h2>
 
@@ -251,12 +268,8 @@ export default function HomePage() {
           ) : tmdbData ? (
             <div
               ref={filmCreditsRef}
-              className="flex gap-4 overflow-x-auto scrollbar-hide"
-              style={{
-                paddingLeft: "80px",
-                paddingRight: "80px",
-                scrollBehavior: "smooth",
-              }}
+              className="flex gap-4 overflow-x-auto scrollbar-hide credits-px"
+              style={{ scrollBehavior: "smooth" }}
             >
               {(() => {
                 const jobImportance: Record<string, number> = {
@@ -359,13 +372,13 @@ export default function HomePage() {
           ) : null}
         </section>
 
-        {/* TESTIMONIALS — GOLD BAND (video + quotes together) */}
-        <section style={{ backgroundColor: "#F2C14E", color: "#141412", padding: "120px 80px", textAlign: "center" }}>
+        {/* TESTIMONIALS — GOLD BAND */}
+        <section className="sp" style={{ backgroundColor: "#F2C14E", color: "#141412", textAlign: "center" }}>
           <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", color: "rgba(20,20,18,0.4)" }}>
             Testimonials
           </div>
 
-          <h2 style={{ fontSize: "clamp(48px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px" }}>
+          <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px" }}>
             People like working with us.
           </h2>
 
@@ -383,7 +396,7 @@ export default function HomePage() {
             />
           </div>
 
-          <blockquote style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 400, lineHeight: 1.4, maxWidth: "800px", margin: "0 auto 24px auto" }}>
+          <blockquote style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontSize: "clamp(22px, 4vw, 44px)", fontWeight: 400, lineHeight: 1.4, maxWidth: "800px", margin: "0 auto 24px auto" }}>
             "The partnership with Oliver Street Creative was so valuable in understanding our goals and our values and the mission and impact that we wanted to communicate."
           </blockquote>
 
@@ -393,7 +406,7 @@ export default function HomePage() {
 
           <div style={{ width: "60px", height: "1px", backgroundColor: "rgba(20,20,18,0.2)", margin: "48px auto" }}></div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "48px", maxWidth: "800px", margin: "0 auto", textAlign: "left" }}>
+          <div className="grid-2col-quotes" style={{ maxWidth: "800px", margin: "0 auto" }}>
             <div>
               <div style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontSize: "20px", lineHeight: 1.5, marginBottom: "12px" }}>
                 "It comes down to content, creativity, creative editing, and storytelling. That's what separates the crowd from working with Oliver Street."
@@ -415,14 +428,14 @@ export default function HomePage() {
         </section>
 
         {/* WHY US — INK BREATHER */}
-        <section style={{ backgroundColor: "#141412", color: "#F7F6F3", padding: "120px 80px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 520px", gap: "64px", alignItems: "center" }}>
+        <section className="sp" style={{ backgroundColor: "#141412", color: "#F7F6F3" }}>
+          <div className="grid-2col-img">
             <div>
               <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "#E07830" }}>
                 Why Us
               </div>
 
-              <h2 style={{ fontSize: "clamp(48px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px" }}>
+              <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px" }}>
                 We are different than other companies.
               </h2>
 
@@ -434,12 +447,12 @@ export default function HomePage() {
             <img
               src="/IMG_5148.png"
               alt="Behind the scenes"
-              style={{ width: "520px", aspectRatio: "4/3", objectFit: "cover", boxShadow: "0 16px 48px rgba(0,0,0,0.3)" }}
+              className="img-responsive"
               loading="lazy"
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "32px", marginTop: "64px" }}>
+          <div className="grid-3col" style={{ marginTop: "64px" }}>
             {[
               {
                 number: "01",
@@ -473,12 +486,12 @@ export default function HomePage() {
         </section>
 
         {/* PORTFOLIO — GREEN BAND */}
-        <section id="portfolio" style={{ backgroundColor: "#3A8A5C", color: "white", padding: "120px 80px" }}>
+        <section id="portfolio" className="sp" style={{ backgroundColor: "#3A8A5C", color: "white" }}>
           <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", color: "rgba(255,255,255,0.5)" }}>
             Portfolio
           </div>
 
-          <h2 style={{ fontSize: "clamp(48px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px" }}>
+          <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px" }}>
             Check out our work.
           </h2>
 
@@ -486,7 +499,7 @@ export default function HomePage() {
             Here are a few of the stories we've had the privilege to tell.
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px" }}>
+          <div className="grid-3col" style={{ gap: "24px" }}>
             {[
               {
                 title: "Janell's Story",
@@ -558,16 +571,16 @@ export default function HomePage() {
         </section>
 
         {/* CONTACT — RED BAND */}
-        <section id="contact" style={{ backgroundColor: "#D13B2E", color: "white", padding: "120px 80px", textAlign: "center" }}>
+        <section id="contact" className="sp" style={{ backgroundColor: "#D13B2E", color: "white", textAlign: "center" }}>
           <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", color: "rgba(255,255,255,0.5)" }}>
             Get Started
           </div>
 
-          <h2 style={{ fontSize: "clamp(48px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "64px" }}>
+          <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "64px" }}>
             Let's make something together.
           </h2>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "32px", maxWidth: "900px", margin: "0 auto", textAlign: "left" }}>
+          <div className="grid-2col" style={{ maxWidth: "900px", margin: "0 auto", textAlign: "left" }}>
             <div style={{ padding: "32px", backgroundColor: "rgba(0,0,0,0.2)" }}>
               <h3 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "20px" }}>Get In Touch</h3>
               <p style={{ lineHeight: 1.8 }}>
@@ -605,7 +618,7 @@ export default function HomePage() {
         </section>
 
         {/* FOOTER */}
-        <footer style={{ backgroundColor: "#141412", padding: "48px 80px", fontSize: "13px", color: "#8A8A84", borderTop: "3px solid #E07830", display: "flex", justifyContent: "space-between" }}>
+        <footer className="footer-bar">
           <div>© 2026 Oliver Street Creative</div>
           <div>Covington, KY</div>
         </footer>
