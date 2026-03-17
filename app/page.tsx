@@ -231,9 +231,9 @@ export default function HomePage() {
           </div>
           
           <h1 style={{ fontSize: "clamp(40px, 7vw, 96px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, color: "#F7F6F3", marginBottom: "40px", maxWidth: "900px" }}>
-            Stories that move hearts, build trust, and{" "}
+            You've got a great story.{" "}
             <span style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontWeight: 400, color: "#E07830" }}>
-              close deals.
+              It's just not on camera yet.
             </span>
           </h1>
 
