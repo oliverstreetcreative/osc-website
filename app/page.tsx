@@ -13,17 +13,8 @@ export default function HomePage() {
   const [tmdbData, setTmdbData] = useState<TMDBData | null>(null)
   const [loading, setLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [splashOpacity, setSplashOpacity] = useState(1)
   const filmCreditsRef = useRef<HTMLDivElement>(null)
-
-  // Rotate BTS photos in Why Us section
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % 3)
-    }, 4000)
-    return () => clearInterval(interval)
-  }, [])
 
   useEffect(() => {
     const fetchTMDBData = async () => {
@@ -503,74 +494,116 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* WHY US — INK BREATHER */}
+        {/* COMPARISON CHART — INK BREATHER */}
         <section className="sp" style={{ backgroundColor: "#141412", color: "#F7F6F3" }}>
-          <div className="grid-2col-img">
-            <div>
-              <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "#E07830" }}>
-                Why Us
-              </div>
-
-              <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px" }}>
-                We are different than other companies.
-              </h2>
-
-              <div style={{ fontSize: "18px", fontWeight: 400, lineHeight: 1.7, maxWidth: "640px", color: "#8A8A84" }}>
-                We are a partner, not just a vendor.
-              </div>
+          <div style={{ textAlign: "center", marginBottom: "64px" }}>
+            <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "#E07830" }}>
+              Why Us
             </div>
 
-            <div className="img-responsive" style={{ position: "relative", overflow: "hidden" }}>
-              {["/IMG_5148.png", "/IMG_5111.jpeg", "/IMG_5114.jpeg"].map((src, index) => (
-                <img
-                  key={index}
-                  src={src}
-                  alt={`Behind the scenes ${index + 1}`}
-                  style={{
-                    position: index === 0 ? "relative" : "absolute",
-                    inset: 0,
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                    opacity: index === currentImageIndex ? 1 : 0,
-                    transition: "opacity 1s ease-in-out",
-                  }}
-                  loading={index === 0 ? "eager" : "lazy"}
-                />
-              ))}
+            <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "16px" }}>
+              Find the right fit.
+            </h2>
+
+            <p style={{ fontSize: "18px", lineHeight: 1.7, color: "#8A8A84" }}>
+              Not all video options are created equal.
+            </p>
+          </div>
+
+          {/* Comparison Table */}
+          <div className="comparison-table-wrap" style={{ maxWidth: "900px", margin: "0 auto" }}>
+            <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "600px" }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: "left", padding: "12px 16px", fontSize: "13px", fontWeight: 600, color: "#8A8A84", borderBottom: "1px solid rgba(138,138,132,0.2)" }}></th>
+                    {["DIY", "Freelancer", "In-House", "Agency", "Oliver Street"].map((col, i) => (
+                      <th
+                        key={col}
+                        style={{
+                          padding: "12px 8px",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.08em",
+                          textAlign: "center",
+                          borderBottom: "1px solid rgba(138,138,132,0.2)",
+                          color: i === 4 ? "#E07830" : "#8A8A84",
+                          backgroundColor: i === 4 ? "rgba(224,120,48,0.08)" : "transparent",
+                        }}
+                      >
+                        {col}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { feature: "Professional quality", checks: [false, true, false, true, true] },
+                    { feature: "Consistent availability", checks: [false, false, true, true, true] },
+                    { feature: "Strategic planning", checks: [false, false, false, true, true] },
+                    { feature: "Storytelling expertise", checks: [false, false, false, true, true] },
+                    { feature: "Owns all equipment", checks: [false, false, false, false, true] },
+                    { feature: "Hollywood experience", checks: [false, false, false, false, true] },
+                    { feature: "Full-service production", checks: [false, false, false, true, true] },
+                    { feature: "Fast turnaround", checks: [true, true, true, false, true] },
+                    { feature: "Flexible pricing", checks: [true, true, false, false, true] },
+                    { feature: "Aligned incentives", checks: [false, false, false, false, true] },
+                  ].map((row, rowIdx) => (
+                    <tr key={rowIdx}>
+                      <td style={{
+                        padding: "14px 16px",
+                        fontSize: "14px",
+                        fontWeight: 500,
+                        color: "#F7F6F3",
+                        borderBottom: "1px solid rgba(138,138,132,0.1)",
+                        whiteSpace: "nowrap",
+                      }}>
+                        {row.feature}
+                      </td>
+                      {row.checks.map((checked, colIdx) => (
+                        <td
+                          key={colIdx}
+                          style={{
+                            padding: "14px 8px",
+                            textAlign: "center",
+                            borderBottom: "1px solid rgba(138,138,132,0.1)",
+                            backgroundColor: colIdx === 4 ? "rgba(224,120,48,0.08)" : "transparent",
+                          }}
+                        >
+                          {checked ? (
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ display: "inline-block" }}>
+                              <circle cx="10" cy="10" r="10" fill="#E07830" />
+                              <path d="M6 10.5L8.5 13L14 7.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          ) : (
+                            <svg width="20" height="2" viewBox="0 0 20 2" style={{ display: "inline-block", opacity: 0.3 }}>
+                              <line x1="4" y1="1" x2="16" y2="1" stroke="#8A8A84" strokeWidth="1.5" strokeLinecap="round" />
+                            </svg>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          <div className="grid-3col" style={{ marginTop: "64px" }}>
-            {[
-              {
-                number: "01",
-                title: "We know what we're doing.",
-                description: "We love telling stories with cameras. We obsess over the big picture and the smallest details. We strive to make each story we tell not just memorable, but unforgettable.",
-              },
-              {
-                number: "02",
-                title: "We tell the truth.",
-                description: "Most video companies churn out inauthentic ads and sterile corporate content. We create stories that build trust. For developers, nonprofits, and founders, truth—not hype—closes deals.",
-              },
-              {
-                number: "03",
-                title: "We win when you win.",
-                description: "Owning our gear and managing every step gives us flexibility others can't match. We capture more, revise as needed, and pivot fast when plans change. We can even defer part of our compensation and tie it to your success—so when you win, we win together.",
-              },
-            ].map((item, idx) => (
-              <div key={idx} style={{ padding: "32px", backgroundColor: "#1A1A18" }}>
-                <div style={{ fontSize: "64px", fontWeight: 900, color: "rgba(247, 246, 243, 0.08)", lineHeight: 1, marginBottom: "12px" }}>
-                  {item.number}
-                </div>
-                <h3 style={{ fontSize: "20px", fontWeight: 800, marginBottom: "12px", color: "#F7F6F3" }}>
-                  {item.title}
-                </h3>
-                <p style={{ fontSize: "15px", lineHeight: 1.6, color: "#8A8A84" }}>
-                  {item.description}
-                </p>
-              </div>
-            ))}
+          {/* Tagline */}
+          <div style={{ textAlign: "center", marginTop: "64px" }}>
+            <p style={{
+              fontFamily: "'EB Garamond', Georgia, serif",
+              fontStyle: "italic",
+              fontSize: "clamp(20px, 3vw, 32px)",
+              fontWeight: 400,
+              lineHeight: 1.4,
+              color: "#F7F6F3",
+              maxWidth: "700px",
+              margin: "0 auto",
+            }}>
+              The quality of an agency. The feel of in-house. The price of a freelancer.
+            </p>
           </div>
         </section>
 
