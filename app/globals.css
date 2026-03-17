@@ -79,6 +79,18 @@ button:focus-visible {
   }
 }
 
+/* Logo intro card in credits carousel */
+.credits-logo-card {
+  width: calc(100vw - 160px);
+  min-width: 280px;
+  max-width: 600px;
+}
+@media (max-width: 768px) {
+  .credits-logo-card {
+    width: calc(100vw - 40px);
+  }
+}
+
 /* Film poster tap-to-reveal on mobile */
 .poster-card.tapped .poster-overlay {
   opacity: 1;

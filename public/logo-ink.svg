@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g transform="matrix(1.46961,0,0,1.40381,-23.3218,58.0646)">
+        <rect x="77.616" y="105.48" width="573.09" height="436.015" style="fill:#141412;"/>
+    </g>
+    <g transform="matrix(1.7074,0,0,1.43848,-59.2185,16.4579)">
+        <g transform="matrix(154.165,0,0,154.165,523.627,266.712)">
+        </g>
+        <text x="142.378px" y="266.712px" style="font-family:'BarlowCondensed-SemiBold', 'Barlow Condensed';font-weight:600;font-stretch:condensed;font-size:154.165px;fill:white;">OLIVER</text>
+    </g>
+    <g transform="matrix(1.08063,0,0,1.01192,93.765,-60.6306)">
+        <g transform="matrix(227.894,0,0,227.894,689.419,646.781)">
+        </g>
+        <text x="83.222px" y="646.781px" style="font-family:'BarlowCondensed-SemiBold', 'Barlow Condensed';font-weight:600;font-stretch:condensed;font-size:227.894px;fill:white;">S<tspan x="180.077px " y="646.781px ">T</tspan>REET</text>
+    </g>
+    <g transform="matrix(1.1399,0,0,1.13435,-71.3719,-73.4115)">
+        <rect x="159.207" y="622.775" width="704.874" height="144.009" style="fill:white;"/>
+    </g>
+    <g transform="matrix(1.13661,0,0,1,32.8455,3.44745)">
+        <text x="119.689px" y="780.901px" style="font-family:'Lobster-Regular', 'Lobster';font-size:191.251px;">C</text>
+        <g transform="matrix(191.251,0,0,191.251,649.807,780.901)">
+            <path d="M0.141,0.006C0.092,0.006 0.054,-0.007 0.027,-0.033C-0,-0.058 -0.014,-0.098 -0.014,-0.153C-0.014,-0.199 -0.005,-0.25 0.013,-0.305C0.031,-0.36 0.06,-0.408 0.101,-0.449C0.142,-0.489 0.193,-0.509 0.256,-0.509C0.329,-0.509 0.366,-0.477 0.366,-0.413C0.366,-0.376 0.355,-0.341 0.334,-0.31C0.313,-0.279 0.284,-0.254 0.249,-0.235C0.214,-0.216 0.176,-0.205 0.136,-0.202C0.135,-0.187 0.134,-0.177 0.134,-0.172C0.134,-0.117 0.155,-0.089 0.196,-0.089C0.215,-0.089 0.235,-0.094 0.256,-0.104C0.277,-0.114 0.297,-0.127 0.314,-0.142C0.296,-0.043 0.238,0.006 0.141,0.006ZM0.143,-0.25C0.168,-0.251 0.192,-0.259 0.215,-0.275C0.237,-0.291 0.255,-0.312 0.269,-0.337C0.282,-0.362 0.289,-0.388 0.289,-0.415C0.289,-0.442 0.281,-0.456 0.264,-0.456C0.241,-0.456 0.218,-0.435 0.195,-0.393C0.171,-0.35 0.154,-0.303 0.143,-0.25Z" style="fill-rule:nonzero;"/>
+        </g>
+        <g transform="matrix(191.251,0,0,191.251,649.807,780.901)">
+        </g>
+        <g transform="matrix(191.251,0,0,191.251,719.804,780.901)">
+        </g>
+        <text x="222.552px" y="780.901px" style="font-family:'Lobster-Regular', 'Lobster';font-size:191.251px;">reativ</text>
+    </g>
+</svg>
