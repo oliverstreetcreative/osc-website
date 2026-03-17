@@ -462,7 +462,7 @@ export default function HomePage() {
             Don't just take our word for it—hear from the founders, nonprofits, and developers we've helped tell their stories.
           </p>
 
-          <div style={{ maxWidth: "800px", margin: "0 auto 64px auto", aspectRatio: "16/9", boxShadow: "0 20px 60px rgba(0,0,0,0.25)", backgroundColor: "#000" }}>
+          <div style={{ maxWidth: "800px", margin: "0 auto 64px auto", aspectRatio: "16/9", backgroundColor: "#000" }}>
             <iframe
               src="https://player.mux.com/4YKpfx6WR7jjcdOfh2LcZfflSqwvz2k52TMNUcXbA28?accent-color=%23E07830"
               className="w-full h-full border-0"
