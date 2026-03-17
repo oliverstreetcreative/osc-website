@@ -502,11 +502,11 @@ export default function HomePage() {
             </div>
 
             <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "16px" }}>
-              Find the right fit.
+              You have options.
             </h2>
 
             <p style={{ fontSize: "18px", lineHeight: 1.7, color: "#8A8A84" }}>
-              Not all video options are created equal.
+              Only one checks every box.
             </p>
           </div>
 
@@ -600,7 +600,7 @@ export default function HomePage() {
               lineHeight: 1.4,
               color: "#8A8A84",
             }}>
-              The quality of an agency. The feel of in-house. The price of a freelancer.
+              Agency polish. In-house trust. Freelancer pricing.
             </p>
           </div>
         </section>
