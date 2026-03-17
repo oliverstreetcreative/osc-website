@@ -152,9 +152,9 @@ export default function HomePage() {
         {/* Desktop nav links */}
         <div className="nav-links">
           {[
-            { href: "#services", label: "Work" },
-            { href: "#credits", label: "Credits" },
-            { href: "#portfolio", label: "Portfolio" },
+            { href: "#services", label: "Services" },
+            { href: "#portfolio", label: "Work" },
+            { href: "#about", label: "About" },
             { href: "#contact", label: "Contact" },
           ].map((link) => (
             <a
@@ -192,9 +192,9 @@ export default function HomePage() {
 
       {/* Mobile menu overlay */}
       <div className={`mobile-menu ${mobileMenuOpen ? "open" : ""}`}>
-        <a href="#services" onClick={handleNavClick}>Work</a>
-        <a href="#credits" onClick={handleNavClick}>Credits</a>
-        <a href="#portfolio" onClick={handleNavClick}>Portfolio</a>
+        <a href="#services" onClick={handleNavClick}>Services</a>
+        <a href="#portfolio" onClick={handleNavClick}>Work</a>
+        <a href="#about" onClick={handleNavClick}>About</a>
         <a href="#contact" onClick={handleNavClick}>Contact</a>
       </div>
 
@@ -495,7 +495,7 @@ export default function HomePage() {
         </section>
 
         {/* COMPARISON CHART — INK BREATHER */}
-        <section className="sp" style={{ backgroundColor: "#141412", color: "#F7F6F3" }}>
+        <section id="about" className="sp" style={{ backgroundColor: "#141412", color: "#F7F6F3" }}>
           <div style={{ textAlign: "center", marginBottom: "64px" }}>
             <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "#E07830" }}>
               Why Us
