@@ -13,7 +13,16 @@ export default function HomePage() {
   const [tmdbData, setTmdbData] = useState<TMDBData | null>(null)
   const [loading, setLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const filmCreditsRef = useRef<HTMLDivElement>(null)
+
+  // Rotate BTS photos in Why Us section
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % 3)
+    }, 4000)
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     const fetchTMDBData = async () => {
@@ -444,12 +453,25 @@ export default function HomePage() {
               </div>
             </div>
 
-            <img
-              src="/IMG_5148.png"
-              alt="Behind the scenes"
-              className="img-responsive"
-              loading="lazy"
-            />
+            <div className="img-responsive" style={{ position: "relative", overflow: "hidden" }}>
+              {["/IMG_5148.png", "/IMG_5111.jpeg", "/IMG_5114.jpeg"].map((src, index) => (
+                <img
+                  key={index}
+                  src={src}
+                  alt={`Behind the scenes ${index + 1}`}
+                  style={{
+                    position: index === 0 ? "relative" : "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    opacity: index === currentImageIndex ? 1 : 0,
+                    transition: "opacity 1s ease-in-out",
+                  }}
+                  loading={index === 0 ? "eager" : "lazy"}
+                />
+              ))}
+            </div>
           </div>
 
           <div className="grid-3col" style={{ marginTop: "64px" }}>
