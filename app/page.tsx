@@ -367,7 +367,24 @@ export default function HomePage() {
                     return 0
                   })
                   .map((credit: any) => (
-                    <div key={`${credit.type}-${credit.id}`} className="flex-shrink-0 group relative">
+                    <a
+                      key={`${credit.type}-${credit.id}`}
+                      href={`https://www.themoviedb.org/${credit.type}/${credit.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-shrink-0 group relative poster-card"
+                      style={{ textDecoration: "none" }}
+                      onClick={(e) => {
+                        // On mobile, first tap shows overlay; second tap follows link
+                        const el = e.currentTarget
+                        if (!el.classList.contains("tapped")) {
+                          e.preventDefault()
+                          // Remove tapped from all siblings
+                          el.parentElement?.querySelectorAll(".tapped").forEach((s) => s.classList.remove("tapped"))
+                          el.classList.add("tapped")
+                        }
+                      }}
+                    >
                       <div style={{ width: "140px", aspectRatio: "2/3", overflow: "hidden", backgroundColor: "#262622", boxShadow: "0 8px 24px rgba(0,0,0,0.3)" }}>
                         {credit.poster_path ? (
                           <img
@@ -375,6 +392,7 @@ export default function HomePage() {
                             alt={credit.title}
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                             loading="lazy"
+                            draggable={false}
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center p-4">
@@ -382,7 +400,7 @@ export default function HomePage() {
                           </div>
                         )}
 
-                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center items-center p-4 text-center" style={{ backgroundColor: "rgba(20, 20, 18, 0.95)" }}>
+                        <div className="poster-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center items-center p-4 text-center" style={{ backgroundColor: "rgba(20, 20, 18, 0.95)" }}>
                           <h3 style={{ fontSize: "14px", fontWeight: 700, textTransform: "uppercase", marginBottom: "4px", color: "#F7F6F3" }}>{credit.title}</h3>
                           {credit.year && <p style={{ fontSize: "12px", marginBottom: "8px", color: "#8A8A84" }}>({credit.year})</p>}
                           <div style={{ fontSize: "12px", fontWeight: 500, color: "#E07830" }}>
@@ -390,7 +408,7 @@ export default function HomePage() {
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </a>
                   ))
               })()}
             </div>

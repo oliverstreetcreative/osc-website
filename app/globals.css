@@ -79,6 +79,11 @@ button:focus-visible {
   }
 }
 
+/* Film poster tap-to-reveal on mobile */
+.poster-card.tapped .poster-overlay {
+  opacity: 1;
+}
+
 /* Hide scrollbar for horizontal scrolling filmography */
 .scrollbar-hide {
   -ms-overflow-style: none;
