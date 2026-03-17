@@ -45,36 +45,52 @@ export default function HomePage() {
   useEffect(() => {
     if (filmCreditsRef.current && tmdbData) {
       const container = filmCreditsRef.current
-      let isHovered = false
-      let isTouching = false
+      let paused = false
+      let resumeTimer: ReturnType<typeof setTimeout> | null = null
 
-      const handleMouseEnter = () => { isHovered = true }
-      const handleMouseLeave = () => { isHovered = false }
-      const handleTouchStart = () => { isTouching = true }
-      const handleTouchEnd = () => { setTimeout(() => { isTouching = false }, 1000) }
+      const pause = () => {
+        paused = true
+        if (resumeTimer) clearTimeout(resumeTimer)
+      }
+      const scheduleResume = (delay: number) => {
+        if (resumeTimer) clearTimeout(resumeTimer)
+        resumeTimer = setTimeout(() => { paused = false }, delay)
+      }
 
-      container.addEventListener("mouseenter", handleMouseEnter)
-      container.addEventListener("mouseleave", handleMouseLeave)
-      container.addEventListener("touchstart", handleTouchStart, { passive: true })
-      container.addEventListener("touchend", handleTouchEnd, { passive: true })
+      // Desktop: pause on hover
+      const onMouseEnter = () => pause()
+      const onMouseLeave = () => scheduleResume(500)
 
-      const interval = setInterval(() => {
-        if (!isHovered && !isTouching && container) {
+      // Mobile: pause on touch, resume 3s after finger lifts
+      const onTouchStart = () => pause()
+      const onTouchEnd = () => scheduleResume(3000)
+
+      container.addEventListener("mouseenter", onMouseEnter)
+      container.addEventListener("mouseleave", onMouseLeave)
+      container.addEventListener("touchstart", onTouchStart, { passive: true })
+      container.addEventListener("touchend", onTouchEnd, { passive: true })
+
+      let animId: number
+      const step = () => {
+        if (!paused && container) {
           const maxScroll = container.scrollWidth - container.clientWidth
           if (container.scrollLeft >= maxScroll) {
             container.scrollLeft = 0
           } else {
-            container.scrollLeft += 2
+            container.scrollLeft += 1
           }
         }
-      }, 32)
+        animId = requestAnimationFrame(step)
+      }
+      animId = requestAnimationFrame(step)
 
       return () => {
-        clearInterval(interval)
-        container.removeEventListener("mouseenter", handleMouseEnter)
-        container.removeEventListener("mouseleave", handleMouseLeave)
-        container.removeEventListener("touchstart", handleTouchStart)
-        container.removeEventListener("touchend", handleTouchEnd)
+        cancelAnimationFrame(animId)
+        if (resumeTimer) clearTimeout(resumeTimer)
+        container.removeEventListener("mouseenter", onMouseEnter)
+        container.removeEventListener("mouseleave", onMouseLeave)
+        container.removeEventListener("touchstart", onTouchStart)
+        container.removeEventListener("touchend", onTouchEnd)
       }
     }
   }, [tmdbData])
@@ -278,7 +294,7 @@ export default function HomePage() {
             <div
               ref={filmCreditsRef}
               className="flex gap-4 overflow-x-auto scrollbar-hide credits-px"
-              style={{ scrollBehavior: "smooth" }}
+              style={{ touchAction: "pan-x", overflowY: "hidden", WebkitOverflowScrolling: "touch" }}
             >
               {(() => {
                 const jobImportance: Record<string, number> = {
