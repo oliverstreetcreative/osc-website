@@ -622,22 +622,22 @@ export default function HomePage() {
           <div className="grid-3col" style={{ gap: "24px" }}>
             {[
               {
-                title: "Janell's Story",
-                client: "Beech Acres, Love Grows Here Event 2024",
-                embedSrc: "https://player.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co?accent-color=%23E07830",
-                thumbnail: "https://image.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co/thumbnail.jpg?time=10",
-              },
-              {
                 title: "Phoenix's Story",
                 client: "Learning Grove, Gala Event 2025",
                 embedSrc: "https://player.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM",
-                thumbnail: "https://image.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM/thumbnail.jpg?time=10",
+                thumbnail: "https://image.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM/thumbnail.png?width=214&height=121&time=147",
               },
               {
                 title: "2025 End-of-Year Report",
                 client: "Boone County Prosecutors' Office",
                 embedSrc: "https://player.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8",
-                thumbnail: "https://image.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8/thumbnail.jpg?time=11",
+                thumbnail: "https://image.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8/thumbnail.png?width=214&height=121&time=104",
+              },
+              {
+                title: "Janell's Story",
+                client: "Beech Acres, Love Grows Here Event 2024",
+                embedSrc: "https://player.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co?accent-color=%23E07830",
+                thumbnail: "https://image.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co/thumbnail.png?width=214&height=121&time=238",
               },
             ].map((item, idx) => (
               <div key={idx} style={{ backgroundColor: "rgba(0,0,0,0.2)", overflow: "hidden", cursor: "pointer" }} onClick={() => setVideoModalSrc(item.embedSrc)}>
