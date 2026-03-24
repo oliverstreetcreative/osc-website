@@ -45,20 +45,21 @@ export default function HomePage() {
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
-  // Scroll indicator: fade in after 2.5s, fade out after 50px scroll
+  // Scroll indicator: fade in after delay, fade out on scroll
   useEffect(() => {
-    const fadeInTimer = setTimeout(() => setScrollIndicatorVisible(true), 2500)
+    const fadeInTimer = setTimeout(() => setScrollIndicatorVisible(true), 1500)
+    return () => clearTimeout(fadeInTimer)
+  }, [])
+
+  useEffect(() => {
     const onScroll = () => {
-      if (window.scrollY > 50 && !scrollIndicatorFaded) {
+      if (window.scrollY > 80) {
         setScrollIndicatorFaded(true)
       }
     }
     window.addEventListener("scroll", onScroll, { passive: true })
-    return () => {
-      clearTimeout(fadeInTimer)
-      window.removeEventListener("scroll", onScroll)
-    }
-  }, [scrollIndicatorFaded])
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
 
   // Auto-scroll animation for film credits
   useEffect(() => {
@@ -253,7 +254,7 @@ export default function HomePage() {
             border: "none",
             cursor: "pointer",
             padding: "8px",
-            opacity: scrollIndicatorVisible && !scrollIndicatorFaded ? 0.45 : 0,
+            opacity: scrollIndicatorVisible && !scrollIndicatorFaded ? 0.6 : 0,
             transition: "opacity 0.6s ease",
             pointerEvents: scrollIndicatorVisible && !scrollIndicatorFaded ? "auto" : "none",
             animation: scrollIndicatorVisible && !scrollIndicatorFaded ? "scrollBounce 2.4s ease-in-out infinite" : "none",
