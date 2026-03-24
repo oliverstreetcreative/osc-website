@@ -176,10 +176,12 @@ export default function HomePage() {
         {/* Desktop nav links */}
         <div className="nav-links">
           {[
-            { href: "#services", label: "Services" },
-            { href: "#portfolio", label: "Work" },
-            { href: "#about", label: "About" },
-            { href: "#contact", label: "Contact" },
+            { href: "#services", label: "What We Do" },
+            { href: "#credits", label: "Film Credits" },
+            { href: "#testimonials", label: "Testimonials" },
+            { href: "#why-us", label: "Why Us" },
+            { href: "#portfolio", label: "Portfolio" },
+            { href: "#contact", label: "Get Started" },
           ].map((link) => (
             <a
               key={link.href}
@@ -216,10 +218,12 @@ export default function HomePage() {
 
       {/* Mobile menu overlay */}
       <div className={`mobile-menu ${mobileMenuOpen ? "open" : ""}`}>
-        <a href="#services" onClick={handleNavClick}>Services</a>
-        <a href="#portfolio" onClick={handleNavClick}>Work</a>
-        <a href="#about" onClick={handleNavClick}>About</a>
-        <a href="#contact" onClick={handleNavClick}>Contact</a>
+        <a href="#services" onClick={handleNavClick}>What We Do</a>
+        <a href="#credits" onClick={handleNavClick}>Film Credits</a>
+        <a href="#testimonials" onClick={handleNavClick}>Testimonials</a>
+        <a href="#why-us" onClick={handleNavClick}>Why Us</a>
+        <a href="#portfolio" onClick={handleNavClick}>Portfolio</a>
+        <a href="#contact" onClick={handleNavClick}>Get Started</a>
       </div>
 
       {/* SPLASH — Cinematic title card: fades in, holds, dissolves */}
@@ -308,7 +312,7 @@ export default function HomePage() {
               <div className="services-label">WHAT WE DO</div>
               <h2 className="services-heading">Video Production That Gets Results</h2>
               <p className="services-body">
-                With our own gear and hands-on management, we are full-service from concept to delivery. We bring speed, flexibility, and higher production value—crafting video stories that move both your audience and your bottom line.
+                With our own gear and hands-on management, we are full-service production company from concept to delivery. We bring speed, flexibility, and higher production value—crafting video stories that move both your audience and your bottom line.
               </p>
             </div>
             <img
@@ -469,7 +473,7 @@ export default function HomePage() {
         </section>
 
         {/* TESTIMONIALS — GOLD BAND */}
-        <section className="sp" style={{ backgroundColor: "#F2C14E", color: "#141412", textAlign: "center" }}>
+        <section id="testimonials" className="sp" style={{ backgroundColor: "#F2C14E", color: "#141412", textAlign: "center" }}>
           <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", color: "rgba(20,20,18,0.4)" }}>
             Testimonials
           </div>
@@ -587,7 +591,7 @@ export default function HomePage() {
         </section>
 
         {/* COMPARISON CHART — INK BREATHER */}
-        <section id="about" className="sp" style={{ backgroundColor: "#141412", color: "#F7F6F3" }}>
+        <section id="why-us" className="sp" style={{ backgroundColor: "#141412", color: "#F7F6F3" }}>
           <div style={{ textAlign: "center", marginBottom: "64px" }}>
             <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "#E07830" }}>
               Why Us
