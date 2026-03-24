@@ -18,7 +18,7 @@ const ebGaramond = EB_Garamond({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://staging.oliverstreetcreative.com"),
+  metadataBase: new URL("https://oliverstreetcreative.com"),
   title: "Oliver Street Creative | Brand Story Video Production | Cincinnati & Northern Kentucky",
   description:
     "Full-service video production in Covington, KY serving Greater Cincinnati. Strategic brand stories for businesses and nonprofits — concept to delivery.",
