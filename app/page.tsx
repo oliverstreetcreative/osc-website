@@ -369,7 +369,7 @@ export default function HomePage() {
           <div className="services-grid">
             <div className="services-text">
               <div className="services-label">WHAT WE DO</div>
-              <h2 className="services-heading">Video Production That Gets Results</h2>
+              <h2 className="services-heading">Video that gets results.</h2>
               <p className="services-body">
                 With our own gear and hands-on management, we are full-service from concept to delivery. We bring speed, flexibility, and higher production value—crafting video stories that move both your audience and your bottom line.
               </p>
@@ -391,7 +391,7 @@ export default function HomePage() {
             </div>
 
             <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px", margin: "0 auto 32px auto" }}>
-              Film Industry Experience Behind Every Project
+              We've worked on a lot of movies.
             </h2>
 
             <div style={{ fontSize: "18px", fontWeight: 400, lineHeight: 1.7, maxWidth: "640px", color: "#8A8A84", marginBottom: "48px", margin: "0 auto 48px auto" }}>
@@ -538,7 +538,7 @@ export default function HomePage() {
           </div>
 
           <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px" }}>
-            Trusted by Nonprofits, Businesses &amp; Government Leaders
+            People like working with us.
           </h2>
 
           <p style={{ fontSize: "18px", lineHeight: 1.7, maxWidth: "800px", margin: "0 auto 64px auto" }}>
@@ -657,7 +657,7 @@ export default function HomePage() {
             </div>
 
             <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "16px" }}>
-              Why Choose Oliver Street Creative?
+              Why choose us?
             </h2>
 
             <p style={{ fontSize: "18px", lineHeight: 1.7, color: "#8A8A84" }}>
@@ -768,7 +768,7 @@ export default function HomePage() {
             </div>
 
             <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px", margin: "0 auto 32px auto" }}>
-              Our Video Production Portfolio
+              Check out our work.
             </h2>
 
             <div style={{ fontSize: "18px", lineHeight: 1.7, maxWidth: "640px", color: "rgba(255,255,255,0.75)", marginBottom: "64px", margin: "0 auto 64px auto" }}>
@@ -876,7 +876,7 @@ export default function HomePage() {
           </div>
 
           <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "64px" }}>
-            Start Your Video Project Today
+            Let's make something together.
           </h2>
 
           <div className="grid-2col" style={{ maxWidth: "900px", margin: "0 auto", textAlign: "left" }}>
