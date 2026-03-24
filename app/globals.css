@@ -119,6 +119,20 @@ button:focus-visible {
 }
 
 /* ========================================
+   HERO CENTERING
+   ======================================== */
+.sp-hero {
+  text-align: center;
+}
+#hero h1 {
+  margin-left: auto;
+  margin-right: auto;
+}
+.hero-buttons {
+  justify-content: center;
+}
+
+/* ========================================
    RESPONSIVE LAYOUT SYSTEM
    ======================================== */
 
@@ -357,6 +371,14 @@ button:focus-visible {
   /* Portfolio card text stays left-aligned */
   .grid-3col > div > div:last-child {
     text-align: left;
+  }
+
+  /* Client logos inline on mobile — never stack */
+  .video-title-row {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
   }
 }
 

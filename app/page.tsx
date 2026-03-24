@@ -313,19 +313,19 @@ export default function HomePage() {
 
         {/* SERVICES — PURPLE BAND */}
         <section id="services" className="sp" style={{ backgroundColor: "#7B4D9E", color: "white" }}>
+          <div className="section-header" style={{ marginBottom: "64px" }}>
+            <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "rgba(255,255,255,0.5)" }}>
+              What We Do
+            </div>
+
+            <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px", margin: "0 auto 32px auto" }}>
+              We make strategic videos for businesses and non-profits
+            </h2>
+          </div>
+
           <div className="grid-2col-img">
-            <div>
-              <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "rgba(255,255,255,0.5)", textAlign: "center" }}>
-                What We Do
-              </div>
-
-              <h2 className="mobile-center-block" style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px", textAlign: "center", margin: "0 auto 32px auto" }}>
-                We make strategic videos for businesses and non-profits
-              </h2>
-
-              <div className="mobile-center-block" style={{ fontSize: "18px", fontWeight: 400, lineHeight: 1.7, maxWidth: "640px", color: "rgba(255,255,255,0.75)", textAlign: "center", margin: "0 auto" }}>
-                With our own gear and hands-on management, we are full-service from concept to delivery. We bring speed, flexibility, and higher production value—crafting video stories that move both your audience and your bottom line.
-              </div>
+            <div className="mobile-center-block" style={{ fontSize: "18px", fontWeight: 400, lineHeight: 1.7, maxWidth: "640px", color: "rgba(255,255,255,0.75)" }}>
+              With our own gear and hands-on management, we are full-service from concept to delivery. We bring speed, flexibility, and higher production value—crafting video stories that move both your audience and your bottom line.
             </div>
 
             <img
