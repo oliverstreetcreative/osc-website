@@ -47,7 +47,7 @@ export default function HomePage() {
 
   // Scroll indicator: fade in after delay, fade out on scroll
   useEffect(() => {
-    const fadeInTimer = setTimeout(() => setScrollIndicatorVisible(true), 1500)
+    const fadeInTimer = setTimeout(() => setScrollIndicatorVisible(true), 2000)
     return () => clearTimeout(fadeInTimer)
   }, [])
 
@@ -255,7 +255,7 @@ export default function HomePage() {
             cursor: "pointer",
             padding: "8px",
             opacity: scrollIndicatorVisible && !scrollIndicatorFaded ? 0.6 : 0,
-            transition: "opacity 0.6s ease",
+            transition: "opacity 0.6s ease-out",
             pointerEvents: scrollIndicatorVisible && !scrollIndicatorFaded ? "auto" : "none",
             animation: scrollIndicatorVisible && !scrollIndicatorFaded ? "scrollBounce 2.4s ease-in-out infinite" : "none",
           }}
