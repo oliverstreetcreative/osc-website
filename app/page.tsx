@@ -40,20 +40,21 @@ export default function HomePage() {
 
   // Cinematic splash sequence: title card → fade to black → scene fades in
   // Interruptible: any scroll/swipe during the sequence triggers a graceful skip
+  // Total: ~4.5s (logo fade-in 1.7s + pause 0.9s + logo fade-out 0.8s + beat 0.3s + site fade-in 0.9s)
   useEffect(() => {
     const timers = splashTimersRef.current
 
-    // Step 1: Logo fades in + floats up (2.2s)
+    // Step 1: Logo fades in + floats up (1.7s)
     timers.push(setTimeout(() => setLogoFadedIn(true), 50))
 
-    // Step 2: Pause to breathe (~1.3s after logo animation completes)
-    timers.push(setTimeout(() => setLogoFadedOut(true), 3550))
+    // Step 2: Pause to breathe (~0.9s after logo animation completes at ~1750ms)
+    timers.push(setTimeout(() => setLogoFadedOut(true), 2650))
 
-    // Step 3: After logo fades to black + black beat, fade splash overlay out
-    timers.push(setTimeout(() => setSplashOpacity(0), 5050))
+    // Step 3: After logo fades to black (0.8s) + black beat (0.3s), fade splash overlay out
+    timers.push(setTimeout(() => setSplashOpacity(0), 3750))
 
-    // Step 4: After splash fade-out transition (1.2s), remove from DOM
-    timers.push(setTimeout(() => setSplashVisible(false), 6250))
+    // Step 4: After splash fade-out transition (0.9s), remove from DOM
+    timers.push(setTimeout(() => setSplashVisible(false), 4650))
 
     return () => {
       timers.forEach(clearTimeout)
@@ -61,7 +62,8 @@ export default function HomePage() {
     }
   }, [])
 
-  // Scroll-to-skip: any scroll gesture during splash triggers graceful fade-out
+  // Scroll-to-skip: any scroll/wheel/touch/key gesture during splash triggers graceful fade-out
+  // Uses document-level capture listeners so the fixed overlay can't block detection
   useEffect(() => {
     if (!splashVisible) return
 
@@ -81,27 +83,37 @@ export default function HomePage() {
       setTimeout(() => setSplashOpacity(0), 100)
 
       // Remove from DOM after the fade completes
-      setTimeout(() => setSplashVisible(false), 1000)
+      setTimeout(() => setSplashVisible(false), 900)
     }
 
-    // Capture scroll on window — wheel, touch, and keyboard
-    const onWheel = (e: WheelEvent) => skipSplash()
-    const onTouchMove = (e: TouchEvent) => skipSplash()
+    // Use document-level capture phase listeners — these fire regardless of
+    // whether the fixed overlay is intercepting events or body has overflow:hidden
+    const onWheel = () => skipSplash()
+    const onTouchStart = () => skipSplash()
+    const onTouchMove = () => skipSplash()
     const onKeyDown = (e: KeyboardEvent) => {
-      // Arrow keys, space, page down — common scroll gestures
-      if (["ArrowDown", "ArrowUp", "Space", "PageDown", "PageUp", "Home", "End"].includes(e.code)) {
+      // Arrow keys, space, page down, escape — common scroll/dismiss gestures
+      if (["ArrowDown", "ArrowUp", "Space", "PageDown", "PageUp", "Home", "End", "Escape"].includes(e.code)) {
         skipSplash()
       }
     }
+    // Click/tap anywhere on the splash also skips
+    const onClick = () => skipSplash()
 
-    window.addEventListener("wheel", onWheel, { passive: true })
-    window.addEventListener("touchmove", onTouchMove, { passive: true })
-    window.addEventListener("keydown", onKeyDown)
+    document.addEventListener("wheel", onWheel, { capture: true, passive: true })
+    document.addEventListener("touchstart", onTouchStart, { capture: true, passive: true })
+    document.addEventListener("touchmove", onTouchMove, { capture: true, passive: true })
+    document.addEventListener("keydown", onKeyDown, { capture: true })
+    document.addEventListener("click", onClick, { capture: true })
+    document.addEventListener("pointerdown", onClick, { capture: true })
 
     return () => {
-      window.removeEventListener("wheel", onWheel)
-      window.removeEventListener("touchmove", onTouchMove)
-      window.removeEventListener("keydown", onKeyDown)
+      document.removeEventListener("wheel", onWheel, { capture: true })
+      document.removeEventListener("touchstart", onTouchStart, { capture: true })
+      document.removeEventListener("touchmove", onTouchMove, { capture: true })
+      document.removeEventListener("keydown", onKeyDown, { capture: true })
+      document.removeEventListener("click", onClick, { capture: true })
+      document.removeEventListener("pointerdown", onClick, { capture: true })
     }
   }, [splashVisible])
 
@@ -291,7 +303,7 @@ export default function HomePage() {
             alignItems: "center",
             justifyContent: "center",
             opacity: splashOpacity,
-            transition: splashSkippedRef.current ? "opacity 0.8s ease-in-out" : "opacity 1.2s ease-in-out",
+            transition: splashSkippedRef.current ? "opacity 0.8s ease-in-out" : "opacity 0.9s ease-in-out",
             pointerEvents: splashOpacity < 0.05 ? "none" : "auto",
           }}
         >
@@ -305,8 +317,8 @@ export default function HomePage() {
               opacity: logoFadedOut ? 0 : logoFadedIn ? 1 : 0,
               transform: logoFadedIn ? "translateY(0)" : "translateY(25px)",
               transition: logoFadedOut
-                ? (splashSkippedRef.current ? "opacity 0.4s ease-in-out" : "opacity 1.1s ease-in-out")
-                : "opacity 2.2s ease-in-out, transform 2.2s ease-in-out",
+                ? (splashSkippedRef.current ? "opacity 0.4s ease-in-out" : "opacity 0.8s ease-in-out")
+                : "opacity 1.7s ease-in-out, transform 1.7s ease-in-out",
             }}
             draggable={false}
           />
