@@ -15,6 +15,7 @@ export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [logoFadedIn, setLogoFadedIn] = useState(false)
   const [logoFadedOut, setLogoFadedOut] = useState(false)
+  const [splashFading, setSplashFading] = useState(false)
   const [splashDone, setSplashDone] = useState(false)
   const splashTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const splashDismissedRef = useRef(false)
@@ -38,12 +39,15 @@ export default function HomePage() {
     fetchTMDBData()
   }, [])
 
-  // Cinematic splash sequence: in-flow curtain that scrolls up to reveal hero
-  // Total: ~3.2s (logo fade-in 1.2s + pause 0.6s + logo fade-out 0.6s + beat 0.2s + scroll to hero 0.6s)
+  // Cinematic splash sequence: fixed overlay curtain over the page content
+  // Total: ~3.45s (logo fade-in 1.2s + pause 0.6s + logo fade-out 0.6s + beat 0.25s + overlay fade 0.8s)
   useEffect(() => {
     const timers = splashTimersRef.current
 
-    // Start with page scrolled to top (splash block is first)
+    // Lock body scroll while splash is visible
+    document.body.style.overflow = "hidden"
+
+    // Ensure page starts at top
     window.scrollTo(0, 0)
 
     // Step 1: Logo fades in (1.2s transition)
@@ -52,7 +56,7 @@ export default function HomePage() {
     // Step 2: After logo fade-in (1.2s) + breathing pause (0.6s) = 1.85s, fade logo out
     timers.push(setTimeout(() => setLogoFadedOut(true), 1850))
 
-    // Step 3: After logo fade-out (0.6s) + black beat (0.2s) = 2.65s, scroll to hero
+    // Step 3: After logo fade-out (0.6s) + beat (0.2s) = 2.65s, dismiss overlay
     timers.push(setTimeout(() => {
       dismissSplash()
     }, 2650))
@@ -60,11 +64,11 @@ export default function HomePage() {
     return () => {
       timers.forEach(clearTimeout)
       splashTimersRef.current = []
+      document.body.style.overflow = ""
     }
   }, [])
 
-  // Scroll-to-hero helper — smoothly scrolls the splash curtain out of view
-  // After triggering, absorbs further scroll input so momentum can't carry past the hero
+  // Dismiss splash — fade out the fixed overlay, then remove it and unlock scroll
   const dismissSplash = () => {
     if (splashDismissedRef.current) return
     splashDismissedRef.current = true
@@ -73,38 +77,19 @@ export default function HomePage() {
     splashTimersRef.current.forEach(clearTimeout)
     splashTimersRef.current = []
 
-    // Fade the logo out immediately
+    // Fade the logo out immediately, then start overlay fade
     setLogoFadedOut(true)
+    setSplashFading(true)
 
-    // Block further scroll/wheel/touch input so momentum doesn't overshoot
-    const absorbEvent = (e: Event) => { e.preventDefault(); e.stopPropagation() }
-    const absorbOpts = { capture: true, passive: false } as AddEventListenerOptions
-    document.addEventListener("wheel", absorbEvent, absorbOpts)
-    document.addEventListener("touchmove", absorbEvent, absorbOpts)
-    document.addEventListener("scroll", absorbEvent, absorbOpts)
-
-    // Smooth scroll to the hero section
-    const scrollToHero = () => {
-      if (heroRef.current) {
-        heroRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
-      }
-      // Release scroll absorption after the smooth scroll settles (~500ms)
-      // and mark splash done
-      setTimeout(() => {
-        document.removeEventListener("wheel", absorbEvent, absorbOpts)
-        document.removeEventListener("touchmove", absorbEvent, absorbOpts)
-        document.removeEventListener("scroll", absorbEvent, absorbOpts)
-        setSplashDone(true)
-      }, 800)
-    }
-
-    // Small delay so logo starts fading before we scroll
-    setTimeout(scrollToHero, 250)
+    // After the overlay fade-out transition (0.8s), remove it and unlock scroll
+    setTimeout(() => {
+      setSplashDone(true)
+      document.body.style.overflow = ""
+    }, 800)
   }
 
-  // Scroll-to-skip: any scroll/wheel/touch/key gesture during splash triggers scroll-to-hero
-  // Since splash is now in-flow (not fixed), normal scroll events work, but we also
-  // listen for wheel/touch/key to trigger the auto-scroll-to-hero dismiss
+  // Scroll-to-skip: wheel/touch/key/click during splash triggers fade-out
+  // preventDefault on wheel/touchmove so no scroll accumulates under the overlay
   useEffect(() => {
     if (splashDone) return
 
@@ -313,17 +298,20 @@ export default function HomePage() {
         <a href="#contact" onClick={handleNavClick}>Get Started</a>
       </div>
 
-      {/* SPLASH — In-flow curtain block: sits above hero, scrolls up to reveal it */}
+      {/* SPLASH — Fixed overlay curtain: sits on top of all content, fades out to reveal hero */}
       {!splashDone && (
         <div
           style={{
-            width: "100%",
-            height: "100vh",
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
             backgroundColor: "#000000",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            flexShrink: 0,
+            opacity: splashFading ? 0 : 1,
+            transition: "opacity 0.8s ease-in-out",
+            pointerEvents: splashFading ? "none" : "auto",
           }}
         >
           <img
