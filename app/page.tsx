@@ -252,7 +252,7 @@ export default function HomePage() {
           position: "fixed",
           inset: 0,
           zIndex: 110,
-          backgroundColor: "#141412",
+          backgroundColor: "#000000",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -268,7 +268,8 @@ export default function HomePage() {
             maxWidth: "400px",
             height: "auto",
             opacity: logoFadedIn ? 1 : 0,
-            transition: "opacity 1.2s ease-in-out",
+            transform: logoFadedIn ? "translateY(0)" : "translateY(25px)",
+            transition: "opacity 2.2s ease-in-out, transform 2.2s ease-in-out",
           }}
           draggable={false}
         />
