@@ -17,6 +17,8 @@ export default function HomePage() {
   const [splashOpacity, setSplashOpacity] = useState(1)
   const [logoFadedIn, setLogoFadedIn] = useState(false)
   const [logoFadedOut, setLogoFadedOut] = useState(false)
+  const splashSkippedRef = useRef(false)
+  const splashTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
   const filmCreditsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -37,35 +39,71 @@ export default function HomePage() {
   }, [])
 
   // Cinematic splash sequence: title card → fade to black → scene fades in
+  // Interruptible: any scroll/swipe during the sequence triggers a graceful skip
   useEffect(() => {
+    const timers = splashTimersRef.current
+
     // Step 1: Logo fades in + floats up (2.2s)
-    const fadeInTimer = setTimeout(() => setLogoFadedIn(true), 50)
+    timers.push(setTimeout(() => setLogoFadedIn(true), 50))
 
     // Step 2: Pause to breathe (~1.3s after logo animation completes)
-    // 50ms + 2200ms + 1300ms = 3550ms → logo fades back to black
-    const logoOutTimer = setTimeout(() => {
-      setLogoFadedOut(true)
-    }, 3550)
+    timers.push(setTimeout(() => setLogoFadedOut(true), 3550))
 
-    // Step 3: After logo fades to black (1.1s) + black beat (0.4s), fade splash overlay out
-    // 3550ms + 1100ms (logo fade-out) + 400ms (black beat) = 5050ms
-    const splashOutTimer = setTimeout(() => {
-      setSplashOpacity(0)
-    }, 5050)
+    // Step 3: After logo fades to black + black beat, fade splash overlay out
+    timers.push(setTimeout(() => setSplashOpacity(0), 5050))
 
     // Step 4: After splash fade-out transition (1.2s), remove from DOM
-    // 5050ms + 1200ms = 6250ms
-    const removeTimer = setTimeout(() => {
-      setSplashVisible(false)
-    }, 6250)
+    timers.push(setTimeout(() => setSplashVisible(false), 6250))
 
     return () => {
-      clearTimeout(fadeInTimer)
-      clearTimeout(logoOutTimer)
-      clearTimeout(splashOutTimer)
-      clearTimeout(removeTimer)
+      timers.forEach(clearTimeout)
+      splashTimersRef.current = []
     }
   }, [])
+
+  // Scroll-to-skip: any scroll gesture during splash triggers graceful fade-out
+  useEffect(() => {
+    if (!splashVisible) return
+
+    const skipSplash = () => {
+      if (splashSkippedRef.current) return
+      splashSkippedRef.current = true
+
+      // Clear all pending animation timers
+      splashTimersRef.current.forEach(clearTimeout)
+      splashTimersRef.current = []
+
+      // Immediately ensure logo is faded out (no delay)
+      setLogoFadedOut(true)
+
+      // Begin graceful splash fade-out (0.8s transition set in style below)
+      // Small delay to let logo start fading before the overlay goes
+      setTimeout(() => setSplashOpacity(0), 100)
+
+      // Remove from DOM after the fade completes
+      setTimeout(() => setSplashVisible(false), 1000)
+    }
+
+    // Capture scroll on window — wheel, touch, and keyboard
+    const onWheel = (e: WheelEvent) => skipSplash()
+    const onTouchMove = (e: TouchEvent) => skipSplash()
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Arrow keys, space, page down — common scroll gestures
+      if (["ArrowDown", "ArrowUp", "Space", "PageDown", "PageUp", "Home", "End"].includes(e.code)) {
+        skipSplash()
+      }
+    }
+
+    window.addEventListener("wheel", onWheel, { passive: true })
+    window.addEventListener("touchmove", onTouchMove, { passive: true })
+    window.addEventListener("keydown", onKeyDown)
+
+    return () => {
+      window.removeEventListener("wheel", onWheel)
+      window.removeEventListener("touchmove", onTouchMove)
+      window.removeEventListener("keydown", onKeyDown)
+    }
+  }, [splashVisible])
 
   // Auto-scroll animation for film credits
   useEffect(() => {
@@ -238,7 +276,7 @@ export default function HomePage() {
             alignItems: "center",
             justifyContent: "center",
             opacity: splashOpacity,
-            transition: "opacity 1.2s ease-in-out",
+            transition: splashSkippedRef.current ? "opacity 0.8s ease-in-out" : "opacity 1.2s ease-in-out",
             pointerEvents: splashOpacity < 0.05 ? "none" : "auto",
           }}
         >
@@ -252,7 +290,7 @@ export default function HomePage() {
               opacity: logoFadedOut ? 0 : logoFadedIn ? 1 : 0,
               transform: logoFadedIn ? "translateY(0)" : "translateY(25px)",
               transition: logoFadedOut
-                ? "opacity 1.1s ease-in-out"
+                ? (splashSkippedRef.current ? "opacity 0.4s ease-in-out" : "opacity 1.1s ease-in-out")
                 : "opacity 2.2s ease-in-out, transform 2.2s ease-in-out",
             }}
             draggable={false}
@@ -636,13 +674,13 @@ export default function HomePage() {
                 <tbody>
                   {[
                     { feature: "Cinematic quality", checks: [false, false, false, true, true] },
-                    { feature: "Knows your brand", checks: [true, false, true, false, true] },
+                    { feature: "Knows your brand", checks: [true, false, true, true, true] },
                     { feature: "Always available", checks: [true, false, true, false, true] },
                     { feature: "Competitive pricing", checks: [true, true, false, false, true] },
                     { feature: "Full-service (concept to delivery)", checks: [false, false, true, true, true] },
                     { feature: "Strategic storytelling", checks: [false, false, false, true, true] },
                     { feature: "Work with the filmmaker directly", checks: [false, true, true, false, true] },
-                    { feature: "Consistent quality", checks: [false, false, true, false, true] },
+                    { feature: "Consistent quality", checks: [false, false, true, true, true] },
                     { feature: "Scales with your needs", checks: [false, false, false, true, true] },
                     { feature: "No long-term contract", checks: [true, true, false, false, true] },
                   ].map((row, rowIdx) => (
