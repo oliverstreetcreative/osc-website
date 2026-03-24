@@ -660,6 +660,7 @@ export default function HomePage() {
                 thumbnail: "https://image.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8/thumbnail.png?width=960&height=540&time=104",
                 clientLogo: "/client-logos/boone-county-logo.png",
                 clientName: "Boone County Prosecutors' Office",
+                isLightLogo: true,
               },
               {
                 title: "Janell's Story",
@@ -717,7 +718,7 @@ export default function HomePage() {
                       <img
                         src={item.clientLogo}
                         alt={item.clientName}
-                        style={{ height: "24px", width: "auto", filter: "brightness(0) invert(1)", objectFit: "contain" }}
+                        style={{ height: "24px", width: "auto", filter: item.isLightLogo ? "none" : "brightness(0) invert(1)", objectFit: "contain" }}
                         loading="lazy"
                       />
                     </div>
