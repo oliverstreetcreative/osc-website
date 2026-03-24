@@ -64,6 +64,7 @@ export default function HomePage() {
   }, [])
 
   // Scroll-to-hero helper — smoothly scrolls the splash curtain out of view
+  // After triggering, absorbs further scroll input so momentum can't carry past the hero
   const dismissSplash = () => {
     if (splashDismissedRef.current) return
     splashDismissedRef.current = true
@@ -75,13 +76,26 @@ export default function HomePage() {
     // Fade the logo out immediately
     setLogoFadedOut(true)
 
+    // Block further scroll/wheel/touch input so momentum doesn't overshoot
+    const absorbEvent = (e: Event) => { e.preventDefault(); e.stopPropagation() }
+    const absorbOpts = { capture: true, passive: false } as AddEventListenerOptions
+    document.addEventListener("wheel", absorbEvent, absorbOpts)
+    document.addEventListener("touchmove", absorbEvent, absorbOpts)
+    document.addEventListener("scroll", absorbEvent, absorbOpts)
+
     // Smooth scroll to the hero section
     const scrollToHero = () => {
       if (heroRef.current) {
-        heroRef.current.scrollIntoView({ behavior: "smooth" })
+        heroRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
       }
-      // Mark splash as done after scroll completes
-      setTimeout(() => setSplashDone(true), 800)
+      // Release scroll absorption after the smooth scroll settles (~500ms)
+      // and mark splash done
+      setTimeout(() => {
+        document.removeEventListener("wheel", absorbEvent, absorbOpts)
+        document.removeEventListener("touchmove", absorbEvent, absorbOpts)
+        document.removeEventListener("scroll", absorbEvent, absorbOpts)
+        setSplashDone(true)
+      }, 800)
     }
 
     // Small delay so logo starts fading before we scroll
@@ -94,17 +108,24 @@ export default function HomePage() {
   useEffect(() => {
     if (splashDone) return
 
-    const onWheel = () => dismissSplash()
-    const onTouchMove = () => dismissSplash()
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      dismissSplash()
+    }
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault()
+      dismissSplash()
+    }
     const onKeyDown = (e: KeyboardEvent) => {
       if (["ArrowDown", "ArrowUp", "Space", "PageDown", "PageUp", "Home", "End", "Escape"].includes(e.code)) {
+        e.preventDefault()
         dismissSplash()
       }
     }
     const onClick = () => dismissSplash()
 
-    document.addEventListener("wheel", onWheel, { capture: true, passive: true })
-    document.addEventListener("touchmove", onTouchMove, { capture: true, passive: true })
+    document.addEventListener("wheel", onWheel, { capture: true, passive: false })
+    document.addEventListener("touchmove", onTouchMove, { capture: true, passive: false })
     document.addEventListener("keydown", onKeyDown, { capture: true })
     document.addEventListener("click", onClick, { capture: true })
     document.addEventListener("pointerdown", onClick, { capture: true })
