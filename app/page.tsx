@@ -156,6 +156,21 @@ export default function HomePage() {
     }
   }, [tmdbData])
 
+  // Hide comparison scroll hint once user scrolls
+  useEffect(() => {
+    const wrapper = document.querySelector('.comparison-scroll-wrapper') as HTMLElement | null
+    if (!wrapper) return
+    const onScroll = () => {
+      if (wrapper.scrollLeft > 10) {
+        wrapper.classList.add('scrolled')
+      } else {
+        wrapper.classList.remove('scrolled')
+      }
+    }
+    wrapper.addEventListener('scroll', onScroll, { passive: true })
+    return () => wrapper.removeEventListener('scroll', onScroll)
+  }, [])
+
   // Close mobile menu on anchor click
   const handleNavClick = () => setMobileMenuOpen(false)
 
@@ -646,81 +661,117 @@ export default function HomePage() {
 
           {/* Comparison Table */}
           <div style={{ maxWidth: "920px", margin: "0 auto" }}>
-            <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "600px" }}>
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: "left", padding: "16px 14px", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#8A8A84", borderBottom: "2px solid #2a2a28", width: "220px" }}></th>
-                    {["DIY", "Freelancer", "In-House", "Agency", "Oliver Street"].map((col, i) => (
-                      <th
-                        key={col}
-                        style={{
-                          padding: "16px 14px",
-                          fontSize: "11px",
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.1em",
-                          textAlign: "center",
-                          color: i === 4 ? "#E07830" : "#8A8A84",
-                          borderBottom: i === 4 ? "2px solid #E07830" : "2px solid #2a2a28",
-                          backgroundColor: i === 4 ? "rgba(224,120,48,0.08)" : "transparent",
-                        }}
-                      >
-                        {col}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { feature: "Cinematic quality", checks: [false, false, false, true, true] },
-                    { feature: "Knows your brand", checks: [true, false, true, true, true] },
-                    { feature: "Always available", checks: [true, false, true, false, true] },
-                    { feature: "Competitive pricing", checks: [true, true, false, false, true] },
-                    { feature: "Full-service (concept to delivery)", checks: [false, false, true, true, true] },
-                    { feature: "Strategic storytelling", checks: [false, false, false, true, true] },
-                    { feature: "Work with the filmmaker directly", checks: [false, true, true, false, true] },
-                    { feature: "Consistent quality", checks: [false, false, true, true, true] },
-                    { feature: "Scales with your needs", checks: [false, false, false, true, true] },
-                    { feature: "No long-term contract", checks: [true, true, false, false, true] },
-                  ].map((row, rowIdx) => (
-                    <tr key={rowIdx}>
-                      <td style={{
-                        padding: "14px 14px",
-                        fontSize: "13px",
-                        fontWeight: 600,
-                        color: "#F7F6F3",
-                        textAlign: "left",
-                        borderBottom: "1px solid #1e1e1c",
-                      }}>
-                        {row.feature}
-                      </td>
-                      {row.checks.map((checked, colIdx) => (
-                        <td
-                          key={colIdx}
+            <div style={{ position: "relative" }}>
+              <div className="comparison-scroll-wrapper" style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "600px" }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: "left", padding: "16px 14px", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#8A8A84", borderBottom: "2px solid #2a2a28", width: "220px" }}></th>
+                      {["Oliver Street", "DIY", "Freelancer", "In-House", "Agency"].map((col, i) => (
+                        <th
+                          key={col}
                           style={{
-                            padding: "14px 14px",
+                            padding: "16px 14px",
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.1em",
                             textAlign: "center",
-                            borderBottom: "1px solid #1e1e1c",
-                            backgroundColor: colIdx === 4 ? "rgba(224,120,48,0.05)" : "transparent",
+                            color: i === 0 ? "#E07830" : "#8A8A84",
+                            borderBottom: i === 0 ? "2px solid #E07830" : "2px solid #2a2a28",
+                            backgroundColor: i === 0 ? "rgba(224,120,48,0.08)" : "transparent",
                           }}
                         >
-                          {checked ? (
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ display: "inline-block" }}>
-                              <circle cx="10" cy="10" r="8" fill="#E07830" />
-                              <path d="M6 10l3 3 5-5" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          ) : (
-                            <svg width="20" height="20" viewBox="0 0 20 20" style={{ display: "inline-block" }}>
-                              <line x1="6" y1="10" x2="14" y2="10" stroke="#333" strokeWidth="1.5" strokeLinecap="round" />
-                            </svg>
-                          )}
-                        </td>
+                          {col}
+                        </th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {[
+                      { feature: "Cinematic quality", checks: [true, false, false, false, true] },
+                      { feature: "Knows your brand", checks: [true, true, false, true, true] },
+                      { feature: "Always available", checks: [true, true, false, true, false] },
+                      { feature: "Competitive pricing", checks: [true, true, true, false, false] },
+                      { feature: "Full-service (concept to delivery)", checks: [true, false, false, true, true] },
+                      { feature: "Strategic storytelling", checks: [true, false, false, false, true] },
+                      { feature: "Work with the filmmaker directly", checks: [true, false, true, true, false] },
+                      { feature: "Consistent quality", checks: [true, false, false, true, true] },
+                      { feature: "Scales with your needs", checks: [true, false, false, false, true] },
+                      { feature: "No long-term contract", checks: [true, true, true, false, false] },
+                    ].map((row, rowIdx) => (
+                      <tr key={rowIdx}>
+                        <td style={{
+                          padding: "14px 14px",
+                          fontSize: "13px",
+                          fontWeight: 600,
+                          color: "#F7F6F3",
+                          textAlign: "left",
+                          borderBottom: "1px solid #1e1e1c",
+                        }}>
+                          {row.feature}
+                        </td>
+                        {row.checks.map((checked, colIdx) => (
+                          <td
+                            key={colIdx}
+                            style={{
+                              padding: "14px 14px",
+                              textAlign: "center",
+                              borderBottom: "1px solid #1e1e1c",
+                              backgroundColor: colIdx === 0 ? "rgba(224,120,48,0.05)" : "transparent",
+                            }}
+                          >
+                            {checked ? (
+                              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ display: "inline-block" }}>
+                                <circle cx="10" cy="10" r="8" fill="#E07830" />
+                                <path d="M6 10l3 3 5-5" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            ) : (
+                              <svg width="20" height="20" viewBox="0 0 20 20" style={{ display: "inline-block" }}>
+                                <line x1="6" y1="10" x2="14" y2="10" stroke="#333" strokeWidth="1.5" strokeLinecap="round" />
+                              </svg>
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {/* Mobile scroll hint — gradient fade + swipe text */}
+              <div className="comparison-scroll-hint" style={{
+                position: "absolute",
+                top: 0,
+                right: 0,
+                bottom: 0,
+                width: "48px",
+                background: "linear-gradient(to right, transparent, #141412)",
+                pointerEvents: "none",
+                display: "none",
+              }} />
+              <div className="comparison-swipe-hint" style={{
+                display: "none",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: "6px",
+                marginTop: "12px",
+                fontSize: "12px",
+                color: "#8A8A84",
+                opacity: 0.7,
+              }}>
+                <span>Swipe to compare</span>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ display: "inline-block" }}>
+                  <path d="M3 8h10M10 5l3 3-3 3" stroke="#8A8A84" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <style>{`
+                @media (max-width: 768px) {
+                  .comparison-scroll-hint { display: block !important; transition: opacity 0.3s ease; }
+                  .comparison-swipe-hint { display: flex !important; transition: opacity 0.3s ease; }
+                  .comparison-scroll-wrapper.scrolled + .comparison-scroll-hint { opacity: 0; pointer-events: none; }
+                  .comparison-scroll-wrapper.scrolled ~ .comparison-swipe-hint { opacity: 0; }
+                }
+              `}</style>
             </div>
           </div>
 
