@@ -465,17 +465,7 @@ button:focus-visible {
   }
 }
 
-/* Scroll indicator bounce animation */
-@keyframes scrollBounce {
-  0%, 100% { transform: translateX(-50%) translateY(0); }
-  50% { transform: translateX(-50%) translateY(6px); }
-}
 
-@media (prefers-reduced-motion: reduce) {
-  .scroll-indicator {
-    animation: none !important;
-  }
-}
 
 /* ========================================
    TABLET BREAKPOINT (769px - 1024px)
