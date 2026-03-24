@@ -486,8 +486,16 @@ export default function HomePage() {
               <div style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontSize: "20px", lineHeight: 1.5, marginBottom: "12px" }}>
                 "It comes down to content, creativity, creative editing, and storytelling. That's what separates the crowd from working with Oliver Street."
               </div>
-              <div style={{ fontSize: "12px", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: "rgba(20,20,18,0.5)" }}>
-                — Al Haehnle, Director, Landslide Films
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "12px", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: "rgba(20,20,18,0.5)" }}>
+                  — Al Haehnle, Director, Landslide Films
+                </span>
+                <img
+                  src="/client-logos/landslide-films-logo.png"
+                  alt="Landslide Films"
+                  style={{ height: "24px", width: "auto", objectFit: "contain", filter: "brightness(0)", opacity: 0.6 }}
+                  loading="lazy"
+                />
               </div>
             </div>
 
@@ -495,8 +503,16 @@ export default function HomePage() {
               <div style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontSize: "20px", lineHeight: 1.5, marginBottom: "12px" }}>
                 "Oliver Street brought a level of depth and soul to our production that we wouldn't have had otherwise."
               </div>
-              <div style={{ fontSize: "12px", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: "rgba(20,20,18,0.5)" }}>
-                — Louis Kelly, Boone County Prosecutor
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "12px", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: "rgba(20,20,18,0.5)" }}>
+                  — Louis Kelly, Boone County Prosecutor
+                </span>
+                <img
+                  src="/client-logos/boone-county-logo.png"
+                  alt="Boone County"
+                  style={{ height: "24px", width: "auto", objectFit: "contain", filter: "brightness(0)", opacity: 0.6 }}
+                  loading="lazy"
+                />
               </div>
             </div>
           </div>
@@ -696,25 +712,18 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div style={{ padding: "20px" }}>
-                  <h3 style={{ fontSize: "18px", fontWeight: 800, marginBottom: "4px" }}>{item.title}</h3>
-                  <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)", marginBottom: "12px" }}>{item.client}</p>
                   {item.clientLogo && (
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", opacity: 0.85 }}>
+                    <div style={{ marginBottom: "12px", opacity: 0.85 }}>
                       <img
                         src={item.clientLogo}
                         alt={item.clientName}
                         style={{ height: "24px", width: "auto", filter: "brightness(0) invert(1)", objectFit: "contain" }}
                         loading="lazy"
                       />
-                      <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", fontWeight: 600 }}>×</span>
-                      <img
-                        src="/logo.png"
-                        alt="Oliver Street Creative"
-                        style={{ height: "24px", width: "auto", filter: "brightness(0) invert(1)", objectFit: "contain" }}
-                        loading="lazy"
-                      />
                     </div>
                   )}
+                  <h3 style={{ fontSize: "18px", fontWeight: 800, marginBottom: "4px" }}>{item.title}</h3>
+                  <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)" }}>{item.client}</p>
                 </div>
               </div>
             ))}
