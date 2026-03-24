@@ -18,15 +18,18 @@ const ebGaramond = EB_Garamond({
 })
 
 export const metadata: Metadata = {
-  title: "Oliver Street Creative - Video Production in Covington, KY",
+  title: "Oliver Street Creative | Brand Story Video Production | Cincinnati & Northern Kentucky",
   description:
-    "Professional video production company in Covington, KY. We create authentic stories that build trust and drive results. From corporate videos to marketing content - we win when you win.",
+    "Full-service video production in Covington, KY serving Greater Cincinnati. Strategic brand stories for businesses and nonprofits — concept to delivery.",
   keywords:
-    "video production, Covington KY, corporate video, marketing video, Cincinnati video production, commercial video, documentary",
+    "video production Cincinnati, corporate video production, nonprofit video production, brand storytelling, Covington KY video, marketing video, full-service video production, documentary, commercial video, Northern Kentucky videographer",
   authors: [{ name: "Oliver Street Creative" }],
+  alternates: {
+    canonical: "https://oliverstreetcreative.com/",
+  },
   openGraph: {
-    title: "Oliver Street Creative - Professional Video Production",
-    description: "Stories that move hearts, build trust, and close deals. Video production in Covington, KY.",
+    title: "Oliver Street Creative — Strategic Video for Businesses & Nonprofits",
+    description: "Full-service video production in Covington, KY. We craft cinematic stories that build trust, drive donations, and close deals. Serving Cincinnati & Northern Kentucky.",
     url: "https://oliverstreetcreative.com",
     siteName: "Oliver Street Creative",
     images: [
@@ -42,12 +45,11 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Oliver Street Creative - Professional Video Production",
-    description: "Stories that move hearts, build trust, and close deals. Video production in Covington, KY.",
+    title: "Oliver Street Creative — Strategic Video for Businesses & Nonprofits",
+    description: "Full-service video production in Covington, KY. Cinematic stories that build trust and drive results.",
     images: ["https://oliverstreetcreative.com/media/logo.png"],
   },
   viewport: "width=device-width, initial-scale=1",
-  generator: 'v0.app'
 }
 
 export default function RootLayout({
@@ -57,6 +59,48 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${ebGaramond.variable}`}>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "VideoProductionCompany",
+              "name": "Oliver Street Creative",
+              "url": "https://oliverstreetcreative.com",
+              "logo": "https://oliverstreetcreative.com/logo.png",
+              "description": "Full-service video production company in Covington, KY serving Cincinnati and Northern Kentucky. Strategic brand storytelling for businesses, nonprofits, and government.",
+              "telephone": "+1-859-512-1419",
+              "email": "hello@oliverstreetcreative.com",
+              "address": {
+                "@type": "PostalAddress",
+                "streetAddress": "521 Oliver St",
+                "addressLocality": "Covington",
+                "addressRegion": "KY",
+                "postalCode": "41014",
+                "addressCountry": "US"
+              },
+              "geo": {
+                "@type": "GeoCoordinates",
+                "latitude": 39.0837,
+                "longitude": -84.5085
+              },
+              "areaServed": [
+                {"@type": "City", "name": "Cincinnati", "sameAs": "https://en.wikipedia.org/wiki/Cincinnati"},
+                {"@type": "City", "name": "Covington", "sameAs": "https://en.wikipedia.org/wiki/Covington,_Kentucky"},
+                {"@type": "State", "name": "Northern Kentucky"}
+              ],
+              "priceRange": "$$",
+              "openingHoursSpecification": {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                "opens": "09:00",
+                "closes": "17:00"
+              }
+            })
+          }}
+        />
+      </head>
       <body className="font-sans antialiased">{children}</body>
     </html>
   )

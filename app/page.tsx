@@ -232,7 +232,7 @@ export default function HomePage() {
       >
         <img
           src="/logo.png"
-          alt="Oliver Street Creative"
+          alt="Oliver Street Creative — brand story video production in Cincinnati and Northern Kentucky"
           style={{ width: "70%", maxWidth: "400px", height: "auto" }}
           draggable={false}
         />
@@ -277,9 +277,12 @@ export default function HomePage() {
           </div>
           
           <h1 className="mobile-center-block" style={{ fontSize: "clamp(40px, 7vw, 96px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, color: "#F7F6F3", marginBottom: "40px", maxWidth: "900px", margin: "0 auto 40px auto" }}>
-            You've got a great story.{" "}
-            <span style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontWeight: 400, color: "#E07830" }}>
-              It's just not on camera yet.
+            <span className="sr-only">Brand Story Video Production in Cincinnati &amp; Covington, KY — Oliver Street Creative</span>
+            <span aria-hidden="true">
+              You've got a great story.{" "}
+              <span style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontWeight: 400, color: "#E07830" }}>
+                It's just not on camera yet.
+              </span>
             </span>
           </h1>
 
@@ -316,14 +319,14 @@ export default function HomePage() {
           <div className="services-grid">
             <div className="services-text">
               <div className="services-label">WHAT WE DO</div>
-              <h2 className="services-heading">Video that gets results.</h2>
+              <h2 className="services-heading">Video Production That Gets Results</h2>
               <p className="services-body">
                 With our own gear and hands-on management, we are full-service from concept to delivery. We bring speed, flexibility, and higher production value—crafting video stories that move both your audience and your bottom line.
               </p>
             </div>
             <img
               src="/images/strategic-videos-hero-new.png"
-              alt="Videographer with camera"
+              alt="Oliver Street Creative videographer filming on location in Cincinnati"
               className="services-image"
               loading="lazy"
             />
@@ -338,7 +341,7 @@ export default function HomePage() {
             </div>
 
             <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px", margin: "0 auto 32px auto" }}>
-              We've worked on a lot of movies.
+              Film Industry Experience Behind Every Project
             </h2>
 
             <div style={{ fontSize: "18px", fontWeight: 400, lineHeight: 1.7, maxWidth: "640px", color: "#8A8A84", marginBottom: "48px", margin: "0 auto 48px auto" }}>
@@ -485,7 +488,7 @@ export default function HomePage() {
           </div>
 
           <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px" }}>
-            People like working with us.
+            Trusted by Nonprofits, Businesses &amp; Government Leaders
           </h2>
 
           <p style={{ fontSize: "18px", lineHeight: 1.7, maxWidth: "800px", margin: "0 auto 64px auto" }}>
@@ -510,7 +513,7 @@ export default function HomePage() {
           >
             <img
               src="https://image.mux.com/4YKpfx6WR7jjcdOfh2LcZfflSqwvz2k52TMNUcXbA28/thumbnail.webp?width=1920&time=93"
-              alt="Client Testimonials"
+              alt="Client testimonial video — nonprofits and businesses share their experience with Oliver Street Creative"
               style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s" }}
               loading="lazy"
             />
@@ -604,7 +607,7 @@ export default function HomePage() {
             </div>
 
             <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "16px" }}>
-              You have options.
+              Why Choose Oliver Street Creative?
             </h2>
 
             <p style={{ fontSize: "18px", lineHeight: 1.7, color: "#8A8A84" }}>
@@ -715,7 +718,7 @@ export default function HomePage() {
             </div>
 
             <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px", margin: "0 auto 32px auto" }}>
-              Check out our work.
+              Our Video Production Portfolio
             </h2>
 
             <div style={{ fontSize: "18px", lineHeight: 1.7, maxWidth: "640px", color: "rgba(255,255,255,0.75)", marginBottom: "64px", margin: "0 auto 64px auto" }}>
@@ -727,6 +730,7 @@ export default function HomePage() {
             {[
               {
                 title: "Phoenix's Story",
+                alt: "Phoenix's Story — Learning Grove nonprofit fundraising video by Oliver Street Creative",
                 client: "Learning Grove, Gala Event 2025",
                 embedSrc: "https://player.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM?thumbnail_time=147&thumbnail_url=https%3A%2F%2Fimage.mux.com%2FWZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D147&poster=https%3A%2F%2Fimage.mux.com%2FWZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D147",
                 thumbnail: "https://image.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM/thumbnail.webp?width=1920&time=147",
@@ -735,6 +739,7 @@ export default function HomePage() {
               },
               {
                 title: "2025 End-of-Year Report",
+                alt: "2025 End-of-Year Report — Boone County government video production by Oliver Street Creative",
                 client: "Boone County Prosecutors' Office",
                 embedSrc: "https://player.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8?thumbnail_time=104&thumbnail_url=https%3A%2F%2Fimage.mux.com%2FIhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D104&poster=https%3A%2F%2Fimage.mux.com%2FIhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D104",
                 thumbnail: "https://image.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8/thumbnail.webp?width=1920&time=104",
@@ -744,6 +749,7 @@ export default function HomePage() {
               },
               {
                 title: "Janell's Story",
+                alt: "Janell's Story — Beech Acres nonprofit brand storytelling video by Oliver Street Creative",
                 client: "Beech Acres, Love Grows Here Event 2024",
                 embedSrc: "https://player.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co?accent-color=%23E07830&thumbnail_time=238&thumbnail_url=https%3A%2F%2Fimage.mux.com%2FcmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D238&poster=https%3A%2F%2Fimage.mux.com%2FcmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D238",
                 thumbnail: "https://image.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co/thumbnail.webp?width=1920&time=238",
@@ -755,7 +761,7 @@ export default function HomePage() {
                 <div style={{ position: "relative", aspectRatio: "16/9", overflow: "hidden" }}>
                   <img
                     src={item.thumbnail}
-                    alt={item.title}
+                    alt={item.alt || item.title}
                     style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s" }}
                     loading="lazy"
                     onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.03)")}
@@ -820,7 +826,7 @@ export default function HomePage() {
           </div>
 
           <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "64px" }}>
-            Let's make something together.
+            Start Your Video Project Today
           </h2>
 
           <div className="grid-2col" style={{ maxWidth: "900px", margin: "0 auto", textAlign: "left" }}>
