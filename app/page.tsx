@@ -554,7 +554,7 @@ export default function HomePage() {
                   — Louis Kelly, Boone County Prosecutor
                 </span>
                 <img
-                  src="/client-logos/boone-county-logo.png"
+                  src="/client-logos/boone-county-logo-white-text.png"
                   alt="Boone County"
                   style={{ height: "24px", width: "auto", objectFit: "contain", filter: "brightness(0)", opacity: 0.6 }}
                   loading="lazy"
@@ -704,7 +704,7 @@ export default function HomePage() {
                 client: "Boone County Prosecutors' Office",
                 embedSrc: "https://player.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8",
                 thumbnail: "https://image.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8/thumbnail.webp?width=1920&time=104",
-                clientLogo: "/client-logos/boone-county-logo.png",
+                clientLogo: "/client-logos/boone-county-logo-white-text.png",
                 clientName: "Boone County Prosecutors' Office",
                 isLightLogo: true,
               },
