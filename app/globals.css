@@ -70,9 +70,9 @@
   }
 }
 
-/* Custom smooth scrolling */
+/* Smooth scrolling only for anchor-link navigation (not programmatic) */
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 /* Focus styles for accessibility */

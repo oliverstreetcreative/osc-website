@@ -47,9 +47,6 @@ export default function HomePage() {
     // Lock body scroll while splash is visible
     document.body.style.overflow = "hidden"
 
-    // Ensure page starts at top
-    window.scrollTo(0, 0)
-
     // Step 1: Logo fades in (1.2s transition)
     timers.push(setTimeout(() => setLogoFadedIn(true), 50))
 
