@@ -684,9 +684,11 @@ export default function HomePage() {
                   <div
                     style={{
                       position: "absolute",
-                      top: "50%",
-                      left: "50%",
-                      transform: "translate(-50%, -50%)",
+                      bottom: "16px",
+                      right: "16px",
+                      top: "auto",
+                      left: "auto",
+                      transform: "none",
                       width: "56px",
                       height: "56px",
                       borderRadius: "50%",
