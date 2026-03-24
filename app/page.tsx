@@ -633,12 +633,12 @@ export default function HomePage() {
                   {[
                     { feature: "Cinematic quality", checks: [false, false, false, true, true] },
                     { feature: "Knows your brand", checks: [true, false, true, false, true] },
-                    { feature: "Always available", checks: [true, false, true, true, true] },
+                    { feature: "Always available", checks: [true, false, true, false, true] },
                     { feature: "Competitive pricing", checks: [true, true, false, false, true] },
-                    { feature: "Full-service (concept to delivery)", checks: [false, false, false, true, true] },
+                    { feature: "Full-service (concept to delivery)", checks: [false, false, true, true, true] },
                     { feature: "Strategic storytelling", checks: [false, false, false, true, true] },
                     { feature: "Work with the filmmaker directly", checks: [false, true, true, false, true] },
-                    { feature: "Consistent quality", checks: [false, false, false, true, true] },
+                    { feature: "Consistent quality", checks: [false, false, true, false, true] },
                     { feature: "Scales with your needs", checks: [false, false, false, true, true] },
                     { feature: "No long-term contract", checks: [true, true, false, false, true] },
                   ].map((row, rowIdx) => (
