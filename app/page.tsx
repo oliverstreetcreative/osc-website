@@ -46,10 +46,23 @@ export default function HomePage() {
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
-  // Logo fade-in on mount
+  // Logo fade-in on mount + auto-scroll to hero after animation completes
   useEffect(() => {
-    const timer = setTimeout(() => setLogoFadedIn(true), 50)
-    return () => clearTimeout(timer)
+    const fadeInTimer = setTimeout(() => setLogoFadedIn(true), 50)
+
+    // Auto-scroll: 50ms (fade trigger) + 2200ms (animation) + 1300ms (pause) ≈ 3.55s from load
+    const autoScrollTimer = setTimeout(() => {
+      // Only auto-scroll if user hasn't already scrolled past the splash
+      if (window.scrollY <= 80) {
+        const hero = document.getElementById("hero")
+        if (hero) hero.scrollIntoView({ behavior: "smooth" })
+      }
+    }, 3550)
+
+    return () => {
+      clearTimeout(fadeInTimer)
+      clearTimeout(autoScrollTimer)
+    }
   }, [])
 
   // Scroll indicator: show after 2s in logo section, hide on scroll past, reappear on return
