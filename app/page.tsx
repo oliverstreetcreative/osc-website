@@ -339,16 +339,16 @@ export default function HomePage() {
 
         {/* FILM CREDITS — INK BREATHER */}
         <section id="credits" className="credits-section" style={{ backgroundColor: "#141412", color: "#F7F6F3" }}>
-          <div className="credits-px">
+          <div className="credits-px section-header">
             <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "#2E6B9C" }}>
               Film Credits
             </div>
 
-            <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px" }}>
+            <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px", margin: "0 auto 32px auto" }}>
               We've worked on a lot of movies.
             </h2>
 
-            <div style={{ fontSize: "18px", fontWeight: 400, lineHeight: 1.7, maxWidth: "640px", color: "#8A8A84", marginBottom: "48px" }}>
+            <div style={{ fontSize: "18px", fontWeight: 400, lineHeight: 1.7, maxWidth: "640px", color: "#8A8A84", marginBottom: "48px", margin: "0 auto 48px auto" }}>
               We've spent years on Hollywood film sets, and that experience shapes every video we make.
             </div>
           </div>
@@ -677,16 +677,18 @@ export default function HomePage() {
 
         {/* PORTFOLIO — GREEN BAND */}
         <section id="portfolio" className="sp" style={{ backgroundColor: "#3A8A5C", color: "white" }}>
-          <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", color: "rgba(255,255,255,0.5)" }}>
-            Portfolio
-          </div>
+          <div className="section-header">
+            <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", color: "rgba(255,255,255,0.5)" }}>
+              Portfolio
+            </div>
 
-          <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px" }}>
-            Check out our work.
-          </h2>
+            <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px", margin: "0 auto 32px auto" }}>
+              Check out our work.
+            </h2>
 
-          <div style={{ fontSize: "18px", lineHeight: 1.7, maxWidth: "640px", color: "rgba(255,255,255,0.75)", marginBottom: "64px" }}>
-            Here are a few of the stories we've had the privilege to tell.
+            <div style={{ fontSize: "18px", lineHeight: 1.7, maxWidth: "640px", color: "rgba(255,255,255,0.75)", marginBottom: "64px", margin: "0 auto 64px auto" }}>
+              Here are a few of the stories we've had the privilege to tell.
+            </div>
           </div>
 
           <div className="grid-3col" style={{ gap: "24px" }}>
@@ -694,7 +696,7 @@ export default function HomePage() {
               {
                 title: "Phoenix's Story",
                 client: "Learning Grove, Gala Event 2025",
-                embedSrc: "https://player.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM",
+                embedSrc: "https://player.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM?thumbnail_time=147",
                 thumbnail: "https://image.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM/thumbnail.webp?width=1920&time=147",
                 clientLogo: "/client-logos/learning-grove-logo.png",
                 clientName: "Learning Grove",
@@ -702,7 +704,7 @@ export default function HomePage() {
               {
                 title: "2025 End-of-Year Report",
                 client: "Boone County Prosecutors' Office",
-                embedSrc: "https://player.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8",
+                embedSrc: "https://player.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8?thumbnail_time=104",
                 thumbnail: "https://image.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8/thumbnail.webp?width=1920&time=104",
                 clientLogo: "/client-logos/boone-county-logo-white-text.png",
                 clientName: "Boone County Prosecutors' Office",
@@ -711,7 +713,7 @@ export default function HomePage() {
               {
                 title: "Janell's Story",
                 client: "Beech Acres, Love Grows Here Event 2024",
-                embedSrc: "https://player.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co?accent-color=%23E07830",
+                embedSrc: "https://player.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co?accent-color=%23E07830&thumbnail_time=238",
                 thumbnail: "https://image.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co/thumbnail.webp?width=1920&time=238",
                 clientLogo: "/client-logos/beech-acres-logo.png",
                 clientName: "Beech Acres",
@@ -761,17 +763,17 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div style={{ padding: "20px" }}>
-                  {item.clientLogo && (
-                    <div style={{ marginBottom: "12px", opacity: 0.85 }}>
+                  <div className="video-title-row" style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "4px" }}>
+                    {item.clientLogo && (
                       <img
                         src={item.clientLogo}
                         alt={item.clientName}
-                        style={{ height: "24px", width: "auto", filter: item.isLightLogo ? "none" : "brightness(0) invert(1)", objectFit: "contain" }}
+                        style={{ height: "28px", width: "auto", filter: item.isLightLogo ? "none" : "brightness(0) invert(1)", objectFit: "contain", flexShrink: 0 }}
                         loading="lazy"
                       />
-                    </div>
-                  )}
-                  <h3 style={{ fontSize: "18px", fontWeight: 800, marginBottom: "4px" }}>{item.title}</h3>
+                    )}
+                    <h3 style={{ fontSize: "18px", fontWeight: 800 }}>{item.title}</h3>
+                  </div>
                   <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)" }}>{item.client}</p>
                 </div>
               </div>

@@ -94,6 +94,30 @@ button:focus-visible {
 }
 
 /* ========================================
+   SECTION HEADER ALIGNMENT
+   ======================================== */
+.section-header {
+  text-align: center;
+}
+
+/* ========================================
+   VIDEO TITLE ROW — inline logo + title
+   ======================================== */
+.video-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .video-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+/* ========================================
    RESPONSIVE LAYOUT SYSTEM
    ======================================== */
 
