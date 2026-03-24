@@ -15,8 +15,9 @@ export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [splashOpacity, setSplashOpacity] = useState(1)
   const [scrollIndicatorVisible, setScrollIndicatorVisible] = useState(false)
-  const [scrollIndicatorFaded, setScrollIndicatorFaded] = useState(false)
+  const [logoFadedIn, setLogoFadedIn] = useState(false)
   const filmCreditsRef = useRef<HTMLDivElement>(null)
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const fetchTMDBData = async () => {
@@ -45,20 +46,49 @@ export default function HomePage() {
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
-  // Scroll indicator: fade in after delay, fade out on scroll
+  // Logo fade-in on mount
   useEffect(() => {
-    const fadeInTimer = setTimeout(() => setScrollIndicatorVisible(true), 2000)
-    return () => clearTimeout(fadeInTimer)
+    const timer = setTimeout(() => setLogoFadedIn(true), 50)
+    return () => clearTimeout(timer)
   }, [])
 
+  // Scroll indicator: show after 2s in logo section, hide on scroll past, reappear on return
   useEffect(() => {
-    const onScroll = () => {
-      if (window.scrollY > 80) {
-        setScrollIndicatorFaded(true)
+    const startTimer = () => {
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
+      scrollTimerRef.current = setTimeout(() => setScrollIndicatorVisible(true), 2000)
+    }
+
+    const stopTimer = () => {
+      if (scrollTimerRef.current) {
+        clearTimeout(scrollTimerRef.current)
+        scrollTimerRef.current = null
       }
     }
+
+    // Start initial 2s timer
+    startTimer()
+
+    const onScroll = () => {
+      const inLogoSection = window.scrollY <= 80
+      if (inLogoSection) {
+        // User is in logo section — if arrow isn't showing, start timer
+        if (!scrollTimerRef.current) {
+          setScrollIndicatorVisible(false)
+          startTimer()
+        }
+      } else {
+        // User scrolled past logo section — hide arrow and cancel timer
+        stopTimer()
+        setScrollIndicatorVisible(false)
+      }
+    }
+
     window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
+    return () => {
+      window.removeEventListener("scroll", onScroll)
+      stopTimer()
+    }
   }, [])
 
   // Auto-scroll animation for film credits
@@ -233,7 +263,13 @@ export default function HomePage() {
         <img
           src="/logo.png"
           alt="Oliver Street Creative — brand story video production in Cincinnati and Northern Kentucky"
-          style={{ width: "70%", maxWidth: "400px", height: "auto" }}
+          style={{
+            width: "70%",
+            maxWidth: "400px",
+            height: "auto",
+            opacity: logoFadedIn ? 1 : 0,
+            transition: "opacity 1.2s ease-in-out",
+          }}
           draggable={false}
         />
 
@@ -254,10 +290,10 @@ export default function HomePage() {
             border: "none",
             cursor: "pointer",
             padding: "8px",
-            opacity: scrollIndicatorVisible && !scrollIndicatorFaded ? 0.6 : 0,
+            opacity: scrollIndicatorVisible ? 0.6 : 0,
             transition: "opacity 0.6s ease-out",
-            pointerEvents: scrollIndicatorVisible && !scrollIndicatorFaded ? "auto" : "none",
-            animation: scrollIndicatorVisible && !scrollIndicatorFaded ? "scrollBounce 2.4s ease-in-out infinite" : "none",
+            pointerEvents: scrollIndicatorVisible ? "auto" : "none",
+            animation: scrollIndicatorVisible ? "scrollBounce 2.4s ease-in-out infinite" : "none",
           }}
         >
           <svg width="24" height="14" viewBox="0 0 24 14" fill="none" xmlns="http://www.w3.org/2000/svg">
