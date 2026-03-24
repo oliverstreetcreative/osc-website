@@ -312,26 +312,19 @@ export default function HomePage() {
         </section>
 
         {/* SERVICES — PURPLE BAND */}
-        <section id="services" className="sp" style={{ backgroundColor: "#7B4D9E", color: "white" }}>
-          <div className="section-header" style={{ marginBottom: "64px" }}>
-            <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "rgba(255,255,255,0.5)" }}>
-              What We Do
+        <section id="services" className="services-section">
+          <div className="services-grid">
+            <div className="services-text">
+              <div className="services-label">WHAT WE DO</div>
+              <h2 className="services-heading">Video that gets results.</h2>
+              <p className="services-body">
+                With our own gear and hands-on management, we are full-service from concept to delivery. We bring speed, flexibility, and higher production value—crafting video stories that move both your audience and your bottom line.
+              </p>
             </div>
-
-            <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px", margin: "0 auto 32px auto" }}>
-              Video that gets results.
-            </h2>
-          </div>
-
-          <div className="grid-2col-img">
-            <div className="mobile-center-block" style={{ fontSize: "18px", fontWeight: 400, lineHeight: 1.7, maxWidth: "640px", color: "rgba(255,255,255,0.75)" }}>
-              With our own gear and hands-on management, we are full-service from concept to delivery. We bring speed, flexibility, and higher production value—crafting video stories that move both your audience and your bottom line.
-            </div>
-
             <img
               src="/images/strategic-videos-hero-new.png"
               alt="Videographer with camera"
-              className="img-responsive"
+              className="services-image"
               loading="lazy"
             />
           </div>

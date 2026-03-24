@@ -262,6 +262,54 @@ button:focus-visible {
 }
 
 /* ========================================
+   SERVICES SECTION ("What We Do")
+   ======================================== */
+.services-section {
+  background-color: #7B4D9E;
+  color: white;
+  padding: 120px 40px;
+}
+.services-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 55% 45%;
+  gap: 64px;
+  align-items: center;
+}
+.services-text {
+  text-align: left;
+}
+.services-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 24px;
+  color: rgba(255,255,255,0.5);
+}
+.services-heading {
+  font-size: clamp(36px, 5vw, 64px);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  margin: 0 0 24px 0;
+}
+.services-body {
+  font-size: 18px;
+  line-height: 1.7;
+  color: rgba(255,255,255,0.75);
+  max-width: 540px;
+  margin: 0;
+}
+.services-image {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+/* ========================================
    MOBILE BREAKPOINT (< 768px)
    ======================================== */
 @media (max-width: 768px) {
@@ -373,6 +421,29 @@ button:focus-visible {
     text-align: left;
   }
 
+  /* Services section mobile */
+  .services-section {
+    padding: 64px 24px;
+  }
+  .services-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .services-text {
+    text-align: center;
+  }
+  .services-heading {
+    font-size: clamp(32px, 8vw, 48px);
+  }
+  .services-body {
+    max-width: 100%;
+    margin: 0 auto;
+  }
+  .services-image {
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
   /* Client logos inline on mobile — never stack */
   .video-title-row {
     flex-direction: row;
@@ -420,5 +491,20 @@ button:focus-visible {
   }
   .footer-bar {
     padding: 40px;
+  }
+
+  /* Services section tablet */
+  .services-section {
+    padding: 80px 32px;
+  }
+  .services-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+  }
+  .services-heading {
+    font-size: clamp(32px, 5vw, 48px);
+  }
+  .services-body {
+    font-size: 16px;
   }
 }
