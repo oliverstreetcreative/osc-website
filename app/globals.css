@@ -105,11 +105,18 @@ button:focus-visible {
    ======================================== */
 .video-title-row {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 12px;
 }
 
-/* Video title row stays inline on all screen sizes */
+/* Client logo inside video title row */
+.video-title-logo {
+  height: 28px;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
 
 /* ========================================
    RESPONSIVE LAYOUT SYSTEM

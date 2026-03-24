@@ -271,19 +271,19 @@ export default function HomePage() {
 
       <main>
         {/* HERO — INK */}
-        <section id="hero" className="sp-hero" style={{ backgroundColor: "#141412" }}>
+        <section id="hero" className="sp-hero" style={{ backgroundColor: "#141412", textAlign: "center" }}>
           <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "#8A8A84" }}>
             Covington, KY
           </div>
           
-          <h1 className="mobile-center-block" style={{ fontSize: "clamp(40px, 7vw, 96px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, color: "#F7F6F3", marginBottom: "40px", maxWidth: "900px" }}>
+          <h1 className="mobile-center-block" style={{ fontSize: "clamp(40px, 7vw, 96px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, color: "#F7F6F3", marginBottom: "40px", maxWidth: "900px", margin: "0 auto 40px auto" }}>
             You've got a great story.{" "}
             <span style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontWeight: 400, color: "#E07830" }}>
               It's just not on camera yet.
             </span>
           </h1>
 
-          <div className="hero-buttons" style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+          <div className="hero-buttons" style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center" }}>
             <a
               href="https://cal.com/oliverstreetcreative"
               target="_blank"
@@ -315,15 +315,15 @@ export default function HomePage() {
         <section id="services" className="sp" style={{ backgroundColor: "#7B4D9E", color: "white" }}>
           <div className="grid-2col-img">
             <div>
-              <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "rgba(255,255,255,0.5)" }}>
+              <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "rgba(255,255,255,0.5)", textAlign: "center" }}>
                 What We Do
               </div>
 
-              <h2 className="mobile-center-block" style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px" }}>
+              <h2 className="mobile-center-block" style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px", textAlign: "center", margin: "0 auto 32px auto" }}>
                 We make strategic videos for businesses and non-profits
               </h2>
 
-              <div className="mobile-center-block" style={{ fontSize: "18px", fontWeight: 400, lineHeight: 1.7, maxWidth: "640px", color: "rgba(255,255,255,0.75)" }}>
+              <div className="mobile-center-block" style={{ fontSize: "18px", fontWeight: 400, lineHeight: 1.7, maxWidth: "640px", color: "rgba(255,255,255,0.75)", textAlign: "center", margin: "0 auto" }}>
                 With our own gear and hands-on management, we are full-service from concept to delivery. We bring speed, flexibility, and higher production value—crafting video stories that move both your audience and your bottom line.
               </div>
             </div>
@@ -521,7 +521,6 @@ export default function HomePage() {
               src="/client-logos/beech-acres-logo.png"
               alt="Beech Acres"
               style={{ height: "28px", width: "auto", objectFit: "contain", filter: "brightness(0)", opacity: 0.6 }}
-              loading="lazy"
             />
           </div>
 
@@ -540,7 +539,6 @@ export default function HomePage() {
                   src="/client-logos/landslide-films-logo.png"
                   alt="Landslide Films"
                   style={{ height: "24px", width: "auto", objectFit: "contain", filter: "brightness(0)", opacity: 0.6 }}
-                  loading="lazy"
                 />
               </div>
             </div>
@@ -557,7 +555,6 @@ export default function HomePage() {
                   src="/client-logos/boone-county-logo-white-text.png"
                   alt="Boone County"
                   style={{ height: "24px", width: "auto", objectFit: "contain", filter: "brightness(0)", opacity: 0.6 }}
-                  loading="lazy"
                 />
               </div>
             </div>
@@ -696,7 +693,7 @@ export default function HomePage() {
               {
                 title: "Phoenix's Story",
                 client: "Learning Grove, Gala Event 2025",
-                embedSrc: "https://player.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM?thumbnail_time=147&poster=https%3A%2F%2Fimage.mux.com%2FWZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D147",
+                embedSrc: "https://player.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM?thumbnail_time=147&thumbnail_url=https%3A%2F%2Fimage.mux.com%2FWZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D147&poster=https%3A%2F%2Fimage.mux.com%2FWZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D147",
                 thumbnail: "https://image.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM/thumbnail.webp?width=1920&time=147",
                 clientLogo: "/client-logos/learning-grove-logo.png",
                 clientName: "Learning Grove",
@@ -704,7 +701,7 @@ export default function HomePage() {
               {
                 title: "2025 End-of-Year Report",
                 client: "Boone County Prosecutors' Office",
-                embedSrc: "https://player.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8?thumbnail_time=104&poster=https%3A%2F%2Fimage.mux.com%2FIhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D104",
+                embedSrc: "https://player.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8?thumbnail_time=104&thumbnail_url=https%3A%2F%2Fimage.mux.com%2FIhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D104&poster=https%3A%2F%2Fimage.mux.com%2FIhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D104",
                 thumbnail: "https://image.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8/thumbnail.webp?width=1920&time=104",
                 clientLogo: "/client-logos/boone-county-logo-white-text.png",
                 clientName: "Boone County Prosecutors' Office",
@@ -713,7 +710,7 @@ export default function HomePage() {
               {
                 title: "Janell's Story",
                 client: "Beech Acres, Love Grows Here Event 2024",
-                embedSrc: "https://player.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co?accent-color=%23E07830&thumbnail_time=238&poster=https%3A%2F%2Fimage.mux.com%2FcmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D238",
+                embedSrc: "https://player.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co?accent-color=%23E07830&thumbnail_time=238&thumbnail_url=https%3A%2F%2Fimage.mux.com%2FcmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D238&poster=https%3A%2F%2Fimage.mux.com%2FcmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D238",
                 thumbnail: "https://image.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co/thumbnail.webp?width=1920&time=238",
                 clientLogo: "/client-logos/beech-acres-logo.png",
                 clientName: "Beech Acres",
@@ -763,13 +760,13 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div style={{ padding: "20px" }}>
-                  <div className="video-title-row" style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "4px" }}>
+                  <div className="video-title-row" style={{ marginBottom: "4px" }}>
                     {item.clientLogo && (
                       <img
                         src={item.clientLogo}
                         alt={item.clientName}
-                        style={{ height: "28px", width: "auto", filter: item.isLightLogo ? "none" : "brightness(0) invert(1)", objectFit: "contain", flexShrink: 0 }}
-                        loading="lazy"
+                        className="video-title-logo"
+                        style={{ filter: item.isLightLogo ? "none" : "brightness(0) invert(1)" }}
                       />
                     )}
                     <h3 style={{ fontSize: "18px", fontWeight: 800 }}>{item.title}</h3>
