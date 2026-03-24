@@ -319,7 +319,7 @@ export default function HomePage() {
             </div>
 
             <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px", margin: "0 auto 32px auto" }}>
-              We make strategic videos for businesses and non-profits
+              Video that gets results.
             </h2>
           </div>
 
@@ -499,14 +499,56 @@ export default function HomePage() {
             Don't just take our word for it—hear from the founders, nonprofits, and developers we've helped tell their stories.
           </p>
 
-          <div style={{ maxWidth: "800px", margin: "0 auto 64px auto", aspectRatio: "16/9", backgroundColor: "#000" }}>
-            <iframe
-              src="https://player.mux.com/4YKpfx6WR7jjcdOfh2LcZfflSqwvz2k52TMNUcXbA28?accent-color=%23E07830"
-              className="w-full h-full border-0"
-              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-              allowFullScreen
-              title="Client Testimonials"
+          <div
+            style={{ maxWidth: "800px", margin: "0 auto 64px auto", aspectRatio: "16/9", position: "relative", overflow: "hidden", cursor: "pointer", backgroundColor: "#000" }}
+            onClick={() => setVideoModalSrc("https://player.mux.com/4YKpfx6WR7jjcdOfh2LcZfflSqwvz2k52TMNUcXbA28?accent-color=%23E07830&start=93")}
+            onMouseEnter={(e) => {
+              const img = e.currentTarget.querySelector("img") as HTMLImageElement
+              const btn = e.currentTarget.querySelector(".testimonial-play-btn") as HTMLElement
+              if (img) img.style.transform = "scale(1.03)"
+              if (btn) btn.style.opacity = "1"
+            }}
+            onMouseLeave={(e) => {
+              const img = e.currentTarget.querySelector("img") as HTMLImageElement
+              const btn = e.currentTarget.querySelector(".testimonial-play-btn") as HTMLElement
+              if (img) img.style.transform = "scale(1)"
+              if (btn) btn.style.opacity = "0.8"
+            }}
+          >
+            <img
+              src="https://image.mux.com/4YKpfx6WR7jjcdOfh2LcZfflSqwvz2k52TMNUcXbA28/thumbnail.webp?width=1920&time=93"
+              alt="Client Testimonials"
+              style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s" }}
+              loading="lazy"
             />
+            <div
+              className="testimonial-play-btn"
+              style={{
+                position: "absolute",
+                bottom: "16px",
+                right: "16px",
+                width: "56px",
+                height: "56px",
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.9)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: 0.8,
+                transition: "opacity 0.2s",
+              }}
+            >
+              <div
+                style={{
+                  width: 0,
+                  height: 0,
+                  borderTop: "10px solid transparent",
+                  borderBottom: "10px solid transparent",
+                  borderLeft: "16px solid #141412",
+                  marginLeft: "3px",
+                }}
+              />
+            </div>
           </div>
 
           <blockquote style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontSize: "clamp(22px, 4vw, 44px)", fontWeight: 400, lineHeight: 1.4, maxWidth: "800px", margin: "0 auto 24px auto" }}>
