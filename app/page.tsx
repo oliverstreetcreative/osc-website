@@ -13,12 +13,12 @@ export default function HomePage() {
   const [tmdbData, setTmdbData] = useState<TMDBData | null>(null)
   const [loading, setLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [splashVisible, setSplashVisible] = useState(true)
-  const [splashOpacity, setSplashOpacity] = useState(1)
   const [logoFadedIn, setLogoFadedIn] = useState(false)
   const [logoFadedOut, setLogoFadedOut] = useState(false)
-  const splashSkippedRef = useRef(false)
+  const [splashDone, setSplashDone] = useState(false)
   const splashTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+  const splashDismissedRef = useRef(false)
+  const heroRef = useRef<HTMLElement>(null)
   const filmCreditsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -38,22 +38,24 @@ export default function HomePage() {
     fetchTMDBData()
   }, [])
 
-  // Cinematic splash sequence: title card → fade to black → scene fades in
-  // Interruptible: any scroll/swipe during the sequence triggers a graceful skip
+  // Cinematic splash sequence: in-flow curtain that scrolls up to reveal hero
+  // Total: ~3.2s (logo fade-in 1.2s + pause 0.6s + logo fade-out 0.6s + beat 0.2s + scroll to hero 0.6s)
   useEffect(() => {
     const timers = splashTimersRef.current
 
-    // Step 1: Logo fades in + floats up (2.2s)
+    // Start with page scrolled to top (splash block is first)
+    window.scrollTo(0, 0)
+
+    // Step 1: Logo fades in (1.2s transition)
     timers.push(setTimeout(() => setLogoFadedIn(true), 50))
 
-    // Step 2: Pause to breathe (~1.3s after logo animation completes)
-    timers.push(setTimeout(() => setLogoFadedOut(true), 3550))
+    // Step 2: After logo fade-in (1.2s) + breathing pause (0.6s) = 1.85s, fade logo out
+    timers.push(setTimeout(() => setLogoFadedOut(true), 1850))
 
-    // Step 3: After logo fades to black + black beat, fade splash overlay out
-    timers.push(setTimeout(() => setSplashOpacity(0), 5050))
-
-    // Step 4: After splash fade-out transition (1.2s), remove from DOM
-    timers.push(setTimeout(() => setSplashVisible(false), 6250))
+    // Step 3: After logo fade-out (0.6s) + black beat (0.2s) = 2.65s, scroll to hero
+    timers.push(setTimeout(() => {
+      dismissSplash()
+    }, 2650))
 
     return () => {
       timers.forEach(clearTimeout)
@@ -61,49 +63,81 @@ export default function HomePage() {
     }
   }, [])
 
-  // Scroll-to-skip: any scroll gesture during splash triggers graceful fade-out
-  useEffect(() => {
-    if (!splashVisible) return
+  // Scroll-to-hero helper — smoothly scrolls the splash curtain out of view
+  // After triggering, absorbs further scroll input so momentum can't carry past the hero
+  const dismissSplash = () => {
+    if (splashDismissedRef.current) return
+    splashDismissedRef.current = true
 
-    const skipSplash = () => {
-      if (splashSkippedRef.current) return
-      splashSkippedRef.current = true
+    // Clear any pending animation timers
+    splashTimersRef.current.forEach(clearTimeout)
+    splashTimersRef.current = []
 
-      // Clear all pending animation timers
-      splashTimersRef.current.forEach(clearTimeout)
-      splashTimersRef.current = []
+    // Fade the logo out immediately
+    setLogoFadedOut(true)
 
-      // Immediately ensure logo is faded out (no delay)
-      setLogoFadedOut(true)
+    // Block further scroll/wheel/touch input so momentum doesn't overshoot
+    const absorbEvent = (e: Event) => { e.preventDefault(); e.stopPropagation() }
+    const absorbOpts = { capture: true, passive: false } as AddEventListenerOptions
+    document.addEventListener("wheel", absorbEvent, absorbOpts)
+    document.addEventListener("touchmove", absorbEvent, absorbOpts)
+    document.addEventListener("scroll", absorbEvent, absorbOpts)
 
-      // Begin graceful splash fade-out (0.8s transition set in style below)
-      // Small delay to let logo start fading before the overlay goes
-      setTimeout(() => setSplashOpacity(0), 100)
-
-      // Remove from DOM after the fade completes
-      setTimeout(() => setSplashVisible(false), 1000)
+    // Smooth scroll to the hero section
+    const scrollToHero = () => {
+      if (heroRef.current) {
+        heroRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
+      }
+      // Release scroll absorption after the smooth scroll settles (~500ms)
+      // and mark splash done
+      setTimeout(() => {
+        document.removeEventListener("wheel", absorbEvent, absorbOpts)
+        document.removeEventListener("touchmove", absorbEvent, absorbOpts)
+        document.removeEventListener("scroll", absorbEvent, absorbOpts)
+        setSplashDone(true)
+      }, 800)
     }
 
-    // Capture scroll on window — wheel, touch, and keyboard
-    const onWheel = (e: WheelEvent) => skipSplash()
-    const onTouchMove = (e: TouchEvent) => skipSplash()
+    // Small delay so logo starts fading before we scroll
+    setTimeout(scrollToHero, 250)
+  }
+
+  // Scroll-to-skip: any scroll/wheel/touch/key gesture during splash triggers scroll-to-hero
+  // Since splash is now in-flow (not fixed), normal scroll events work, but we also
+  // listen for wheel/touch/key to trigger the auto-scroll-to-hero dismiss
+  useEffect(() => {
+    if (splashDone) return
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      dismissSplash()
+    }
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault()
+      dismissSplash()
+    }
     const onKeyDown = (e: KeyboardEvent) => {
-      // Arrow keys, space, page down — common scroll gestures
-      if (["ArrowDown", "ArrowUp", "Space", "PageDown", "PageUp", "Home", "End"].includes(e.code)) {
-        skipSplash()
+      if (["ArrowDown", "ArrowUp", "Space", "PageDown", "PageUp", "Home", "End", "Escape"].includes(e.code)) {
+        e.preventDefault()
+        dismissSplash()
       }
     }
+    const onClick = () => dismissSplash()
 
-    window.addEventListener("wheel", onWheel, { passive: true })
-    window.addEventListener("touchmove", onTouchMove, { passive: true })
-    window.addEventListener("keydown", onKeyDown)
+    document.addEventListener("wheel", onWheel, { capture: true, passive: false })
+    document.addEventListener("touchmove", onTouchMove, { capture: true, passive: false })
+    document.addEventListener("keydown", onKeyDown, { capture: true })
+    document.addEventListener("click", onClick, { capture: true })
+    document.addEventListener("pointerdown", onClick, { capture: true })
 
     return () => {
-      window.removeEventListener("wheel", onWheel)
-      window.removeEventListener("touchmove", onTouchMove)
-      window.removeEventListener("keydown", onKeyDown)
+      document.removeEventListener("wheel", onWheel, { capture: true })
+      document.removeEventListener("touchmove", onTouchMove, { capture: true })
+      document.removeEventListener("keydown", onKeyDown, { capture: true })
+      document.removeEventListener("click", onClick, { capture: true })
+      document.removeEventListener("pointerdown", onClick, { capture: true })
     }
-  }, [splashVisible])
+  }, [splashDone])
 
   // Auto-scroll animation for film credits
   useEffect(() => {
@@ -156,6 +190,21 @@ export default function HomePage() {
     }
   }, [tmdbData])
 
+  // Hide comparison scroll hint once user scrolls
+  useEffect(() => {
+    const wrapper = document.querySelector('.comparison-scroll-wrapper') as HTMLElement | null
+    if (!wrapper) return
+    const onScroll = () => {
+      if (wrapper.scrollLeft > 10) {
+        wrapper.classList.add('scrolled')
+      } else {
+        wrapper.classList.remove('scrolled')
+      }
+    }
+    wrapper.addEventListener('scroll', onScroll, { passive: true })
+    return () => wrapper.removeEventListener('scroll', onScroll)
+  }, [])
+
   // Close mobile menu on anchor click
   const handleNavClick = () => setMobileMenuOpen(false)
 
@@ -205,8 +254,8 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Navigation */}
-      <nav className="nav-bar">
+      {/* Navigation — hidden during splash */}
+      <nav className="nav-bar" style={{ opacity: splashDone ? 1 : 0, transition: "opacity 0.4s ease-in-out" }}>
         <div style={{ fontWeight: 800, fontSize: "18px", letterSpacing: "0.05em", textTransform: "uppercase", color: "#F7F6F3" }}>
           Oliver Street <span style={{ color: "#E07830" }}>Creative</span>
         </div>
@@ -264,20 +313,17 @@ export default function HomePage() {
         <a href="#contact" onClick={handleNavClick}>Get Started</a>
       </div>
 
-      {/* SPLASH — Cinematic title card: fades in, holds, dissolves */}
-      {splashVisible && (
+      {/* SPLASH — In-flow curtain block: sits above hero, scrolls up to reveal it */}
+      {!splashDone && (
         <div
           style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 110,
+            width: "100%",
+            height: "100vh",
             backgroundColor: "#000000",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            opacity: splashOpacity,
-            transition: splashSkippedRef.current ? "opacity 0.8s ease-in-out" : "opacity 1.2s ease-in-out",
-            pointerEvents: splashOpacity < 0.05 ? "none" : "auto",
+            flexShrink: 0,
           }}
         >
           <img
@@ -290,8 +336,8 @@ export default function HomePage() {
               opacity: logoFadedOut ? 0 : logoFadedIn ? 1 : 0,
               transform: logoFadedIn ? "translateY(0)" : "translateY(25px)",
               transition: logoFadedOut
-                ? (splashSkippedRef.current ? "opacity 0.4s ease-in-out" : "opacity 1.1s ease-in-out")
-                : "opacity 2.2s ease-in-out, transform 2.2s ease-in-out",
+                ? "opacity 0.6s ease-in-out"
+                : "opacity 1.2s ease-in-out, transform 1.2s ease-in-out",
             }}
             draggable={false}
           />
@@ -300,7 +346,7 @@ export default function HomePage() {
 
       <main>
         {/* HERO — INK */}
-        <section id="hero" className="sp-hero" style={{ backgroundColor: "#141412", textAlign: "center" }}>
+        <section ref={heroRef} id="hero" className="sp-hero" style={{ backgroundColor: "#141412", textAlign: "center" }}>
           <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "#8A8A84" }}>
             Covington, KY
           </div>
@@ -646,81 +692,117 @@ export default function HomePage() {
 
           {/* Comparison Table */}
           <div style={{ maxWidth: "920px", margin: "0 auto" }}>
-            <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "600px" }}>
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: "left", padding: "16px 14px", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#8A8A84", borderBottom: "2px solid #2a2a28", width: "220px" }}></th>
-                    {["DIY", "Freelancer", "In-House", "Agency", "Oliver Street"].map((col, i) => (
-                      <th
-                        key={col}
-                        style={{
-                          padding: "16px 14px",
-                          fontSize: "11px",
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.1em",
-                          textAlign: "center",
-                          color: i === 4 ? "#E07830" : "#8A8A84",
-                          borderBottom: i === 4 ? "2px solid #E07830" : "2px solid #2a2a28",
-                          backgroundColor: i === 4 ? "rgba(224,120,48,0.08)" : "transparent",
-                        }}
-                      >
-                        {col}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { feature: "Cinematic quality", checks: [false, false, false, true, true] },
-                    { feature: "Knows your brand", checks: [true, false, true, true, true] },
-                    { feature: "Always available", checks: [true, false, true, false, true] },
-                    { feature: "Competitive pricing", checks: [true, true, false, false, true] },
-                    { feature: "Full-service (concept to delivery)", checks: [false, false, true, true, true] },
-                    { feature: "Strategic storytelling", checks: [false, false, false, true, true] },
-                    { feature: "Work with the filmmaker directly", checks: [false, true, true, false, true] },
-                    { feature: "Consistent quality", checks: [false, false, true, true, true] },
-                    { feature: "Scales with your needs", checks: [false, false, false, true, true] },
-                    { feature: "No long-term contract", checks: [true, true, false, false, true] },
-                  ].map((row, rowIdx) => (
-                    <tr key={rowIdx}>
-                      <td style={{
-                        padding: "14px 14px",
-                        fontSize: "13px",
-                        fontWeight: 600,
-                        color: "#F7F6F3",
-                        textAlign: "left",
-                        borderBottom: "1px solid #1e1e1c",
-                      }}>
-                        {row.feature}
-                      </td>
-                      {row.checks.map((checked, colIdx) => (
-                        <td
-                          key={colIdx}
+            <div style={{ position: "relative" }}>
+              <div className="comparison-scroll-wrapper" style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "600px" }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: "left", padding: "16px 14px", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#8A8A84", borderBottom: "2px solid #2a2a28", width: "220px" }}></th>
+                      {["Oliver Street", "DIY", "Freelancer", "In-House", "Agency"].map((col, i) => (
+                        <th
+                          key={col}
                           style={{
-                            padding: "14px 14px",
+                            padding: "16px 14px",
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.1em",
                             textAlign: "center",
-                            borderBottom: "1px solid #1e1e1c",
-                            backgroundColor: colIdx === 4 ? "rgba(224,120,48,0.05)" : "transparent",
+                            color: i === 0 ? "#E07830" : "#8A8A84",
+                            borderBottom: i === 0 ? "2px solid #E07830" : "2px solid #2a2a28",
+                            backgroundColor: i === 0 ? "rgba(224,120,48,0.08)" : "transparent",
                           }}
                         >
-                          {checked ? (
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ display: "inline-block" }}>
-                              <circle cx="10" cy="10" r="8" fill="#E07830" />
-                              <path d="M6 10l3 3 5-5" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          ) : (
-                            <svg width="20" height="20" viewBox="0 0 20 20" style={{ display: "inline-block" }}>
-                              <line x1="6" y1="10" x2="14" y2="10" stroke="#333" strokeWidth="1.5" strokeLinecap="round" />
-                            </svg>
-                          )}
-                        </td>
+                          {col}
+                        </th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {[
+                      { feature: "Cinematic quality", checks: [true, false, false, false, true] },
+                      { feature: "Knows your brand", checks: [true, true, false, true, true] },
+                      { feature: "Always available", checks: [true, true, false, true, false] },
+                      { feature: "Competitive pricing", checks: [true, true, true, false, false] },
+                      { feature: "Full-service (concept to delivery)", checks: [true, false, false, true, true] },
+                      { feature: "Strategic storytelling", checks: [true, false, false, false, true] },
+                      { feature: "Work with the filmmaker directly", checks: [true, false, true, true, false] },
+                      { feature: "Consistent quality", checks: [true, false, false, true, true] },
+                      { feature: "Scales with your needs", checks: [true, false, false, false, true] },
+                      { feature: "No long-term contract", checks: [true, true, true, false, false] },
+                    ].map((row, rowIdx) => (
+                      <tr key={rowIdx}>
+                        <td style={{
+                          padding: "14px 14px",
+                          fontSize: "13px",
+                          fontWeight: 600,
+                          color: "#F7F6F3",
+                          textAlign: "left",
+                          borderBottom: "1px solid #1e1e1c",
+                        }}>
+                          {row.feature}
+                        </td>
+                        {row.checks.map((checked, colIdx) => (
+                          <td
+                            key={colIdx}
+                            style={{
+                              padding: "14px 14px",
+                              textAlign: "center",
+                              borderBottom: "1px solid #1e1e1c",
+                              backgroundColor: colIdx === 0 ? "rgba(224,120,48,0.05)" : "transparent",
+                            }}
+                          >
+                            {checked ? (
+                              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ display: "inline-block" }}>
+                                <circle cx="10" cy="10" r="8" fill="#E07830" />
+                                <path d="M6 10l3 3 5-5" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            ) : (
+                              <svg width="20" height="20" viewBox="0 0 20 20" style={{ display: "inline-block" }}>
+                                <line x1="6" y1="10" x2="14" y2="10" stroke="#333" strokeWidth="1.5" strokeLinecap="round" />
+                              </svg>
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {/* Mobile scroll hint — gradient fade + swipe text */}
+              <div className="comparison-scroll-hint" style={{
+                position: "absolute",
+                top: 0,
+                right: 0,
+                bottom: 0,
+                width: "48px",
+                background: "linear-gradient(to right, transparent, #141412)",
+                pointerEvents: "none",
+                display: "none",
+              }} />
+              <div className="comparison-swipe-hint" style={{
+                display: "none",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: "6px",
+                marginTop: "12px",
+                fontSize: "12px",
+                color: "#8A8A84",
+                opacity: 0.7,
+              }}>
+                <span>Swipe to compare</span>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ display: "inline-block" }}>
+                  <path d="M3 8h10M10 5l3 3-3 3" stroke="#8A8A84" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <style>{`
+                @media (max-width: 768px) {
+                  .comparison-scroll-hint { display: block !important; transition: opacity 0.3s ease; }
+                  .comparison-swipe-hint { display: flex !important; transition: opacity 0.3s ease; }
+                  .comparison-scroll-wrapper.scrolled + .comparison-scroll-hint { opacity: 0; pointer-events: none; }
+                  .comparison-scroll-wrapper.scrolled ~ .comparison-swipe-hint { opacity: 0; }
+                }
+              `}</style>
             </div>
           </div>
 
