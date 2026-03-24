@@ -467,8 +467,16 @@ export default function HomePage() {
             "The partnership with Oliver Street Creative was so valuable in understanding our goals and our values and the mission and impact that we wanted to communicate."
           </blockquote>
 
-          <div style={{ fontSize: "14px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(20,20,18,0.5)" }}>
-            — Jordan Huizinga, VP of Development, Beech Acres
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "14px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(20,20,18,0.5)" }}>
+              — Jordan Huizinga, VP of Development
+            </span>
+            <img
+              src="/client-logos/beech-acres-logo.png"
+              alt="Beech Acres"
+              style={{ height: "28px", width: "auto", objectFit: "contain", filter: "brightness(0)", opacity: 0.6 }}
+              loading="lazy"
+            />
           </div>
 
           <div style={{ height: "48px" }}></div>
@@ -625,19 +633,25 @@ export default function HomePage() {
                 title: "Phoenix's Story",
                 client: "Learning Grove, Gala Event 2025",
                 embedSrc: "https://player.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM",
-                thumbnail: "https://image.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM/thumbnail.png?width=214&height=121&time=147",
+                thumbnail: "https://image.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM/thumbnail.png?width=960&height=540&time=147",
+                clientLogo: "/client-logos/learning-grove-logo.png",
+                clientName: "Learning Grove",
               },
               {
                 title: "2025 End-of-Year Report",
                 client: "Boone County Prosecutors' Office",
                 embedSrc: "https://player.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8",
-                thumbnail: "https://image.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8/thumbnail.png?width=214&height=121&time=104",
+                thumbnail: "https://image.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8/thumbnail.png?width=960&height=540&time=104",
+                clientLogo: "/client-logos/boone-county-logo.png",
+                clientName: "Boone County Prosecutors' Office",
               },
               {
                 title: "Janell's Story",
                 client: "Beech Acres, Love Grows Here Event 2024",
                 embedSrc: "https://player.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co?accent-color=%23E07830",
-                thumbnail: "https://image.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co/thumbnail.png?width=214&height=121&time=238",
+                thumbnail: "https://image.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co/thumbnail.png?width=960&height=540&time=238",
+                clientLogo: "/client-logos/beech-acres-logo.png",
+                clientName: "Beech Acres",
               },
             ].map((item, idx) => (
               <div key={idx} style={{ backgroundColor: "rgba(0,0,0,0.2)", overflow: "hidden", cursor: "pointer" }} onClick={() => setVideoModalSrc(item.embedSrc)}>
@@ -683,7 +697,24 @@ export default function HomePage() {
                 </div>
                 <div style={{ padding: "20px" }}>
                   <h3 style={{ fontSize: "18px", fontWeight: 800, marginBottom: "4px" }}>{item.title}</h3>
-                  <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)" }}>{item.client}</p>
+                  <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)", marginBottom: "12px" }}>{item.client}</p>
+                  {item.clientLogo && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", opacity: 0.85 }}>
+                      <img
+                        src={item.clientLogo}
+                        alt={item.clientName}
+                        style={{ height: "24px", width: "auto", filter: "brightness(0) invert(1)", objectFit: "contain" }}
+                        loading="lazy"
+                      />
+                      <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", fontWeight: 600 }}>×</span>
+                      <img
+                        src="/logo.png"
+                        alt="Oliver Street Creative"
+                        style={{ height: "24px", width: "auto", filter: "brightness(0) invert(1)", objectFit: "contain" }}
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
