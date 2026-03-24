@@ -13,12 +13,12 @@ export default function HomePage() {
   const [tmdbData, setTmdbData] = useState<TMDBData | null>(null)
   const [loading, setLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [splashVisible, setSplashVisible] = useState(true)
-  const [splashOpacity, setSplashOpacity] = useState(1)
   const [logoFadedIn, setLogoFadedIn] = useState(false)
   const [logoFadedOut, setLogoFadedOut] = useState(false)
-  const splashSkippedRef = useRef(false)
+  const [splashDone, setSplashDone] = useState(false)
   const splashTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+  const splashDismissedRef = useRef(false)
+  const heroRef = useRef<HTMLElement>(null)
   const filmCreditsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -38,23 +38,24 @@ export default function HomePage() {
     fetchTMDBData()
   }, [])
 
-  // Cinematic splash sequence: title card → fade to black → scene fades in
-  // Interruptible: any scroll/swipe during the sequence triggers a graceful skip
-  // Total: ~4.5s (logo fade-in 1.7s + pause 0.9s + logo fade-out 0.8s + beat 0.3s + site fade-in 0.9s)
+  // Cinematic splash sequence: in-flow curtain that scrolls up to reveal hero
+  // Total: ~3.2s (logo fade-in 1.2s + pause 0.6s + logo fade-out 0.6s + beat 0.2s + scroll to hero 0.6s)
   useEffect(() => {
     const timers = splashTimersRef.current
 
-    // Step 1: Logo fades in + floats up (1.7s)
+    // Start with page scrolled to top (splash block is first)
+    window.scrollTo(0, 0)
+
+    // Step 1: Logo fades in (1.2s transition)
     timers.push(setTimeout(() => setLogoFadedIn(true), 50))
 
-    // Step 2: Pause to breathe (~0.9s after logo animation completes at ~1750ms)
-    timers.push(setTimeout(() => setLogoFadedOut(true), 2650))
+    // Step 2: After logo fade-in (1.2s) + breathing pause (0.6s) = 1.85s, fade logo out
+    timers.push(setTimeout(() => setLogoFadedOut(true), 1850))
 
-    // Step 3: After logo fades to black (0.8s) + black beat (0.3s), fade splash overlay out
-    timers.push(setTimeout(() => setSplashOpacity(0), 3750))
-
-    // Step 4: After splash fade-out transition (0.9s), remove from DOM
-    timers.push(setTimeout(() => setSplashVisible(false), 4650))
+    // Step 3: After logo fade-out (0.6s) + black beat (0.2s) = 2.65s, scroll to hero
+    timers.push(setTimeout(() => {
+      dismissSplash()
+    }, 2650))
 
     return () => {
       timers.forEach(clearTimeout)
@@ -62,46 +63,47 @@ export default function HomePage() {
     }
   }, [])
 
-  // Scroll-to-skip: any scroll/wheel/touch/key gesture during splash triggers graceful fade-out
-  // Uses document-level capture listeners so the fixed overlay can't block detection
-  useEffect(() => {
-    if (!splashVisible) return
+  // Scroll-to-hero helper — smoothly scrolls the splash curtain out of view
+  const dismissSplash = () => {
+    if (splashDismissedRef.current) return
+    splashDismissedRef.current = true
 
-    const skipSplash = () => {
-      if (splashSkippedRef.current) return
-      splashSkippedRef.current = true
+    // Clear any pending animation timers
+    splashTimersRef.current.forEach(clearTimeout)
+    splashTimersRef.current = []
 
-      // Clear all pending animation timers
-      splashTimersRef.current.forEach(clearTimeout)
-      splashTimersRef.current = []
+    // Fade the logo out immediately
+    setLogoFadedOut(true)
 
-      // Immediately ensure logo is faded out (no delay)
-      setLogoFadedOut(true)
-
-      // Begin graceful splash fade-out (0.8s transition set in style below)
-      // Small delay to let logo start fading before the overlay goes
-      setTimeout(() => setSplashOpacity(0), 100)
-
-      // Remove from DOM after the fade completes
-      setTimeout(() => setSplashVisible(false), 900)
+    // Smooth scroll to the hero section
+    const scrollToHero = () => {
+      if (heroRef.current) {
+        heroRef.current.scrollIntoView({ behavior: "smooth" })
+      }
+      // Mark splash as done after scroll completes
+      setTimeout(() => setSplashDone(true), 800)
     }
 
-    // Use document-level capture phase listeners — these fire regardless of
-    // whether the fixed overlay is intercepting events or body has overflow:hidden
-    const onWheel = () => skipSplash()
-    const onTouchStart = () => skipSplash()
-    const onTouchMove = () => skipSplash()
+    // Small delay so logo starts fading before we scroll
+    setTimeout(scrollToHero, 250)
+  }
+
+  // Scroll-to-skip: any scroll/wheel/touch/key gesture during splash triggers scroll-to-hero
+  // Since splash is now in-flow (not fixed), normal scroll events work, but we also
+  // listen for wheel/touch/key to trigger the auto-scroll-to-hero dismiss
+  useEffect(() => {
+    if (splashDone) return
+
+    const onWheel = () => dismissSplash()
+    const onTouchMove = () => dismissSplash()
     const onKeyDown = (e: KeyboardEvent) => {
-      // Arrow keys, space, page down, escape — common scroll/dismiss gestures
       if (["ArrowDown", "ArrowUp", "Space", "PageDown", "PageUp", "Home", "End", "Escape"].includes(e.code)) {
-        skipSplash()
+        dismissSplash()
       }
     }
-    // Click/tap anywhere on the splash also skips
-    const onClick = () => skipSplash()
+    const onClick = () => dismissSplash()
 
     document.addEventListener("wheel", onWheel, { capture: true, passive: true })
-    document.addEventListener("touchstart", onTouchStart, { capture: true, passive: true })
     document.addEventListener("touchmove", onTouchMove, { capture: true, passive: true })
     document.addEventListener("keydown", onKeyDown, { capture: true })
     document.addEventListener("click", onClick, { capture: true })
@@ -109,13 +111,12 @@ export default function HomePage() {
 
     return () => {
       document.removeEventListener("wheel", onWheel, { capture: true })
-      document.removeEventListener("touchstart", onTouchStart, { capture: true })
       document.removeEventListener("touchmove", onTouchMove, { capture: true })
       document.removeEventListener("keydown", onKeyDown, { capture: true })
       document.removeEventListener("click", onClick, { capture: true })
       document.removeEventListener("pointerdown", onClick, { capture: true })
     }
-  }, [splashVisible])
+  }, [splashDone])
 
   // Auto-scroll animation for film credits
   useEffect(() => {
@@ -232,8 +233,8 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Navigation */}
-      <nav className="nav-bar">
+      {/* Navigation — hidden during splash */}
+      <nav className="nav-bar" style={{ opacity: splashDone ? 1 : 0, transition: "opacity 0.4s ease-in-out" }}>
         <div style={{ fontWeight: 800, fontSize: "18px", letterSpacing: "0.05em", textTransform: "uppercase", color: "#F7F6F3" }}>
           Oliver Street <span style={{ color: "#E07830" }}>Creative</span>
         </div>
@@ -291,20 +292,17 @@ export default function HomePage() {
         <a href="#contact" onClick={handleNavClick}>Get Started</a>
       </div>
 
-      {/* SPLASH — Cinematic title card: fades in, holds, dissolves */}
-      {splashVisible && (
+      {/* SPLASH — In-flow curtain block: sits above hero, scrolls up to reveal it */}
+      {!splashDone && (
         <div
           style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 110,
+            width: "100%",
+            height: "100vh",
             backgroundColor: "#000000",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            opacity: splashOpacity,
-            transition: splashSkippedRef.current ? "opacity 0.8s ease-in-out" : "opacity 0.9s ease-in-out",
-            pointerEvents: splashOpacity < 0.05 ? "none" : "auto",
+            flexShrink: 0,
           }}
         >
           <img
@@ -317,8 +315,8 @@ export default function HomePage() {
               opacity: logoFadedOut ? 0 : logoFadedIn ? 1 : 0,
               transform: logoFadedIn ? "translateY(0)" : "translateY(25px)",
               transition: logoFadedOut
-                ? (splashSkippedRef.current ? "opacity 0.4s ease-in-out" : "opacity 0.8s ease-in-out")
-                : "opacity 1.7s ease-in-out, transform 1.7s ease-in-out",
+                ? "opacity 0.6s ease-in-out"
+                : "opacity 1.2s ease-in-out, transform 1.2s ease-in-out",
             }}
             draggable={false}
           />
@@ -327,7 +325,7 @@ export default function HomePage() {
 
       <main>
         {/* HERO — INK */}
-        <section id="hero" className="sp-hero" style={{ backgroundColor: "#141412", textAlign: "center" }}>
+        <section ref={heroRef} id="hero" className="sp-hero" style={{ backgroundColor: "#141412", textAlign: "center" }}>
           <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "#8A8A84" }}>
             Covington, KY
           </div>
