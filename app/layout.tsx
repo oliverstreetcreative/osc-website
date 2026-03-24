@@ -18,6 +18,7 @@ const ebGaramond = EB_Garamond({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://staging.oliverstreetcreative.com"),
   title: "Oliver Street Creative | Brand Story Video Production | Cincinnati & Northern Kentucky",
   description:
     "Full-service video production in Covington, KY serving Greater Cincinnati. Strategic brand stories for businesses and nonprofits — concept to delivery.",
@@ -34,7 +35,7 @@ export const metadata: Metadata = {
     siteName: "Oliver Street Creative",
     images: [
       {
-        url: "https://oliverstreetcreative.com/media/logo.png",
+        url: "/og-image.png",
         width: 1200,
         height: 630,
         alt: "Oliver Street Creative Logo",
@@ -47,7 +48,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Oliver Street Creative — Strategic Video for Businesses & Nonprofits",
     description: "Full-service video production in Covington, KY. Cinematic stories that build trust and drive results.",
-    images: ["https://oliverstreetcreative.com/media/logo.png"],
+    images: ["/og-image.png"],
   },
   viewport: "width=device-width, initial-scale=1",
 }
