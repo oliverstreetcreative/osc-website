@@ -13,11 +13,10 @@ export default function HomePage() {
   const [tmdbData, setTmdbData] = useState<TMDBData | null>(null)
   const [loading, setLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [splashVisible, setSplashVisible] = useState(true)
   const [splashOpacity, setSplashOpacity] = useState(1)
-  const [scrollIndicatorVisible, setScrollIndicatorVisible] = useState(false)
   const [logoFadedIn, setLogoFadedIn] = useState(false)
   const filmCreditsRef = useRef<HTMLDivElement>(null)
-  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const fetchTMDBData = async () => {
@@ -36,71 +35,27 @@ export default function HomePage() {
     fetchTMDBData()
   }, [])
 
-  // Splash logo fade on scroll
+  // Cinematic splash sequence: logo fades in → pause → splash dissolves away
   useEffect(() => {
-    const onScroll = () => {
-      const progress = Math.min(window.scrollY / (window.innerHeight * 0.6), 1)
-      setSplashOpacity(1 - progress)
-    }
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
-  }, [])
-
-  // Logo fade-in on mount + auto-scroll to hero after animation completes
-  useEffect(() => {
+    // Step 1: Trigger logo fade-in (2.2s animation)
     const fadeInTimer = setTimeout(() => setLogoFadedIn(true), 50)
 
-    // Auto-scroll: 50ms (fade trigger) + 2200ms (animation) + 1300ms (pause) ≈ 3.55s from load
-    const autoScrollTimer = setTimeout(() => {
-      // Only auto-scroll if user hasn't already scrolled past the splash
-      if (window.scrollY <= 80) {
-        const hero = document.getElementById("hero")
-        if (hero) hero.scrollIntoView({ behavior: "smooth" })
-      }
+    // Step 2: After logo animation + pause, fade out the entire splash
+    // 50ms (trigger) + 2200ms (logo animation) + 1300ms (breathe) = 3550ms
+    const fadeOutTimer = setTimeout(() => {
+      setSplashOpacity(0)
     }, 3550)
+
+    // Step 3: After splash fade-out transition completes, remove from layout
+    // 3550ms + 1200ms (fade-out duration) = 4750ms
+    const removeTimer = setTimeout(() => {
+      setSplashVisible(false)
+    }, 4750)
 
     return () => {
       clearTimeout(fadeInTimer)
-      clearTimeout(autoScrollTimer)
-    }
-  }, [])
-
-  // Scroll indicator: show after 2s in logo section, hide on scroll past, reappear on return
-  useEffect(() => {
-    const startTimer = () => {
-      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
-      scrollTimerRef.current = setTimeout(() => setScrollIndicatorVisible(true), 2000)
-    }
-
-    const stopTimer = () => {
-      if (scrollTimerRef.current) {
-        clearTimeout(scrollTimerRef.current)
-        scrollTimerRef.current = null
-      }
-    }
-
-    // Start initial 2s timer
-    startTimer()
-
-    const onScroll = () => {
-      const inLogoSection = window.scrollY <= 80
-      if (inLogoSection) {
-        // User is in logo section — if arrow isn't showing, start timer
-        if (!scrollTimerRef.current) {
-          setScrollIndicatorVisible(false)
-          startTimer()
-        }
-      } else {
-        // User scrolled past logo section — hide arrow and cancel timer
-        stopTimer()
-        setScrollIndicatorVisible(false)
-      }
-    }
-
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => {
-      window.removeEventListener("scroll", onScroll)
-      stopTimer()
+      clearTimeout(fadeOutTimer)
+      clearTimeout(removeTimer)
     }
   }, [])
 
@@ -259,65 +214,37 @@ export default function HomePage() {
         <a href="#contact" onClick={handleNavClick}>Contact</a>
       </div>
 
-      {/* SPLASH — Full-screen logo, fades on scroll */}
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 110,
-          backgroundColor: "#000000",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          opacity: splashOpacity,
-          pointerEvents: splashOpacity < 0.05 ? "none" : "auto",
-        }}
-      >
-        <img
-          src="/logo.png"
-          alt="Oliver Street Creative — brand story video production in Cincinnati and Northern Kentucky"
+      {/* SPLASH — Cinematic title card: fades in, holds, dissolves */}
+      {splashVisible && (
+        <div
           style={{
-            width: "70%",
-            maxWidth: "400px",
-            height: "auto",
-            opacity: logoFadedIn ? 1 : 0,
-            transform: logoFadedIn ? "translateY(0)" : "translateY(25px)",
-            transition: "opacity 2.2s ease-in-out, transform 2.2s ease-in-out",
-          }}
-          draggable={false}
-        />
-
-        {/* Scroll indicator chevron */}
-        <button
-          onClick={() => {
-            const hero = document.getElementById("hero")
-            if (hero) hero.scrollIntoView({ behavior: "smooth" })
-          }}
-          aria-label="Scroll down"
-          className="scroll-indicator"
-          style={{
-            position: "absolute",
-            bottom: "32px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: "8px",
-            opacity: scrollIndicatorVisible ? 0.6 : 0,
-            transition: "opacity 0.6s ease-out",
-            pointerEvents: scrollIndicatorVisible ? "auto" : "none",
-            animation: scrollIndicatorVisible ? "scrollBounce 2.4s ease-in-out infinite" : "none",
+            position: "fixed",
+            inset: 0,
+            zIndex: 110,
+            backgroundColor: "#000000",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: splashOpacity,
+            transition: "opacity 1.2s ease-in-out",
+            pointerEvents: splashOpacity < 0.05 ? "none" : "auto",
           }}
         >
-          <svg width="24" height="14" viewBox="0 0 24 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M2 2L12 12L22 2" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Spacer so hero starts below the splash viewport */}
-      <div style={{ height: "100vh" }} />
+          <img
+            src="/logo.png"
+            alt="Oliver Street Creative — brand story video production in Cincinnati and Northern Kentucky"
+            style={{
+              width: "70%",
+              maxWidth: "400px",
+              height: "auto",
+              opacity: logoFadedIn ? 1 : 0,
+              transform: logoFadedIn ? "translateY(0)" : "translateY(25px)",
+              transition: "opacity 2.2s ease-in-out, transform 2.2s ease-in-out",
+            }}
+            draggable={false}
+          />
+        </div>
+      )}
 
       <main>
         {/* HERO — INK */}
