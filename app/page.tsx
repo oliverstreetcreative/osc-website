@@ -276,14 +276,14 @@ export default function HomePage() {
             Covington, KY
           </div>
           
-          <h1 style={{ fontSize: "clamp(40px, 7vw, 96px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, color: "#F7F6F3", marginBottom: "40px", maxWidth: "900px" }}>
+          <h1 className="mobile-center-block" style={{ fontSize: "clamp(40px, 7vw, 96px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, color: "#F7F6F3", marginBottom: "40px", maxWidth: "900px" }}>
             You've got a great story.{" "}
             <span style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontWeight: 400, color: "#E07830" }}>
               It's just not on camera yet.
             </span>
           </h1>
 
-          <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+          <div className="hero-buttons" style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
             <a
               href="https://cal.com/oliverstreetcreative"
               target="_blank"
@@ -319,11 +319,11 @@ export default function HomePage() {
                 What We Do
               </div>
 
-              <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px" }}>
+              <h2 className="mobile-center-block" style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px", maxWidth: "900px" }}>
                 We make strategic videos for businesses and non-profits
               </h2>
 
-              <div style={{ fontSize: "18px", fontWeight: 400, lineHeight: 1.7, maxWidth: "640px", color: "rgba(255,255,255,0.75)" }}>
+              <div className="mobile-center-block" style={{ fontSize: "18px", fontWeight: 400, lineHeight: 1.7, maxWidth: "640px", color: "rgba(255,255,255,0.75)" }}>
                 With our own gear and hands-on management, we are full-service from concept to delivery. We bring speed, flexibility, and higher production value—crafting video stories that move both your audience and your bottom line.
               </div>
             </div>
@@ -513,7 +513,7 @@ export default function HomePage() {
             "The partnership with Oliver Street Creative was so valuable in understanding our goals and our values and the mission and impact that we wanted to communicate."
           </blockquote>
 
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px", flexWrap: "wrap" }}>
+          <div className="attribution-row" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px", flexWrap: "wrap" }}>
             <span style={{ fontSize: "14px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(20,20,18,0.5)" }}>
               — Jordan Huizinga, VP of Development
             </span>
@@ -532,7 +532,7 @@ export default function HomePage() {
               <div style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontSize: "20px", lineHeight: 1.5, marginBottom: "12px" }}>
                 "It comes down to content, creativity, creative editing, and storytelling. That's what separates the crowd from working with Oliver Street."
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+              <div className="attribution-row" style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
                 <span style={{ fontSize: "12px", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: "rgba(20,20,18,0.5)" }}>
                   — Al Haehnle, Director, Landslide Films
                 </span>
@@ -549,7 +549,7 @@ export default function HomePage() {
               <div style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontSize: "20px", lineHeight: 1.5, marginBottom: "12px" }}>
                 "Oliver Street brought a level of depth and soul to our production that we wouldn't have had otherwise."
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+              <div className="attribution-row" style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
                 <span style={{ fontSize: "12px", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: "rgba(20,20,18,0.5)" }}>
                   — Louis Kelly, Boone County Prosecutor
                 </span>
@@ -696,7 +696,7 @@ export default function HomePage() {
               {
                 title: "Phoenix's Story",
                 client: "Learning Grove, Gala Event 2025",
-                embedSrc: "https://player.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM?thumbnail_time=147",
+                embedSrc: "https://player.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM?thumbnail_time=147&poster=https%3A%2F%2Fimage.mux.com%2FWZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D147",
                 thumbnail: "https://image.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM/thumbnail.webp?width=1920&time=147",
                 clientLogo: "/client-logos/learning-grove-logo.png",
                 clientName: "Learning Grove",
@@ -704,7 +704,7 @@ export default function HomePage() {
               {
                 title: "2025 End-of-Year Report",
                 client: "Boone County Prosecutors' Office",
-                embedSrc: "https://player.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8?thumbnail_time=104",
+                embedSrc: "https://player.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8?thumbnail_time=104&poster=https%3A%2F%2Fimage.mux.com%2FIhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D104",
                 thumbnail: "https://image.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8/thumbnail.webp?width=1920&time=104",
                 clientLogo: "/client-logos/boone-county-logo-white-text.png",
                 clientName: "Boone County Prosecutors' Office",
@@ -713,7 +713,7 @@ export default function HomePage() {
               {
                 title: "Janell's Story",
                 client: "Beech Acres, Love Grows Here Event 2024",
-                embedSrc: "https://player.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co?accent-color=%23E07830&thumbnail_time=238",
+                embedSrc: "https://player.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co?accent-color=%23E07830&thumbnail_time=238&poster=https%3A%2F%2Fimage.mux.com%2FcmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D238",
                 thumbnail: "https://image.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co/thumbnail.webp?width=1920&time=238",
                 clientLogo: "/client-logos/beech-acres-logo.png",
                 clientName: "Beech Acres",

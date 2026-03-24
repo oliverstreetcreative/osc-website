@@ -109,13 +109,7 @@ button:focus-visible {
   gap: 12px;
 }
 
-@media (max-width: 768px) {
-  .video-title-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-}
+/* Video title row stays inline on all screen sizes */
 
 /* ========================================
    RESPONSIVE LAYOUT SYSTEM
@@ -311,11 +305,51 @@ button:focus-visible {
     padding-right: 20px;
   }
 
-  /* Footer */
+  /* Footer — center on mobile */
   .footer-bar {
     padding: 24px 20px;
     flex-direction: column;
     gap: 8px;
+    align-items: center;
+    text-align: center;
+  }
+
+  /* ========================================
+     MOBILE ALIGNMENT NORMALIZATION
+     Center-align all section-level content.
+     Inner blocks (cards, quotes) stay left.
+     ======================================== */
+  .sp,
+  .sp-hero,
+  .credits-section {
+    text-align: center;
+  }
+
+  /* Contact/quote cards stay left-aligned */
+  .grid-2col > div,
+  .grid-2col-quotes > div {
+    text-align: left;
+  }
+
+  /* Center the hero CTA buttons row */
+  .hero-buttons {
+    justify-content: center;
+  }
+
+  /* Center constrained-width headings on mobile */
+  .mobile-center-block {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Center testimonial/quote attribution rows */
+  .attribution-row {
+    justify-content: center;
+  }
+
+  /* Portfolio card text stays left-aligned */
+  .grid-3col > div > div:last-child {
+    text-align: left;
   }
 }
 
