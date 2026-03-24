@@ -16,6 +16,7 @@ export default function HomePage() {
   const [splashVisible, setSplashVisible] = useState(true)
   const [splashOpacity, setSplashOpacity] = useState(1)
   const [logoFadedIn, setLogoFadedIn] = useState(false)
+  const [logoFadedOut, setLogoFadedOut] = useState(false)
   const filmCreditsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -35,26 +36,33 @@ export default function HomePage() {
     fetchTMDBData()
   }, [])
 
-  // Cinematic splash sequence: logo fades in → pause → splash dissolves away
+  // Cinematic splash sequence: title card → fade to black → scene fades in
   useEffect(() => {
-    // Step 1: Trigger logo fade-in (2.2s animation)
+    // Step 1: Logo fades in + floats up (2.2s)
     const fadeInTimer = setTimeout(() => setLogoFadedIn(true), 50)
 
-    // Step 2: After logo animation + pause, fade out the entire splash
-    // 50ms (trigger) + 2200ms (logo animation) + 1300ms (breathe) = 3550ms
-    const fadeOutTimer = setTimeout(() => {
-      setSplashOpacity(0)
+    // Step 2: Pause to breathe (~1.3s after logo animation completes)
+    // 50ms + 2200ms + 1300ms = 3550ms → logo fades back to black
+    const logoOutTimer = setTimeout(() => {
+      setLogoFadedOut(true)
     }, 3550)
 
-    // Step 3: After splash fade-out transition completes, remove from layout
-    // 3550ms + 1200ms (fade-out duration) = 4750ms
+    // Step 3: After logo fades to black (1.1s) + black beat (0.4s), fade splash overlay out
+    // 3550ms + 1100ms (logo fade-out) + 400ms (black beat) = 5050ms
+    const splashOutTimer = setTimeout(() => {
+      setSplashOpacity(0)
+    }, 5050)
+
+    // Step 4: After splash fade-out transition (1.2s), remove from DOM
+    // 5050ms + 1200ms = 6250ms
     const removeTimer = setTimeout(() => {
       setSplashVisible(false)
-    }, 4750)
+    }, 6250)
 
     return () => {
       clearTimeout(fadeInTimer)
-      clearTimeout(fadeOutTimer)
+      clearTimeout(logoOutTimer)
+      clearTimeout(splashOutTimer)
       clearTimeout(removeTimer)
     }
   }, [])
@@ -168,10 +176,12 @@ export default function HomePage() {
         {/* Desktop nav links */}
         <div className="nav-links">
           {[
-            { href: "#services", label: "Services" },
-            { href: "#portfolio", label: "Work" },
-            { href: "#about", label: "About" },
-            { href: "#contact", label: "Contact" },
+            { href: "#services", label: "What We Do" },
+            { href: "#credits", label: "Film Credits" },
+            { href: "#testimonials", label: "Testimonials" },
+            { href: "#why-us", label: "Why Us" },
+            { href: "#portfolio", label: "Portfolio" },
+            { href: "#contact", label: "Get Started" },
           ].map((link) => (
             <a
               key={link.href}
@@ -208,10 +218,12 @@ export default function HomePage() {
 
       {/* Mobile menu overlay */}
       <div className={`mobile-menu ${mobileMenuOpen ? "open" : ""}`}>
-        <a href="#services" onClick={handleNavClick}>Services</a>
-        <a href="#portfolio" onClick={handleNavClick}>Work</a>
-        <a href="#about" onClick={handleNavClick}>About</a>
-        <a href="#contact" onClick={handleNavClick}>Contact</a>
+        <a href="#services" onClick={handleNavClick}>What We Do</a>
+        <a href="#credits" onClick={handleNavClick}>Film Credits</a>
+        <a href="#testimonials" onClick={handleNavClick}>Testimonials</a>
+        <a href="#why-us" onClick={handleNavClick}>Why Us</a>
+        <a href="#portfolio" onClick={handleNavClick}>Portfolio</a>
+        <a href="#contact" onClick={handleNavClick}>Get Started</a>
       </div>
 
       {/* SPLASH — Cinematic title card: fades in, holds, dissolves */}
@@ -237,9 +249,11 @@ export default function HomePage() {
               width: "70%",
               maxWidth: "400px",
               height: "auto",
-              opacity: logoFadedIn ? 1 : 0,
+              opacity: logoFadedOut ? 0 : logoFadedIn ? 1 : 0,
               transform: logoFadedIn ? "translateY(0)" : "translateY(25px)",
-              transition: "opacity 2.2s ease-in-out, transform 2.2s ease-in-out",
+              transition: logoFadedOut
+                ? "opacity 1.1s ease-in-out"
+                : "opacity 2.2s ease-in-out, transform 2.2s ease-in-out",
             }}
             draggable={false}
           />
@@ -298,7 +312,7 @@ export default function HomePage() {
               <div className="services-label">WHAT WE DO</div>
               <h2 className="services-heading">Video that gets results.</h2>
               <p className="services-body">
-                With our own gear and hands-on management, we are full-service from concept to delivery. We bring speed, flexibility, and higher production value—crafting video stories that move both your audience and your bottom line.
+                With our own gear and hands-on management, we are full-service production company from concept to delivery. We bring speed, flexibility, and higher production value—crafting video stories that move both your audience and your bottom line.
               </p>
             </div>
             <img
@@ -459,7 +473,7 @@ export default function HomePage() {
         </section>
 
         {/* TESTIMONIALS — GOLD BAND */}
-        <section className="sp" style={{ backgroundColor: "#F2C14E", color: "#141412", textAlign: "center" }}>
+        <section id="testimonials" className="sp" style={{ backgroundColor: "#F2C14E", color: "#141412", textAlign: "center" }}>
           <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", color: "rgba(20,20,18,0.4)" }}>
             Testimonials
           </div>
@@ -577,7 +591,7 @@ export default function HomePage() {
         </section>
 
         {/* COMPARISON CHART — INK BREATHER */}
-        <section id="about" className="sp" style={{ backgroundColor: "#141412", color: "#F7F6F3" }}>
+        <section id="why-us" className="sp" style={{ backgroundColor: "#141412", color: "#F7F6F3" }}>
           <div style={{ textAlign: "center", marginBottom: "64px" }}>
             <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", opacity: 0.7, color: "#E07830" }}>
               Why Us
@@ -588,7 +602,7 @@ export default function HomePage() {
             </h2>
 
             <p style={{ fontSize: "18px", lineHeight: 1.7, color: "#8A8A84" }}>
-              Only one checks every box.
+              We check every box.
             </p>
           </div>
 
@@ -623,12 +637,12 @@ export default function HomePage() {
                   {[
                     { feature: "Cinematic quality", checks: [false, false, false, true, true] },
                     { feature: "Knows your brand", checks: [true, false, true, false, true] },
-                    { feature: "Always available", checks: [true, false, true, true, true] },
+                    { feature: "Always available", checks: [true, false, true, false, true] },
                     { feature: "Competitive pricing", checks: [true, true, false, false, true] },
-                    { feature: "Full-service (concept to delivery)", checks: [false, false, false, true, true] },
+                    { feature: "Full-service (concept to delivery)", checks: [false, false, true, true, true] },
                     { feature: "Strategic storytelling", checks: [false, false, false, true, true] },
                     { feature: "Work with the filmmaker directly", checks: [false, true, true, false, true] },
-                    { feature: "Consistent quality", checks: [false, false, false, true, true] },
+                    { feature: "Consistent quality", checks: [false, false, true, false, true] },
                     { feature: "Scales with your needs", checks: [false, false, false, true, true] },
                     { feature: "No long-term contract", checks: [true, true, false, false, true] },
                   ].map((row, rowIdx) => (
