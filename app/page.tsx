@@ -14,6 +14,8 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [splashOpacity, setSplashOpacity] = useState(1)
+  const [scrollIndicatorVisible, setScrollIndicatorVisible] = useState(false)
+  const [scrollIndicatorFaded, setScrollIndicatorFaded] = useState(false)
   const filmCreditsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -42,6 +44,21 @@ export default function HomePage() {
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
+
+  // Scroll indicator: fade in after 2.5s, fade out after 50px scroll
+  useEffect(() => {
+    const fadeInTimer = setTimeout(() => setScrollIndicatorVisible(true), 2500)
+    const onScroll = () => {
+      if (window.scrollY > 50 && !scrollIndicatorFaded) {
+        setScrollIndicatorFaded(true)
+      }
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => {
+      clearTimeout(fadeInTimer)
+      window.removeEventListener("scroll", onScroll)
+    }
+  }, [scrollIndicatorFaded])
 
   // Auto-scroll animation for film credits
   useEffect(() => {
@@ -218,6 +235,34 @@ export default function HomePage() {
           style={{ width: "70%", maxWidth: "400px", height: "auto" }}
           draggable={false}
         />
+
+        {/* Scroll indicator chevron */}
+        <button
+          onClick={() => {
+            const hero = document.getElementById("hero")
+            if (hero) hero.scrollIntoView({ behavior: "smooth" })
+          }}
+          aria-label="Scroll down"
+          className="scroll-indicator"
+          style={{
+            position: "absolute",
+            bottom: "32px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: "8px",
+            opacity: scrollIndicatorVisible && !scrollIndicatorFaded ? 0.45 : 0,
+            transition: "opacity 0.6s ease",
+            pointerEvents: scrollIndicatorVisible && !scrollIndicatorFaded ? "auto" : "none",
+            animation: scrollIndicatorVisible && !scrollIndicatorFaded ? "scrollBounce 2.4s ease-in-out infinite" : "none",
+          }}
+        >
+          <svg width="24" height="14" viewBox="0 0 24 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 2L12 12L22 2" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
       </div>
 
       {/* Spacer so hero starts below the splash viewport */}
@@ -649,7 +694,7 @@ export default function HomePage() {
                 title: "Phoenix's Story",
                 client: "Learning Grove, Gala Event 2025",
                 embedSrc: "https://player.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM",
-                thumbnail: "https://image.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM/thumbnail.png?width=960&height=540&time=147",
+                thumbnail: "https://image.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM/thumbnail.webp?width=1920&time=147",
                 clientLogo: "/client-logos/learning-grove-logo.png",
                 clientName: "Learning Grove",
               },
@@ -657,7 +702,7 @@ export default function HomePage() {
                 title: "2025 End-of-Year Report",
                 client: "Boone County Prosecutors' Office",
                 embedSrc: "https://player.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8",
-                thumbnail: "https://image.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8/thumbnail.png?width=960&height=540&time=104",
+                thumbnail: "https://image.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8/thumbnail.webp?width=1920&time=104",
                 clientLogo: "/client-logos/boone-county-logo.png",
                 clientName: "Boone County Prosecutors' Office",
                 isLightLogo: true,
@@ -666,7 +711,7 @@ export default function HomePage() {
                 title: "Janell's Story",
                 client: "Beech Acres, Love Grows Here Event 2024",
                 embedSrc: "https://player.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co?accent-color=%23E07830",
-                thumbnail: "https://image.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co/thumbnail.png?width=960&height=540&time=238",
+                thumbnail: "https://image.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co/thumbnail.webp?width=1920&time=238",
                 clientLogo: "/client-logos/beech-acres-logo.png",
                 clientName: "Beech Acres",
               },
