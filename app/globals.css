@@ -242,6 +242,27 @@ button:focus-visible {
   text-align: left;
 }
 
+/* Testimonials section — featured layout */
+.testimonial-featured {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 48px;
+  align-items: center;
+}
+
+.testimonial-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.testimonial-card {
+  transition: background-color 0.2s ease;
+}
+.testimonial-card:hover {
+  background-color: rgba(20,20,18,0.1) !important;
+}
+
 /* Responsive image */
 .img-responsive {
   width: 520px;
@@ -363,6 +384,18 @@ button:focus-visible {
   .grid-2col-quotes {
     grid-template-columns: 1fr;
     gap: 24px;
+  }
+
+  .testimonial-featured {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .testimonial-featured-quote {
+    text-align: center !important;
+  }
+  .testimonial-cards {
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
 
   /* Images fill width on mobile */
@@ -508,5 +541,13 @@ button:focus-visible {
   }
   .services-body {
     font-size: 16px;
+  }
+
+  .testimonial-featured {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .testimonial-featured-quote {
+    text-align: center !important;
   }
 }

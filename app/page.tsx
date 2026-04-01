@@ -542,117 +542,131 @@ export default function HomePage() {
         </section>
 
         {/* TESTIMONIALS — GOLD BAND */}
-        <section id="testimonials" className="sp" style={{ backgroundColor: "#F2C14E", color: "#141412", textAlign: "center" }}>
+        <section id="testimonials" className="sp testimonials-section" style={{ backgroundColor: "#F2C14E", color: "#141412", textAlign: "center" }}>
           <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", color: "rgba(20,20,18,0.4)" }}>
             Testimonials
           </div>
 
-          <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: "32px" }}>
+          <h2 style={{ fontSize: "clamp(36px, 5vw, 64px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.1, marginBottom: "20px" }}>
             People like working with us.
           </h2>
 
-          <p style={{ fontSize: "18px", lineHeight: 1.7, maxWidth: "800px", margin: "0 auto 64px auto" }}>
+          <p style={{ fontSize: "17px", lineHeight: 1.7, maxWidth: "560px", margin: "0 auto 56px auto", color: "rgba(20,20,18,0.65)" }}>
             Don't just take our word for it—hear from the founders, nonprofits, and developers we've helped tell their stories.
           </p>
 
-          <div
-            style={{ maxWidth: "800px", margin: "0 auto 64px auto", aspectRatio: "16/9", position: "relative", overflow: "hidden", cursor: "pointer", backgroundColor: "#000" }}
-            onClick={() => setVideoModalSrc("https://player.mux.com/4YKpfx6WR7jjcdOfh2LcZfflSqwvz2k52TMNUcXbA28?accent-color=%23E07830&start=93")}
-            onMouseEnter={(e) => {
-              const img = e.currentTarget.querySelector("img") as HTMLImageElement
-              const btn = e.currentTarget.querySelector(".testimonial-play-btn") as HTMLElement
-              if (img) img.style.transform = "scale(1.03)"
-              if (btn) btn.style.opacity = "1"
-            }}
-            onMouseLeave={(e) => {
-              const img = e.currentTarget.querySelector("img") as HTMLImageElement
-              const btn = e.currentTarget.querySelector(".testimonial-play-btn") as HTMLElement
-              if (img) img.style.transform = "scale(1)"
-              if (btn) btn.style.opacity = "0.8"
-            }}
-          >
-            <img
-              src="https://image.mux.com/4YKpfx6WR7jjcdOfh2LcZfflSqwvz2k52TMNUcXbA28/thumbnail.webp?width=1920&time=93"
-              alt="Client testimonial video — nonprofits and businesses share their experience with Oliver Street Creative"
-              style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s" }}
-              loading="lazy"
-            />
+          {/* Featured testimonial: video + quote side by side on desktop */}
+          <div className="testimonial-featured" style={{ maxWidth: "1100px", margin: "0 auto 56px auto" }}>
             <div
-              className="testimonial-play-btn"
-              style={{
-                position: "absolute",
-                bottom: "16px",
-                right: "16px",
-                width: "56px",
-                height: "56px",
-                borderRadius: "50%",
-                background: "rgba(255,255,255,0.9)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: 0.8,
-                transition: "opacity 0.2s",
+              className="testimonial-video"
+              style={{ aspectRatio: "16/9", position: "relative", overflow: "hidden", cursor: "pointer", backgroundColor: "#000", borderRadius: "8px" }}
+              onClick={() => setVideoModalSrc("https://player.mux.com/4YKpfx6WR7jjcdOfh2LcZfflSqwvz2k52TMNUcXbA28?accent-color=%23E07830&start=93")}
+              onMouseEnter={(e) => {
+                const img = e.currentTarget.querySelector("img") as HTMLImageElement
+                const btn = e.currentTarget.querySelector(".testimonial-play-btn") as HTMLElement
+                if (img) img.style.transform = "scale(1.03)"
+                if (btn) btn.style.opacity = "1"
+              }}
+              onMouseLeave={(e) => {
+                const img = e.currentTarget.querySelector("img") as HTMLImageElement
+                const btn = e.currentTarget.querySelector(".testimonial-play-btn") as HTMLElement
+                if (img) img.style.transform = "scale(1)"
+                if (btn) btn.style.opacity = "0.8"
               }}
             >
-              <div
-                style={{
-                  width: 0,
-                  height: 0,
-                  borderTop: "10px solid transparent",
-                  borderBottom: "10px solid transparent",
-                  borderLeft: "16px solid #141412",
-                  marginLeft: "3px",
-                }}
+              <img
+                src="https://image.mux.com/4YKpfx6WR7jjcdOfh2LcZfflSqwvz2k52TMNUcXbA28/thumbnail.webp?width=1920&time=93"
+                alt="Client testimonial video — nonprofits and businesses share their experience with Oliver Street Creative"
+                style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s", borderRadius: "8px" }}
+                loading="lazy"
               />
-            </div>
-          </div>
-
-          <blockquote style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontSize: "clamp(22px, 4vw, 44px)", fontWeight: 400, lineHeight: 1.4, maxWidth: "800px", margin: "0 auto 24px auto" }}>
-            "The partnership with Oliver Street Creative was so valuable in understanding our goals and our values and the mission and impact that we wanted to communicate."
-          </blockquote>
-
-          <div className="attribution-row" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "14px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(20,20,18,0.5)" }}>
-              — Jordan Huizinga, VP of Development
-            </span>
-            <img
-              src="/client-logos/beech-acres-logo.png"
-              alt="Beech Acres"
-              style={{ height: "28px", width: "auto", objectFit: "contain", filter: "brightness(0)", opacity: 0.6 }}
-            />
-          </div>
-
-          <div style={{ height: "48px" }}></div>
-
-          <div className="grid-2col-quotes" style={{ maxWidth: "800px", margin: "0 auto" }}>
-            <div>
-              <div style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontSize: "20px", lineHeight: 1.5, marginBottom: "12px" }}>
-                "It comes down to content, creativity, creative editing, and storytelling. That's what separates the crowd from working with Oliver Street."
-              </div>
-              <div className="attribution-row" style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                <span style={{ fontSize: "12px", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: "rgba(20,20,18,0.5)" }}>
-                  — Al Haehnle, Director, Landslide Films
-                </span>
-                <img
-                  src="/client-logos/landslide-films-logo.png"
-                  alt="Landslide Films"
-                  style={{ height: "24px", width: "auto", objectFit: "contain", filter: "brightness(0)", opacity: 0.6 }}
+              <div
+                className="testimonial-play-btn"
+                style={{
+                  position: "absolute",
+                  bottom: "16px",
+                  right: "16px",
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.9)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: 0.8,
+                  transition: "opacity 0.2s",
+                }}
+              >
+                <div
+                  style={{
+                    width: 0,
+                    height: 0,
+                    borderTop: "10px solid transparent",
+                    borderBottom: "10px solid transparent",
+                    borderLeft: "16px solid #141412",
+                    marginLeft: "3px",
+                  }}
                 />
               </div>
             </div>
 
-            <div>
-              <div style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontSize: "20px", lineHeight: 1.5, marginBottom: "12px" }}>
+            <div className="testimonial-featured-quote" style={{ display: "flex", flexDirection: "column", justifyContent: "center", textAlign: "left" }}>
+              <blockquote style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontSize: "clamp(20px, 2.5vw, 30px)", fontWeight: 400, lineHeight: 1.5, marginBottom: "20px", color: "#141412" }}>
+                "The partnership with Oliver Street Creative was so valuable in understanding our goals and our values and the mission and impact that we wanted to communicate."
+              </blockquote>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "14px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(20,20,18,0.55)" }}>
+                  — Jordan Huizinga
+                </span>
+                <span style={{ fontSize: "13px", fontWeight: 500, color: "rgba(20,20,18,0.4)" }}>
+                  VP of Development
+                </span>
+                <img
+                  src="/client-logos/beech-acres-logo.png"
+                  alt="Beech Acres"
+                  style={{ height: "26px", width: "auto", objectFit: "contain", filter: "brightness(0)", opacity: 0.5 }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Secondary testimonials as cards */}
+          <div className="testimonial-cards" style={{ maxWidth: "1100px", margin: "0 auto" }}>
+            <div className="testimonial-card" style={{ backgroundColor: "rgba(20,20,18,0.06)", borderRadius: "12px", padding: "32px 28px", textAlign: "left" }}>
+              <div style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontSize: "19px", lineHeight: 1.6, marginBottom: "20px", color: "#141412" }}>
+                "It comes down to content, creativity, creative editing, and storytelling. That's what separates the crowd from working with Oliver Street."
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(20,20,18,0.55)" }}>
+                  — Al Haehnle
+                </span>
+                <span style={{ fontSize: "12px", fontWeight: 500, color: "rgba(20,20,18,0.4)" }}>
+                  Director, Landslide Films
+                </span>
+                <img
+                  src="/client-logos/landslide-films-logo.png"
+                  alt="Landslide Films"
+                  style={{ height: "22px", width: "auto", objectFit: "contain", filter: "brightness(0)", opacity: 0.5 }}
+                />
+              </div>
+            </div>
+
+            <div className="testimonial-card" style={{ backgroundColor: "rgba(20,20,18,0.06)", borderRadius: "12px", padding: "32px 28px", textAlign: "left" }}>
+              <div style={{ fontFamily: "'EB Garamond', Georgia, serif", fontStyle: "italic", fontSize: "19px", lineHeight: 1.6, marginBottom: "20px", color: "#141412" }}>
                 "Oliver Street brought a level of depth and soul to our production that we wouldn't have had otherwise."
               </div>
-              <div className="attribution-row" style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                <span style={{ fontSize: "12px", fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase", color: "rgba(20,20,18,0.5)" }}>
-                  — Louis Kelly, Boone County Prosecutor
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "rgba(20,20,18,0.55)" }}>
+                  — Louis Kelly
+                </span>
+                <span style={{ fontSize: "12px", fontWeight: 500, color: "rgba(20,20,18,0.4)" }}>
+                  Boone County Prosecutor
                 </span>
                 <img
                   src="/client-logos/boone-county-logo-white-text.png"
                   alt="Boone County"
-                  style={{ height: "24px", width: "auto", objectFit: "contain", filter: "brightness(0)", opacity: 0.6 }}
+                  style={{ height: "22px", width: "auto", objectFit: "contain", filter: "brightness(0)", opacity: 0.5 }}
                 />
               </div>
             </div>
