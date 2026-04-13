@@ -33,7 +33,8 @@ const CONTINUATIONS_PATH = "/_admin/intake-queue/_continuations"
 async function loadFromDropbox(token: string): Promise<Continuation | null> {
   const apiToken = await getDropboxAccessToken()
   if (!apiToken) return null
-  const dropboxPath = `${CONTINUATIONS_PATH}/${token}.json`
+  const rootPrefix = process.env.DROPBOX_ROOT_PREFIX?.trim() ?? ""
+  const dropboxPath = `${rootPrefix}${CONTINUATIONS_PATH}/${token}.json`
   try {
     const res = await fetch("https://content.dropboxapi.com/2/files/download", {
       method: "POST",
