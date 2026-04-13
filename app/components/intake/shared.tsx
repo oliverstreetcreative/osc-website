@@ -156,33 +156,5 @@ export function SuccessMessage({ formType }: { formType: string }) {
   )
 }
 
-export function useIntakeSubmit(formType: string) {
-  const [submitting, setSubmitting] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [serverError, setServerError] = useState("")
-
-  const submit = async (data: Record<string, unknown>, honeypot: string) => {
-    setSubmitting(true)
-    setServerError("")
-    try {
-      const res = await fetch("/api/intake", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: formType, data, _hp: honeypot }),
-      })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error || "Submission failed")
-      }
-      setSuccess(true)
-    } catch (err) {
-      setServerError(
-        err instanceof Error ? err.message : "Something went wrong"
-      )
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return { submitting, success, serverError, submit }
-}
+// Legacy useIntakeSubmit hook removed 2026-04-13. All forms now use SurveyRenderer
+// which posts to /api/intake/[slug]. See lib/form-definitions.ts for the new model.

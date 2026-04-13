@@ -1,6 +1,14 @@
 import type { Metadata } from "next"
+import { notFound } from "next/navigation"
 import { IntakeLayout } from "../components/intake/shared"
-import LocationForm from "../components/intake/location-form"
+import SurveyRenderer from "../components/intake/survey-renderer"
+import { getFormDefinition } from "@/lib/form-definitions"
+
+const FORM_SLUG = "locations"
+
+// Force dynamic rendering so form-definition updates take effect within the
+// 60-second cache window, rather than being baked into the build.
+export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
   title:
@@ -22,7 +30,12 @@ export const metadata: Metadata = {
   },
 }
 
-export default function LocationsPage() {
+export default async function LocationsPage() {
+  const definition = await getFormDefinition(FORM_SLUG)
+  if (!definition) {
+    notFound()
+  }
+
   return (
     <>
       <script
@@ -48,10 +61,10 @@ export default function LocationsPage() {
         }}
       />
       <IntakeLayout
-        title="Filming Locations"
-        subtitle="Have a space that would look great on camera? We'd love to know about it."
+        title={definition.title}
+        subtitle={definition.subtitle || ""}
       >
-        <LocationForm />
+        <SurveyRenderer slug={FORM_SLUG} surveyJson={definition.surveyJson} />
       </IntakeLayout>
     </>
   )

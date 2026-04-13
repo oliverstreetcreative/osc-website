@@ -1,6 +1,14 @@
 import type { Metadata } from "next"
+import { notFound } from "next/navigation"
 import { IntakeLayout } from "../components/intake/shared"
-import CrewForm from "../components/intake/crew-form"
+import SurveyRenderer from "../components/intake/survey-renderer"
+import { getFormDefinition } from "@/lib/form-definitions"
+
+const FORM_SLUG = "crew"
+
+// Force dynamic rendering so form-definition updates take effect within the
+// 60-second cache window, rather than being baked into the build.
+export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
   title:
@@ -22,7 +30,12 @@ export const metadata: Metadata = {
   },
 }
 
-export default function JoinOurCrewPage() {
+export default async function JoinOurCrewPage() {
+  const definition = await getFormDefinition(FORM_SLUG)
+  if (!definition) {
+    notFound()
+  }
+
   return (
     <>
       <script
@@ -55,10 +68,10 @@ export default function JoinOurCrewPage() {
         }}
       />
       <IntakeLayout
-        title="Join Our Crew"
-        subtitle="We're always looking for talented, team-first people to work with."
+        title={definition.title}
+        subtitle={definition.subtitle || ""}
       >
-        <CrewForm />
+        <SurveyRenderer slug={FORM_SLUG} surveyJson={definition.surveyJson} />
       </IntakeLayout>
     </>
   )

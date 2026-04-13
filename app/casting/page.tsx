@@ -1,6 +1,14 @@
 import type { Metadata } from "next"
+import { notFound } from "next/navigation"
 import { IntakeLayout } from "../components/intake/shared"
-import CastingForm from "../components/intake/casting-form"
+import SurveyRenderer from "../components/intake/survey-renderer"
+import { getFormDefinition } from "@/lib/form-definitions"
+
+const FORM_SLUG = "casting"
+
+// Force dynamic rendering so form-definition updates take effect within the
+// 60-second cache window, rather than being baked into the build.
+export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
   title:
@@ -22,7 +30,12 @@ export const metadata: Metadata = {
   },
 }
 
-export default function CastingPage() {
+export default async function CastingPage() {
+  const definition = await getFormDefinition(FORM_SLUG)
+  if (!definition) {
+    notFound()
+  }
+
   return (
     <>
       <script
@@ -57,10 +70,10 @@ export default function CastingPage() {
         }}
       />
       <IntakeLayout
-        title="Open Casting"
-        subtitle="Add yourself to our talent database for upcoming productions."
+        title={definition.title}
+        subtitle={definition.subtitle || ""}
       >
-        <CastingForm />
+        <SurveyRenderer slug={FORM_SLUG} surveyJson={definition.surveyJson} />
       </IntakeLayout>
     </>
   )
