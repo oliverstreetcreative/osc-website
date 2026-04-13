@@ -149,6 +149,12 @@ importers:
       sonner:
         specifier: ^1.7.4
         version: 1.7.4(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      survey-core:
+        specifier: ^2.5.19
+        version: 2.5.19
+      survey-react-ui:
+        specifier: ^2.5.19
+        version: 2.5.19(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(survey-core@2.5.19)
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.5.0
@@ -1536,6 +1542,16 @@ packages:
       babel-plugin-macros:
         optional: true
 
+  survey-core@2.5.19:
+    resolution: {integrity: sha512-4esPxmePM3BBOh5OcsbqvZBFZ4D5Z4Ommw4IMsTF8bxAkMQLBsmMJr7v2o1B32LMqXxUaq2OtkIabwqcpWVogg==}
+
+  survey-react-ui@2.5.19:
+    resolution: {integrity: sha512-yBOyFy+4yWxpeDAPBJFGgzxbnzWe0p1LjWkvJvnkF84B8T+zWhw9wqmakdJjzy9eGMgywSGnn/JD0L6hy3Ta8Q==}
+    peerDependencies:
+      react: ^16.5.0 || ^17.0.1 || ^18.1.0 || ^19.0.0
+      react-dom: ^16.5.0 || ^17.0.1 || ^18.1.0 || ^19.0.0
+      survey-core: 2.5.19
+
   tailwind-merge@3.5.0:
     resolution: {integrity: sha512-I8K9wewnVDkL1NTGoqWmVEIlUcB9gFriAEkXkfCjX5ib8ezGxtR3xD7iZIxrfArjEsH7F1CHD4RFUtxefdqV/A==}
 
@@ -2878,6 +2894,14 @@ snapshots:
     dependencies:
       client-only: 0.0.1
       react: 19.2.4
+
+  survey-core@2.5.19: {}
+
+  survey-react-ui@2.5.19(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(survey-core@2.5.19):
+    dependencies:
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+      survey-core: 2.5.19
 
   tailwind-merge@3.5.0: {}
 
