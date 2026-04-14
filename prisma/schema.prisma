@@ -1,0 +1,538 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  CLIENT
+  CREW
+  STAFF
+}
+
+// ---------------------------------------------------------------------------
+// People (unified clients + crew + staff)
+// Replaces the former PortalUser model.
+// ---------------------------------------------------------------------------
+
+model Person {
+  id             String   @id @default(uuid()) @db.Uuid
+  email          String   @unique
+  name           String
+  first_name     String?
+  last_name      String?
+  company        String?
+  phone          String?
+  is_staff       Boolean  @default(false)
+  portal_allowed Boolean  @default(true)
+  role           Role
+
+  // Publication metadata
+  source_bible_id      Int
+  source_bible_table   String
+  published_at         DateTime
+  publication_version  Int      @default(1)
+
+  // Relations
+  project_contacts      ProjectContact[]
+  project_participants  ProjectParticipant[]
+  deliverable_reviews   DeliverableReview[]
+  deliverable_approvals DeliverableApproval[]
+  portal_uploads        PortalUpload[]
+  portal_events         PortalEvent[]
+  portal_invites        PortalInvite[]
+  portal_sessions       PortalSession[]
+  testimonials          Testimonial[]
+  trips                 Trip[]
+  assigned_tasks        Task[]
+
+  @@index([source_bible_id, source_bible_table], name: "idx_people_source_bible")
+  @@map("people")
+}
+
+// ---------------------------------------------------------------------------
+// Projects
+// ---------------------------------------------------------------------------
+
+model Project {
+  id                    String   @id @default(uuid()) @db.Uuid
+  name                  String
+  status                String   @default("active")
+  phase                 String   @default("Proposal")
+  job_number            String?
+  client_portal_enabled Boolean  @default(false)
+  client_visible        Boolean  @default(false)
+  crew_visible          Boolean  @default(false)
+
+  // Publication metadata
+  source_bible_id      Int
+  source_bible_table   String
+  published_at         DateTime
+  publication_version  Int      @default(1)
+
+  // Relations
+  project_contacts     ProjectContact[]
+  project_participants ProjectParticipant[]
+  deliverables         Deliverable[]
+  project_updates      ProjectUpdate[]
+  change_orders        ChangeOrder[]
+  obligations          Obligation[]
+  shoot_periods        ShootPeriod[]
+  trips                Trip[]
+  tasks                Task[]
+  portal_uploads       PortalUpload[]
+  portal_events        PortalEvent[]
+  testimonials         Testimonial[]
+
+  @@index([source_bible_id, source_bible_table], name: "idx_projects_source_bible")
+  @@map("projects")
+}
+
+// ---------------------------------------------------------------------------
+// Project Contacts (project → person join, client side)
+// ---------------------------------------------------------------------------
+
+model ProjectContact {
+  id         String  @id @default(uuid()) @db.Uuid
+  project_id String  @db.Uuid
+  person_id  String  @db.Uuid
+  role       String  @default("client")
+
+  // Publication metadata
+  source_bible_id      Int
+  source_bible_table   String
+  published_at         DateTime
+  publication_version  Int      @default(1)
+
+  // Relations
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  person  Person  @relation(fields: [person_id], references: [id], onDelete: Cascade)
+
+  @@unique([person_id, project_id])
+  @@index([project_id])
+  @@index([source_bible_id, source_bible_table], name: "idx_project_contacts_source_bible")
+  @@map("project_contacts")
+}
+
+// ---------------------------------------------------------------------------
+// Project Participants (project → person join, crew side)
+// ---------------------------------------------------------------------------
+
+model ProjectParticipant {
+  id           String  @id @default(uuid()) @db.Uuid
+  project_id   String  @db.Uuid
+  person_id    String  @db.Uuid
+  role         String
+  crew_visible Boolean @default(false)
+
+  // Publication metadata
+  source_bible_id      Int
+  source_bible_table   String
+  published_at         DateTime
+  publication_version  Int      @default(1)
+
+  // Relations
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  person  Person  @relation(fields: [person_id], references: [id], onDelete: Cascade)
+
+  @@unique([person_id, project_id])
+  @@index([project_id])
+  @@index([source_bible_id, source_bible_table], name: "idx_project_participants_source_bible")
+  @@map("project_participants")
+}
+
+// ---------------------------------------------------------------------------
+// Deliverables
+// ---------------------------------------------------------------------------
+
+model Deliverable {
+  id                  String    @id @default(uuid()) @db.Uuid
+  project_id          String    @db.Uuid
+  name                String
+  deliverable_type    String    @default("video")
+  description         String?
+  client_visible      Boolean   @default(false)
+  review_status       String    @default("Not Ready")
+  current_version     Int       @default(1)
+  dropbox_replay_url  String?
+  shared_at           DateTime?
+
+  // Publication metadata
+  source_bible_id      Int
+  source_bible_table   String
+  published_at         DateTime
+  publication_version  Int      @default(1)
+
+  // Relations
+  project              Project               @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  deliverable_reviews  DeliverableReview[]
+  deliverable_approvals DeliverableApproval[]
+
+  @@index([project_id])
+  @@index([source_bible_id, source_bible_table], name: "idx_deliverables_source_bible")
+  @@map("deliverables")
+}
+
+// ---------------------------------------------------------------------------
+// Deliverable Reviews
+// ---------------------------------------------------------------------------
+
+model DeliverableReview {
+  id                String    @id @default(uuid()) @db.Uuid
+  deliverable_id    String    @db.Uuid
+  reviewer_id       String    @db.Uuid
+  version           Int       @default(1)
+  status            String    @default("Pending Review")
+  notes             String    @default("")
+  timecode_seconds  Int?
+  decision          String?
+  reviewed_at       DateTime
+
+  // Publication metadata
+  source_bible_id      Int
+  source_bible_table   String
+  published_at         DateTime
+  publication_version  Int      @default(1)
+
+  // Relations
+  deliverable Deliverable @relation(fields: [deliverable_id], references: [id], onDelete: Cascade)
+  reviewer    Person      @relation(fields: [reviewer_id], references: [id], onDelete: Cascade)
+
+  @@index([deliverable_id])
+  @@index([source_bible_id, source_bible_table], name: "idx_deliverable_reviews_source_bible")
+  @@map("deliverable_reviews")
+}
+
+// ---------------------------------------------------------------------------
+// Deliverable Approvals
+// ---------------------------------------------------------------------------
+
+model DeliverableApproval {
+  id             String   @id @default(uuid()) @db.Uuid
+  deliverable_id String   @db.Uuid
+  approver_id    String   @db.Uuid
+  version        Int
+  approved       Boolean
+  notes          String   @default("")
+  decided_at     DateTime
+
+  // Publication metadata
+  source_bible_id      Int
+  source_bible_table   String
+  published_at         DateTime
+  publication_version  Int      @default(1)
+
+  // Relations
+  deliverable Deliverable @relation(fields: [deliverable_id], references: [id], onDelete: Cascade)
+  approver    Person      @relation(fields: [approver_id], references: [id], onDelete: Cascade)
+
+  @@index([deliverable_id])
+  @@index([source_bible_id, source_bible_table], name: "idx_deliverable_approvals_source_bible")
+  @@map("deliverable_approvals")
+}
+
+// ---------------------------------------------------------------------------
+// Project Updates
+// ---------------------------------------------------------------------------
+
+model ProjectUpdate {
+  id                String    @id @default(uuid()) @db.Uuid
+  project_id        String    @db.Uuid
+  author            String
+  body              String
+  attachments       String    @default("")
+  client_visible    Boolean   @default(false)
+  posted_at         DateTime
+  client_reply      String?
+  client_replied_at DateTime?
+
+  // Publication metadata
+  source_bible_id      Int
+  source_bible_table   String
+  published_at         DateTime
+  publication_version  Int      @default(1)
+
+  // Relations
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+  @@index([source_bible_id, source_bible_table], name: "idx_project_updates_source_bible")
+  @@map("project_updates")
+}
+
+// ---------------------------------------------------------------------------
+// Change Orders
+// ---------------------------------------------------------------------------
+
+model ChangeOrder {
+  id             String    @id @default(uuid()) @db.Uuid
+  project_id     String    @db.Uuid
+  description    String
+  cost_impact    Decimal   @db.Decimal(10, 2)
+  status         String    @default("Proposed")
+  client_visible Boolean   @default(false)
+  proposed_at    DateTime
+  approved_at    DateTime?
+  approved_by    String?
+
+  // Publication metadata
+  source_bible_id      Int
+  source_bible_table   String
+  published_at         DateTime
+  publication_version  Int      @default(1)
+
+  // Relations
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+  @@index([source_bible_id, source_bible_table], name: "idx_change_orders_source_bible")
+  @@map("change_orders")
+}
+
+// ---------------------------------------------------------------------------
+// Obligations (client-facing invoice view)
+// ---------------------------------------------------------------------------
+
+model Obligation {
+  id              String    @id @default(uuid()) @db.Uuid
+  project_id      String    @db.Uuid
+  type            String    @default("receivable")
+  status          String    @default("pending")
+  amount          Decimal   @db.Decimal(10, 2)
+  description     String    @default("")
+  obligation_date DateTime  @db.Date
+  due_date        DateTime  @db.Date
+  paid_date       DateTime? @db.Date
+  client_visible  Boolean   @default(false)
+
+  // Publication metadata
+  source_bible_id      Int
+  source_bible_table   String
+  published_at         DateTime
+  publication_version  Int      @default(1)
+
+  // Relations
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+  @@index([source_bible_id, source_bible_table], name: "idx_obligations_source_bible")
+  @@map("obligations")
+}
+
+// ---------------------------------------------------------------------------
+// Shoot Periods
+// ---------------------------------------------------------------------------
+
+model ShootPeriod {
+  id             String    @id @default(uuid()) @db.Uuid
+  project_id     String    @db.Uuid
+  description    String?
+  start_date     DateTime  @db.Date
+  end_date       DateTime  @db.Date
+  period_type    String?
+  call_time      String?
+  client_visible Boolean   @default(false)
+  crew_visible   Boolean   @default(false)
+
+  // Publication metadata
+  source_bible_id      Int
+  source_bible_table   String
+  published_at         DateTime
+  publication_version  Int      @default(1)
+
+  // Relations
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+  @@index([source_bible_id, source_bible_table], name: "idx_shoot_periods_source_bible")
+  @@map("shoot_periods")
+}
+
+// ---------------------------------------------------------------------------
+// Trips
+// ---------------------------------------------------------------------------
+
+model Trip {
+  id             String    @id @default(uuid()) @db.Uuid
+  person_id      String    @db.Uuid
+  project_id     String?   @db.Uuid
+  purpose        String?
+  departure_date DateTime  @db.Date
+  return_date    DateTime  @db.Date
+  status         String    @default("pending")
+  crew_visible   Boolean   @default(false)
+
+  // Publication metadata
+  source_bible_id      Int
+  source_bible_table   String
+  published_at         DateTime
+  publication_version  Int      @default(1)
+
+  // Relations
+  person  Person   @relation(fields: [person_id], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [project_id], references: [id], onDelete: SetNull)
+
+  @@index([project_id])
+  @@index([source_bible_id, source_bible_table], name: "idx_trips_source_bible")
+  @@map("trips")
+}
+
+// ---------------------------------------------------------------------------
+// Tasks (flattened Paperclip issues)
+// ---------------------------------------------------------------------------
+
+model Task {
+  id                 String    @id @default(uuid()) @db.Uuid
+  project_id         String    @db.Uuid
+  assignee_person_id String?   @db.Uuid
+  phase              String?
+  title              String
+  status             String    @default("todo")
+  client_visible     Boolean   @default(false)
+  crew_visible       Boolean   @default(false)
+  priority           String?
+  blocked_by         Json?
+
+  // Publication metadata
+  source_bible_id      Int
+  source_bible_table   String
+  published_at         DateTime
+  publication_version  Int      @default(1)
+
+  // Relations
+  project  Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  assignee Person? @relation(fields: [assignee_person_id], references: [id], onDelete: SetNull)
+
+  @@index([project_id])
+  @@index([source_bible_id, source_bible_table], name: "idx_tasks_source_bible")
+  @@map("tasks")
+}
+
+// ---------------------------------------------------------------------------
+// Portal Uploads
+// ---------------------------------------------------------------------------
+
+model PortalUpload {
+  id              String   @id @default(uuid()) @db.Uuid
+  project_id      String   @db.Uuid
+  uploader_id     String   @db.Uuid
+  file_name       String
+  file_path       String
+  file_size_bytes BigInt?
+  mime_type       String?
+  uploaded_at     DateTime
+
+  // Publication metadata
+  source_bible_id      Int
+  source_bible_table   String
+  published_at         DateTime
+  publication_version  Int      @default(1)
+
+  // Relations
+  project  Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  uploader Person  @relation(fields: [uploader_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+  @@index([source_bible_id, source_bible_table], name: "idx_portal_uploads_source_bible")
+  @@map("portal_uploads")
+}
+
+// ---------------------------------------------------------------------------
+// Portal Events (activity feed)
+// ---------------------------------------------------------------------------
+
+model PortalEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  project_id  String?   @db.Uuid
+  person_id   String?   @db.Uuid
+  event_type  String
+  summary     String
+  details     Json?
+  occurred_at DateTime
+
+  // Publication metadata
+  source_bible_id      Int
+  source_bible_table   String
+  published_at         DateTime
+  publication_version  Int      @default(1)
+
+  // Relations
+  project Project? @relation(fields: [project_id], references: [id], onDelete: SetNull)
+  person  Person?  @relation(fields: [person_id], references: [id], onDelete: SetNull)
+
+  @@index([project_id])
+  @@index([source_bible_id, source_bible_table], name: "idx_portal_events_source_bible")
+  @@map("portal_events")
+}
+
+// ---------------------------------------------------------------------------
+// Portal Invites (portal-native, no publication metadata)
+// ---------------------------------------------------------------------------
+
+model PortalInvite {
+  id              String    @id @default(uuid()) @db.Uuid
+  person_id       String    @db.Uuid
+  magic_link_hash String    @unique
+  expires_at      DateTime
+  accepted_at     DateTime?
+  created_at      DateTime  @default(now())
+
+  // Relations
+  person Person @relation(fields: [person_id], references: [id], onDelete: Cascade)
+
+  @@map("portal_invites")
+}
+
+// ---------------------------------------------------------------------------
+// Portal Sessions (portal-native, no publication metadata)
+// ---------------------------------------------------------------------------
+
+model PortalSession {
+  id             String    @id @default(uuid()) @db.Uuid
+  person_id      String    @db.Uuid
+  token_hash     String    @unique
+  expires_at     DateTime
+  last_active_at DateTime?
+  created_at     DateTime  @default(now())
+
+  // Relations
+  person Person @relation(fields: [person_id], references: [id], onDelete: Cascade)
+
+  @@map("portal_sessions")
+}
+
+// ---------------------------------------------------------------------------
+// Testimonials
+// ---------------------------------------------------------------------------
+
+model Testimonial {
+  id           String   @id @default(uuid()) @db.Uuid
+  project_id   String   @db.Uuid
+  person_id    String   @db.Uuid
+  rating       Int?
+  body         String   @default("")
+  submitted_at DateTime
+  approved     Boolean  @default(false)
+
+  // Publication metadata
+  source_bible_id      Int
+  source_bible_table   String
+  published_at         DateTime
+  publication_version  Int      @default(1)
+
+  // Relations
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  person  Person  @relation(fields: [person_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+  @@index([source_bible_id, source_bible_table], name: "idx_testimonials_source_bible")
+  @@map("testimonials")
+}
