@@ -20,17 +20,19 @@ export async function verifyProjectAccess(
 }> {
   const project = await db.project.findUnique({
     where: { id: projectId },
-    select: { id: true, job_number: true, name: true },
+    select: { id: true, job_number: true, name: true, client_portal_enabled: true },
   });
 
   if (!project) return { allowed: false, project: null };
+  if (!project.client_portal_enabled) return { allowed: false, project: null };
 
   const person = await db.person.findUnique({
     where: { id: userId },
-    select: { is_staff: true },
+    select: { is_staff: true, portal_allowed: true },
   });
 
-  if (person?.is_staff) return { allowed: true, project };
+  if (!person?.portal_allowed) return { allowed: false, project: null };
+  if (person.is_staff) return { allowed: true, project };
 
   const [contact, participant] = await Promise.all([
     db.projectContact.findFirst({

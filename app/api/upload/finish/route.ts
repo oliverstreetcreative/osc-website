@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "../../../../lib/db";
 import {
+  sanitizeFilename,
   verifyProjectAccess,
   finishDropboxSession,
   getDropboxAccessToken,
@@ -16,9 +17,9 @@ function uploadContextToFolder(uploadContext?: string): string {
   if (ctx.includes("brief")) return "Briefs";
   if (ctx.includes("review")) return "Reviews";
 
-  // Use the raw context string (after the colon if prefixed like "sam_request:invoice")
   const colonIdx = uploadContext.indexOf(":");
-  return colonIdx !== -1 ? uploadContext.slice(colonIdx + 1) : uploadContext;
+  const raw = colonIdx !== -1 ? uploadContext.slice(colonIdx + 1) : uploadContext;
+  return sanitizeFilename(raw) || "Uploads";
 }
 
 export async function POST(req: NextRequest) {
