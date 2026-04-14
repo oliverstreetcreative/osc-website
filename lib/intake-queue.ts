@@ -116,7 +116,8 @@ export async function enqueueIntakeSubmission(
         "DROPBOX_REFRESH_TOKEN (production) or DROPBOX_LOCAL_ROOT (local dev)",
     }
   }
-  return writeViaDropbox(accessToken, dropboxPath, body)
+  const rootPrefix = process.env.DROPBOX_ROOT_PREFIX?.trim() ?? ""
+  return writeViaDropbox(accessToken, `${rootPrefix}${dropboxPath}`, body)
 }
 
 export function generateDraftToken(): string {

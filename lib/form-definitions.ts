@@ -61,7 +61,8 @@ const DEFINITIONS_PATH = "/_admin/form-definitions"
 async function fetchFromDropbox(slug: string): Promise<FormDefinition | null> {
   const token = await getDropboxAccessToken()
   if (!token) return null
-  const dropboxPath = `${DEFINITIONS_PATH}/${slug}.json`
+  const rootPrefix = process.env.DROPBOX_ROOT_PREFIX?.trim() ?? ""
+  const dropboxPath = `${rootPrefix}${DEFINITIONS_PATH}/${slug}.json`
   try {
     const res = await fetch("https://content.dropboxapi.com/2/files/download", {
       method: "POST",
