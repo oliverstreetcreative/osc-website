@@ -112,10 +112,7 @@ export async function POST(req: NextRequest) {
           dropbox_path: result.path_display,
         },
         occurred_at: now,
-        source_bible_id: 0,
-        source_bible_table: "portal_events",
-        published_at: now,
-        publication_version: 1,
+        source: "portal_client",
       },
     });
 
