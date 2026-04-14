@@ -456,19 +456,24 @@ model PortalEvent {
   event_type  String
   summary     String
   details     Json?
-  occurred_at DateTime
+  occurred_at DateTime  @default(now())
+  processed_at DateTime?
 
-  // Publication metadata
-  source_bible_id      Int
-  source_bible_table   String
-  published_at         DateTime
-  publication_version  Int      @default(1)
+  // Source: who originated this event
+  source      String    // 'portal_client' | 'portal_crew' | 'portal_admin' | 'bible'
+
+  // Publication metadata (null for portal-originated events)
+  source_bible_id      Int?
+  source_bible_table   String?
+  published_at         DateTime?
+  publication_version  Int?      @default(1)
 
   // Relations
   project Project? @relation(fields: [project_id], references: [id], onDelete: SetNull)
   person  Person?  @relation(fields: [person_id], references: [id], onDelete: SetNull)
 
   @@index([project_id])
+  @@index([processed_at], name: "idx_portal_events_processed_at")
   @@index([source_bible_id, source_bible_table], name: "idx_portal_events_source_bible")
   @@map("portal_events")
 }
