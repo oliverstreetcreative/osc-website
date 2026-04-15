@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { db } from '@/lib/db'
+import { isImpersonating } from '@/lib/auth/impersonation'
 
 const VALID_STATUSES = ['Reviewed', 'Bounced', 'Not Ready'] as const
 
@@ -8,6 +9,14 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  // Impersonation check — read-only mode
+  if (await isImpersonating()) {
+    return NextResponse.json(
+      { error: 'Impersonation mode is read-only. Stop impersonating to take actions.' },
+      { status: 403 },
+    )
+  }
+
   const headersList = await headers()
   const userId  = headersList.get('x-user-id')
   const isStaff = headersList.get('x-user-is-staff')

@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { db } from '@/lib/db'
+import { isImpersonating } from '@/lib/auth/impersonation'
 
 interface Params {
   params: Promise<{ id: string }>
 }
 
 export async function POST(_req: NextRequest, { params }: Params) {
+  // Impersonation check — read-only mode
+  if (await isImpersonating()) {
+    return NextResponse.json(
+      { error: 'Impersonation mode is read-only. Stop impersonating to take actions.' },
+      { status: 403 },
+    )
+  }
+
   const { id: changeOrderId } = await params
 
   const hdrs = await headers()

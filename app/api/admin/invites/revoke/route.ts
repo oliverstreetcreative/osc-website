@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { db } from '@/lib/db'
+import { isImpersonating } from '@/lib/auth/impersonation'
 
 // ---------------------------------------------------------------------------
 // POST /api/admin/invites/revoke
@@ -8,6 +9,14 @@ import { db } from '@/lib/db'
 // ---------------------------------------------------------------------------
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  // Impersonation check — read-only mode
+  if (await isImpersonating()) {
+    return NextResponse.json(
+      { error: 'Impersonation mode is read-only. Stop impersonating to take actions.' },
+      { status: 403 },
+    )
+  }
+
   // 1. Auth
   const headersList = await headers()
   const userId  = headersList.get('x-user-id')

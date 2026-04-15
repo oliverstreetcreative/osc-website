@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 
 const SESSION_COOKIE_NAME = 'osc_session'
+const IMPERSONATION_COOKIE_NAME = 'osc_impersonating'
 const LOGIN_HOST = process.env.LOGIN_HOST ?? 'login.oliverstreetcreative.com'
 
 const PUBLIC_PATHS = new Set([
@@ -65,6 +66,61 @@ function setUserHeaders(res: NextResponse, user: { id: string; email: string; ro
   return res
 }
 
+interface ImpersonationPayload {
+  impersonator_person_id: string
+  target_person_id: string
+  target_role: string
+  target_name: string
+  target_email: string
+}
+
+async function applyImpersonation(
+  req: NextRequest,
+  res: NextResponse,
+  realUser: { id: string; is_staff: boolean },
+  pathname: string,
+): Promise<NextResponse> {
+  // Do not apply impersonation on the stop endpoint — it needs the real user context
+  if (pathname === '/api/admin/impersonate/stop') {
+    return res
+  }
+
+  const impToken = req.cookies.get(IMPERSONATION_COOKIE_NAME)?.value
+  if (!impToken) return res
+
+  // Real user must be staff to impersonate
+  if (!realUser.is_staff) {
+    // Silently clear the cookie — non-staff cannot impersonate
+    res.cookies.set(IMPERSONATION_COOKIE_NAME, '', { maxAge: 0, path: '/' })
+    return res
+  }
+
+  const secret = process.env.SESSION_JWT_SECRET
+  if (!secret) return res
+
+  try {
+    const { payload } = await jwtVerify(
+      impToken,
+      new TextEncoder().encode(secret),
+    )
+    const imp = payload as unknown as ImpersonationPayload
+
+    // Override user headers to reflect the impersonation target
+    res.headers.set('x-user-id', imp.target_person_id)
+    res.headers.set('x-user-email', imp.target_email)
+    res.headers.set('x-user-role', imp.target_role)
+    res.headers.set('x-user-is-staff', 'false')
+    res.headers.set('x-impersonating', 'true')
+    res.headers.set('x-impersonator-id', realUser.id)
+    res.headers.set('x-impersonation-target-name', imp.target_name)
+  } catch {
+    // Expired or invalid — clear silently
+    res.cookies.set(IMPERSONATION_COOKIE_NAME, '', { maxAge: 0, path: '/' })
+  }
+
+  return res
+}
+
 function redirectToLogin(req: NextRequest): NextResponse {
   const subdomain = getSubdomain(req.headers.get('host') ?? '')
   const returnPath = req.nextUrl.pathname
@@ -97,12 +153,12 @@ export async function middleware(req: NextRequest) {
     if (!pathname.startsWith('/client') && !pathname.startsWith('/api/')) {
       const url = req.nextUrl.clone()
       url.pathname = `/client${pathname}`
-      const res = NextResponse.rewrite(url)
-      return setUserHeaders(res, user)
+      const res = setUserHeaders(NextResponse.rewrite(url), user)
+      return applyImpersonation(req, res, user, pathname)
     }
 
-    const res = NextResponse.next()
-    return setUserHeaders(res, user)
+    const res = setUserHeaders(NextResponse.next(), user)
+    return applyImpersonation(req, res, user, pathname)
   }
 
   // --- Subdomain: crew.* ---
@@ -115,12 +171,12 @@ export async function middleware(req: NextRequest) {
     if (!pathname.startsWith('/crew') && !pathname.startsWith('/api/')) {
       const url = req.nextUrl.clone()
       url.pathname = `/crew${pathname}`
-      const res = NextResponse.rewrite(url)
-      return setUserHeaders(res, user)
+      const res = setUserHeaders(NextResponse.rewrite(url), user)
+      return applyImpersonation(req, res, user, pathname)
     }
 
-    const res = NextResponse.next()
-    return setUserHeaders(res, user)
+    const res = setUserHeaders(NextResponse.next(), user)
+    return applyImpersonation(req, res, user, pathname)
   }
 
   // --- Subdomain: login.* ---
@@ -132,8 +188,8 @@ export async function middleware(req: NextRequest) {
       if (!user || (!user.is_staff && user.role !== 'STAFF')) {
         return new NextResponse(null, { status: 404 })
       }
-      const res = NextResponse.next()
-      return setUserHeaders(res, user)
+      const res = setUserHeaders(NextResponse.next(), user)
+      return applyImpersonation(req, res, user, pathname)
     }
 
     return NextResponse.next()
@@ -157,8 +213,8 @@ export async function middleware(req: NextRequest) {
     return new NextResponse(null, { status: 404 })
   }
 
-  const res = NextResponse.next()
-  return setUserHeaders(res, user)
+  const res = setUserHeaders(NextResponse.next(), user)
+  return applyImpersonation(req, res, user, pathname)
 }
 
 export const config = {

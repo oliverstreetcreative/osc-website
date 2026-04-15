@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getPortalUser } from '@/lib/portal-auth'
 import { SignOutButton } from '../client/components/SignOutButton'
+import { ImpersonationBanner } from '@/components/ImpersonationBanner'
 
 export default async function CrewPortalLayout({
   children,
@@ -24,6 +25,7 @@ export default async function CrewPortalLayout({
         flexDirection: 'column',
       }}
     >
+      <ImpersonationBanner />
       {/* Sticky top header */}
       <header
         style={{
