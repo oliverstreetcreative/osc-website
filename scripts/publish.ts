@@ -23,6 +23,46 @@ interface TableConfig {
   portalTable: string
   columns: Record<string, string>
   filter?: string
+  // Optional per-row transform that augments or overrides the default column-copy
+  // data object with derived fields (e.g. role heuristics, FK resolution).
+  transform?: (row: Record<string, unknown>, data: Record<string, unknown>) => Record<string, unknown>
+  // Skip the row if the transform returns null.
+}
+
+// -------------------------------------------------------------------------
+// Value unpacking — the Bible stores some single-select cells as JSON blobs
+// from its Baserow-style predecessor: {"id":3122,"value":"complete","color":"blue"}
+// or just {"value":"complete"}. Strip them to the bare string value.
+// -------------------------------------------------------------------------
+
+function unpack(v: unknown): unknown {
+  if (typeof v !== 'string') return v
+  const trimmed = v.trim()
+  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) return v
+  try {
+    const parsed = JSON.parse(trimmed)
+    if (parsed && typeof parsed === 'object' && typeof parsed.value === 'string') {
+      return parsed.value
+    }
+  } catch {}
+  return v
+}
+
+// Some columns are booleans in the Bible (stored as 0/1 ints) but booleans in
+// Prisma. Coerce numeric truthiness.
+function asBool(v: unknown): boolean {
+  if (typeof v === 'boolean') return v
+  if (typeof v === 'number') return v !== 0
+  if (typeof v === 'string') return v === '1' || v.toLowerCase() === 'true'
+  return false
+}
+
+// Infer a portal Role from a Bible people row. Bible has no explicit role
+// column; use is_staff + company as heuristics, CREW as default.
+function inferRole(row: Record<string, unknown>): 'STAFF' | 'CLIENT' | 'CREW' {
+  if (asBool(row.is_staff)) return 'STAFF'
+  if (row.company && String(row.company).trim()) return 'CLIENT'
+  return 'CREW'
 }
 
 const TABLES: TableConfig[] = [
@@ -34,13 +74,22 @@ const TABLES: TableConfig[] = [
       name: 'name',
       job_number: 'job_number',
       status: 'status',
-      project_phase: 'project_phase',
-      shoot_start_date: 'shoot_start_date',
-      shoot_end_date: 'shoot_end_date',
-      delivery_date: 'delivery_date',
+      phase: 'phase',
       client_portal_enabled: 'client_portal_enabled',
+      client_visible: 'client_visible',
+      crew_visible: 'crew_visible',
     },
-    filter: "client_portal_enabled = 1 OR client_portal_enabled = 'true'",
+    // Publish every project so Sam (STAFF) and participants see them; gating
+    // happens at the portal-page level via portal_allowed / visibility flags.
+    transform: (row, data) => ({
+      ...data,
+      name: row.name ?? 'Untitled project',
+      status: unpack(row.status) ?? 'unknown',
+      phase: unpack(row.phase) ?? 'Proposal',
+      client_portal_enabled: asBool(row.client_portal_enabled),
+      client_visible: asBool(row.client_visible),
+      crew_visible: asBool(row.crew_visible),
+    }),
   },
   {
     bibleTable: 'people',
@@ -49,8 +98,23 @@ const TABLES: TableConfig[] = [
       id: 'source_bible_id',
       name: 'name',
       first_name: 'first_name',
+      last_name: 'last_name',
       email: 'email',
+      company: 'company',
+      phone: 'phone',
+      is_staff: 'is_staff',
+      portal_allowed: 'portal_allowed',
     },
+    // Skip rows with no email — Prisma requires unique non-null email on Person.
+    filter: "email IS NOT NULL AND TRIM(email) != ''",
+    transform: (row, data) => ({
+      ...data,
+      name: (row.name ?? (`${row.first_name ?? ''} ${row.last_name ?? ''}`.trim() || 'Unknown')),
+      email: String(row.email).toLowerCase().trim(),
+      is_staff: asBool(row.is_staff),
+      portal_allowed: asBool(row.portal_allowed),
+      role: inferRole(row),
+    }),
   },
   {
     bibleTable: 'deliverables',
@@ -286,9 +350,19 @@ Environment:
   const totals = { processed: 0, created: 0, updated: 0, skipped: 0, revoked: 0, errors: 0 }
   const BATCH_SIZE = 50
 
+  // Tables that require FK resolution (project_id, person_id) are deferred
+  // until the publish script can look up portal UUIDs for Bible FKs. For now
+  // publish only the root tables (projects, people) so dashboards render with
+  // real Bible-sourced content.
+  const FK_DEFERRED = new Set([
+    'deliverables', 'project_updates', 'change_orders', 'obligations',
+    'shoot_periods', 'tasks', 'project_participants', 'testimonials',
+    'deliverable_reviews',
+  ])
+
   const tablesToPublish = values.table
     ? TABLES.filter(t => t.bibleTable === values.table)
-    : TABLES
+    : TABLES.filter(t => !FK_DEFERRED.has(t.bibleTable))
 
   if (values.table && tablesToPublish.length === 0) {
     console.error(`Unknown table: ${values.table}. Available: ${TABLES.map(t => t.bibleTable).join(', ')}`)
@@ -313,14 +387,21 @@ Environment:
     const upsertBatch: Array<{ source_bible_id: number; source_bible_table: string; publication_version: number; data: Record<string, unknown> }> = []
 
     for (const row of rows) {
-      const bibleId = Number(row.rowid)
+      // better-sqlite3 does not surface `rowid` in returned objects by default.
+      // Every Bible table uses `id INTEGER PRIMARY KEY` which equals rowid anyway.
+      const bibleId = Number(row.id ?? row.rowid)
+      if (!Number.isFinite(bibleId)) continue
       const rowIdStr = String(bibleId)
       currentRowIds.add(rowIdStr)
 
-      const data: Record<string, unknown> = {}
+      let data: Record<string, unknown> = {}
       for (const [bibleCol, portalCol] of Object.entries(config.columns)) {
         if (portalCol === 'source_bible_id') continue
-        data[portalCol] = row[bibleCol] ?? null
+        data[portalCol] = unpack(row[bibleCol] ?? null)
+      }
+
+      if (config.transform) {
+        data = config.transform(row, data)
       }
 
       const rowHash = hashRow(data)
@@ -330,7 +411,8 @@ Environment:
       const prevHash = state.hashes[config.bibleTable]?.[rowIdStr]
       if (prevHash === rowHash && !values.full) continue
 
-      const version = Date.now()
+      // Portal publication_version is INT4; ms-epoch overflows. Use seconds.
+      const version = Math.floor(Date.now() / 1000)
       upsertBatch.push({
         source_bible_id: bibleId,
         source_bible_table: config.bibleTable,
@@ -347,7 +429,7 @@ Environment:
         revokeBatch.push({
           source_bible_id: Number(prevId),
           source_bible_table: config.bibleTable,
-          publication_version: Date.now(),
+          publication_version: Math.floor(Date.now() / 1000),
           data: {},
         })
       }
