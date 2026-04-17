@@ -29,6 +29,29 @@ function tryUnpackBaserow(val: unknown): unknown {
   return val
 }
 
+function extractBaserowLinkId(val: unknown): number | null {
+  if (typeof val !== 'string') return null
+  try {
+    const arr = JSON.parse(val)
+    if (Array.isArray(arr) && arr.length > 0 && typeof arr[0].id === 'number') return arr[0].id
+  } catch {}
+  return null
+}
+
+function extractBaserowLinkValue(val: unknown): string | null {
+  if (typeof val !== 'string') return null
+  try {
+    const arr = JSON.parse(val)
+    if (Array.isArray(arr) && arr.length > 0 && typeof arr[0].value === 'string') return arr[0].value
+  } catch {}
+  return null
+}
+
+interface FkHint {
+  bible_id: number
+  bible_table: string
+}
+
 interface TableConfig {
   bibleTable: string
   portalTable: string
@@ -36,9 +59,11 @@ interface TableConfig {
   filter?: string
   extraSelect?: string[]
   computeFields?: (row: Record<string, unknown>) => Record<string, unknown>
+  fkColumns?: Record<string, { bibleCol: string; targetBibleTable: string }>
 }
 
 const TABLES: TableConfig[] = [
+  // --- Root tables (no FK dependencies) ---
   {
     bibleTable: 'projects',
     portalTable: 'projects',
@@ -89,6 +114,7 @@ const TABLES: TableConfig[] = [
       }
     },
   },
+  // --- FK-dependent tables (require project/person to exist first) ---
   {
     bibleTable: 'deliverables',
     portalTable: 'deliverables',
@@ -97,13 +123,13 @@ const TABLES: TableConfig[] = [
       name: 'name',
       deliverable_type: 'deliverable_type',
       description: 'description',
-      due_date: 'due_date',
-      review_status: 'review_status',
-      client_approved: 'client_approved',
-      delivered: 'delivered',
-      delivered_date: 'delivered_date',
       client_visible: 'client_visible',
-      dropbox_path: 'dropbox_path',
+      review_status: 'review_status',
+      current_version: 'current_version',
+      shared_at: 'shared_at',
+    },
+    fkColumns: {
+      project_id: { bibleCol: 'project', targetBibleTable: 'projects' },
     },
   },
   {
@@ -111,9 +137,16 @@ const TABLES: TableConfig[] = [
     portalTable: 'project_updates',
     columns: {
       id: 'source_bible_id',
-      body: 'body',
       author: 'author',
+      body: 'body',
+      attachments: 'attachments',
       posted_at: 'posted_at',
+      client_visible: 'client_visible',
+      client_reply: 'client_reply',
+      client_replied_at: 'client_replied_at',
+    },
+    fkColumns: {
+      project_id: { bibleCol: 'project', targetBibleTable: 'projects' },
     },
   },
   {
@@ -122,26 +155,36 @@ const TABLES: TableConfig[] = [
     columns: {
       id: 'source_bible_id',
       description: 'description',
-      status: 'status',
       cost_impact: 'cost_impact',
+      status: 'status',
+      client_visible: 'client_visible',
       proposed_at: 'proposed_at',
       approved_at: 'approved_at',
-      approved_by: 'approved_by',
     },
+    extraSelect: ['approved_by'],
+    fkColumns: {
+      project_id: { bibleCol: 'project', targetBibleTable: 'projects' },
+    },
+    computeFields: (row) => ({
+      approved_by: extractBaserowLinkValue(row.approved_by),
+    }),
   },
   {
     bibleTable: 'obligations',
     portalTable: 'obligations',
     columns: {
       id: 'source_bible_id',
-      name: 'name',
-      description: 'description',
+      type: 'type',
+      status: 'status',
       amount: 'amount',
+      description: 'description',
+      obligation_date: 'obligation_date',
       due_date: 'due_date',
       paid_date: 'paid_date',
-      status: 'status',
-      type: 'type',
-      category: 'category',
+      client_visible: 'client_visible',
+    },
+    fkColumns: {
+      project_id: { bibleCol: 'project', targetBibleTable: 'projects' },
     },
   },
   {
@@ -149,13 +192,16 @@ const TABLES: TableConfig[] = [
     portalTable: 'shoot_periods',
     columns: {
       id: 'source_bible_id',
-      name: 'name',
       start_date: 'start_date',
       end_date: 'end_date',
       period_type: 'period_type',
       description: 'description',
       call_time: 'call_time',
-      wrap_time: 'wrap_time',
+      client_visible: 'client_visible',
+      crew_visible: 'crew_visible',
+    },
+    fkColumns: {
+      project_id: { bibleCol: 'project', targetBibleTable: 'projects' },
     },
   },
   {
@@ -164,12 +210,12 @@ const TABLES: TableConfig[] = [
     columns: {
       id: 'source_bible_id',
       title: 'title',
-      description: 'description',
       status: 'status',
       priority: 'priority',
       phase: 'phase',
-      due_date: 'due_date',
-      completed_date: 'completed_date',
+    },
+    fkColumns: {
+      project_id: { bibleCol: 'project', targetBibleTable: 'projects' },
     },
   },
   {
@@ -177,11 +223,12 @@ const TABLES: TableConfig[] = [
     portalTable: 'project_participants',
     columns: {
       id: 'source_bible_id',
-      name: 'name',
-      participant_type: 'participant_type',
       role: 'role',
-      rate_type: 'rate_type',
-      rate_amount: 'rate_amount',
+      crew_visible: 'crew_visible',
+    },
+    fkColumns: {
+      project_id: { bibleCol: 'project', targetBibleTable: 'projects' },
+      person_id: { bibleCol: 'person', targetBibleTable: 'people' },
     },
   },
   {
@@ -189,11 +236,19 @@ const TABLES: TableConfig[] = [
     portalTable: 'testimonials',
     columns: {
       id: 'source_bible_id',
-      name: 'name',
-      quote_text: 'quote_text',
-      context: 'context',
-      date_received: 'date_received',
-      permission_status: 'permission_status',
+      quote_text: 'body',
+      date_received: 'submitted_at',
+    },
+    extraSelect: ['permission_status'],
+    fkColumns: {
+      project_id: { bibleCol: 'project', targetBibleTable: 'projects' },
+      person_id: { bibleCol: 'person', targetBibleTable: 'people' },
+    },
+    computeFields: (row) => {
+      const status = tryUnpackBaserow(row.permission_status)
+      return {
+        approved: status === 'approved' || status === 'Approved',
+      }
     },
   },
   {
@@ -201,10 +256,13 @@ const TABLES: TableConfig[] = [
     portalTable: 'deliverable_reviews',
     columns: {
       id: 'source_bible_id',
-      name: 'name',
+      version: 'version',
       status: 'status',
       reviewed_at: 'reviewed_at',
-      version: 'version',
+    },
+    fkColumns: {
+      deliverable_id: { bibleCol: 'deliverable', targetBibleTable: 'deliverables' },
+      reviewer_id: { bibleCol: 'reviewer', targetBibleTable: 'people' },
     },
   },
 ]
@@ -254,7 +312,7 @@ interface PublishResult {
 async function publishBatch(
   portalTable: string,
   action: 'upsert' | 'revoke',
-  rows: Array<{ source_bible_id: number; source_bible_table: string; publication_version: number; data: Record<string, unknown> }>,
+  rows: Array<{ source_bible_id: number; source_bible_table: string; publication_version: number; data: Record<string, unknown>; fk_hints?: Record<string, FkHint> }>,
 ): Promise<PublishResult> {
   const res = await fetch(PUBLISH_URL, {
     method: 'POST',
@@ -398,7 +456,9 @@ Environment:
 
   for (const config of tablesToPublish) {
     const bibleCols = Object.keys(config.columns).join(', ')
-    const extraCols = config.extraSelect?.length ? ', ' + config.extraSelect.join(', ') : ''
+    const fkCols = config.fkColumns ? Object.values(config.fkColumns).map(fk => fk.bibleCol) : []
+    const allExtraCols = [...(config.extraSelect ?? []), ...fkCols]
+    const extraCols = allExtraCols.length ? ', ' + Array.from(new Set(allExtraCols)).join(', ') : ''
     let sql = `SELECT rowid, ${bibleCols}${extraCols} FROM ${config.bibleTable}`
     if (config.filter) sql += ` WHERE ${config.filter}`
 
@@ -422,7 +482,7 @@ Environment:
     }
 
     const currentRowIds = new Set<string>()
-    const upsertBatch: Array<{ source_bible_id: number; source_bible_table: string; publication_version: number; data: Record<string, unknown> }> = []
+    const upsertBatch: Array<{ source_bible_id: number; source_bible_table: string; publication_version: number; data: Record<string, unknown>; fk_hints?: Record<string, FkHint> }> = []
 
     for (const row of rows) {
       const bibleId = Number(row.rowid)
@@ -439,7 +499,19 @@ Environment:
         Object.assign(data, config.computeFields(row))
       }
 
-      const rowHash = hashRow(data)
+      let fk_hints: Record<string, FkHint> | undefined
+      if (config.fkColumns) {
+        fk_hints = {}
+        for (const [portalCol, fkDef] of Object.entries(config.fkColumns)) {
+          const linkedId = extractBaserowLinkId(row[fkDef.bibleCol])
+          if (linkedId !== null) {
+            fk_hints[portalCol] = { bible_id: linkedId, bible_table: fkDef.targetBibleTable }
+          }
+        }
+        if (Object.keys(fk_hints).length === 0) fk_hints = undefined
+      }
+
+      const rowHash = hashRow({ ...data, ...fk_hints })
       if (!newState.hashes[config.bibleTable]) newState.hashes[config.bibleTable] = {}
       newState.hashes[config.bibleTable][rowIdStr] = rowHash
 
@@ -452,6 +524,7 @@ Environment:
         source_bible_table: config.bibleTable,
         publication_version: version,
         data,
+        fk_hints,
       })
     }
 

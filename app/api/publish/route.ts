@@ -28,11 +28,17 @@ const TABLE_MAP: Record<string, string> = {
 // Request / response types
 // ---------------------------------------------------------------------------
 
+interface FkHint {
+  bible_id:    number
+  bible_table: string
+}
+
 interface PublishRow {
   source_bible_id:      number
   source_bible_table:   string
   publication_version:  number
   data:                 Record<string, unknown>
+  fk_hints?:            Record<string, FkHint>
 }
 
 interface PublishBody {
@@ -48,6 +54,44 @@ interface PublishResult {
   skipped:   number
   revoked:   number
   errors:    Array<{ source_bible_id: number; error: string }>
+}
+
+// ---------------------------------------------------------------------------
+// FK resolution: bible_table → Prisma model accessor
+// ---------------------------------------------------------------------------
+
+const BIBLE_TABLE_TO_MODEL: Record<string, string> = {
+  projects:     'project',
+  people:       'person',
+  deliverables: 'deliverable',
+}
+
+async function resolveFkHints(
+  fkHints: Record<string, FkHint>,
+): Promise<{ resolved: Record<string, string>; errors: string[] }> {
+  const resolved: Record<string, string> = {}
+  const errors: string[] = []
+
+  for (const [targetCol, hint] of Object.entries(fkHints)) {
+    const modelName = BIBLE_TABLE_TO_MODEL[hint.bible_table]
+    if (!modelName) {
+      errors.push(`Unknown FK target table: ${hint.bible_table} for ${targetCol}`)
+      continue
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const delegate = (db as any)[modelName]
+    const record = await delegate.findFirst({
+      where: { source_bible_id: hint.bible_id, source_bible_table: hint.bible_table },
+      select: { id: true },
+    })
+    if (record) {
+      resolved[targetCol] = record.id
+    } else {
+      errors.push(`${targetCol}: no ${hint.bible_table} record with source_bible_id=${hint.bible_id}`)
+    }
+  }
+
+  return { resolved, errors }
 }
 
 // ---------------------------------------------------------------------------
@@ -109,7 +153,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   for (const row of rows) {
-    const { source_bible_id, source_bible_table, publication_version, data } = row
+    const { source_bible_id, source_bible_table, publication_version, data, fk_hints } = row
     result.processed++
 
     try {
@@ -121,6 +165,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         continue
       }
 
+      // Resolve FK hints to portal UUIDs
+      if (fk_hints && Object.keys(fk_hints).length > 0) {
+        const { resolved, errors: fkErrors } = await resolveFkHints(fk_hints)
+        if (fkErrors.length > 0) {
+          result.errors.push({ source_bible_id, error: `FK resolution: ${fkErrors.join('; ')}` })
+          continue
+        }
+        Object.assign(data, resolved)
+      }
+
       // action === 'upsert'
       const existing = await delegate.findFirst({
         where: { source_bible_id, source_bible_table },
@@ -128,7 +182,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       })
 
       if (existing) {
-        // Skip if incoming version is not newer
         if (publication_version <= existing.publication_version) {
           result.skipped++
           continue
