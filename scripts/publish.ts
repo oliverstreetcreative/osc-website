@@ -23,17 +23,8 @@ interface TableConfig {
   portalTable: string
   columns: Record<string, string>
   filter?: string
-  // Optional per-row transform that augments or overrides the default column-copy
-  // data object with derived fields (e.g. role heuristics, FK resolution).
   transform?: (row: Record<string, unknown>, data: Record<string, unknown>) => Record<string, unknown>
-  // Skip the row if the transform returns null.
 }
-
-// -------------------------------------------------------------------------
-// Value unpacking — the Bible stores some single-select cells as JSON blobs
-// from its Baserow-style predecessor: {"id":3122,"value":"complete","color":"blue"}
-// or just {"value":"complete"}. Strip them to the bare string value.
-// -------------------------------------------------------------------------
 
 function unpack(v: unknown): unknown {
   if (typeof v !== 'string') return v
@@ -48,8 +39,6 @@ function unpack(v: unknown): unknown {
   return v
 }
 
-// Some columns are booleans in the Bible (stored as 0/1 ints) but booleans in
-// Prisma. Coerce numeric truthiness.
 function asBool(v: unknown): boolean {
   if (typeof v === 'boolean') return v
   if (typeof v === 'number') return v !== 0
@@ -57,8 +46,6 @@ function asBool(v: unknown): boolean {
   return false
 }
 
-// Infer a portal Role from a Bible people row. Bible has no explicit role
-// column; use is_staff + company as heuristics, CREW as default.
 function inferRole(row: Record<string, unknown>): 'STAFF' | 'CLIENT' | 'CREW' {
   if (asBool(row.is_staff)) return 'STAFF'
   if (row.company && String(row.company).trim()) return 'CLIENT'
