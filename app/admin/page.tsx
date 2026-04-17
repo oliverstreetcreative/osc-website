@@ -64,6 +64,20 @@ export default async function AdminDashboardPage() {
     return '#e05c5c'
   }
 
+  type TableSummaryEntry = {
+    table: string
+    processed: number
+    created: number
+    updated: number
+    skipped: number
+    revoked: number
+    errors: number
+  }
+
+  const tablesSummary: TableSummaryEntry[] = lastPublishRun?.tables_summary
+    ? (lastPublishRun.tables_summary as TableSummaryEntry[])
+    : []
+
   const pipelineNote = lastPublishRun
     ? `${relativeTime(lastPublishRun.completed_at)} · ${lastPublishRun.total_processed} rows`
     : 'no runs recorded'
@@ -400,6 +414,119 @@ export default async function AdminDashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Per-table publication health */}
+      {tablesSummary.length > 0 && (
+        <Card
+          style={{
+            marginTop: '24px',
+            background: 'rgba(247,246,243,0.04)',
+            border: '1px solid rgba(138,138,132,0.2)',
+          }}
+        >
+          <CardHeader style={{ paddingBottom: '8px' }}>
+            <CardTitle
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                color: 'var(--quiet)',
+              }}
+            >
+              Last Run — Per Table
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr>
+                  {['Table', 'Processed', 'Created', 'Updated', 'Skipped', 'Errors'].map((col) => (
+                    <th
+                      key={col}
+                      style={{
+                        textAlign: 'left',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        color: 'var(--quiet)',
+                        paddingBottom: '8px',
+                        paddingRight: '16px',
+                        borderBottom: '1px solid rgba(138,138,132,0.15)',
+                      }}
+                    >
+                      {col}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {tablesSummary.map((t) => (
+                  <tr key={t.table}>
+                    <td
+                      style={{
+                        padding: '8px 16px 8px 0',
+                        color: 'var(--paper)',
+                        fontWeight: 500,
+                        borderBottom: '1px solid rgba(138,138,132,0.08)',
+                      }}
+                    >
+                      {t.table}
+                    </td>
+                    <td
+                      style={{
+                        padding: '8px 16px 8px 0',
+                        color: 'var(--paper)',
+                        borderBottom: '1px solid rgba(138,138,132,0.08)',
+                      }}
+                    >
+                      {t.processed}
+                    </td>
+                    <td
+                      style={{
+                        padding: '8px 16px 8px 0',
+                        color: t.created > 0 ? '#4caf6e' : 'var(--quiet)',
+                        borderBottom: '1px solid rgba(138,138,132,0.08)',
+                      }}
+                    >
+                      {t.created}
+                    </td>
+                    <td
+                      style={{
+                        padding: '8px 16px 8px 0',
+                        color: t.updated > 0 ? '#4caf6e' : 'var(--quiet)',
+                        borderBottom: '1px solid rgba(138,138,132,0.08)',
+                      }}
+                    >
+                      {t.updated}
+                    </td>
+                    <td
+                      style={{
+                        padding: '8px 16px 8px 0',
+                        color: 'var(--quiet)',
+                        borderBottom: '1px solid rgba(138,138,132,0.08)',
+                      }}
+                    >
+                      {t.skipped}
+                    </td>
+                    <td
+                      style={{
+                        padding: '8px 0',
+                        color: t.errors > 0 ? '#e05c5c' : 'var(--quiet)',
+                        fontWeight: t.errors > 0 ? 600 : 400,
+                        borderBottom: '1px solid rgba(138,138,132,0.08)',
+                      }}
+                    >
+                      {t.errors}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
