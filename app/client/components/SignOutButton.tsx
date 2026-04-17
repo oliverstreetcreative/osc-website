@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 export function SignOutButton() {
   async function handleSignOut() {
     await fetch('/api/auth/logout', { method: 'POST' })
-    window.location.href = '/'
+    window.location.href = 'https://oliverstreetcreative.com/'
   }
 
   return (
