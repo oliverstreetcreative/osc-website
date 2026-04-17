@@ -59,6 +59,7 @@
     "react-hook-form": "^7.60.0",
     "react-resizable-panels": "^2.1.7",
     "recharts": "2.15.4",
+    "resend": "^6.12.0",
     "sonner": "^1.7.4",
     "survey-core": "^2.5.19",
     "survey-react-ui": "^2.5.19",
