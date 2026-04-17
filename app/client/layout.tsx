@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getPortalUser } from '@/lib/portal-auth'
 import { SignOutButton } from './components/SignOutButton'
 import { ImpersonationBanner } from '@/components/ImpersonationBanner'
+import { ActivityFeed } from '@/components/portal/ActivityFeed'
 
 export default async function ClientPortalLayout({
   children,
@@ -102,6 +103,7 @@ export default async function ClientPortalLayout({
           }}
         >
           <NavLink href="/client">Dashboard</NavLink>
+          <ActivityFeed />
         </nav>
 
         {/* Main content */}
