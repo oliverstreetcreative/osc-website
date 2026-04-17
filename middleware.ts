@@ -33,6 +33,10 @@ function isPortalInfraPath(pathname: string): boolean {
   return false
 }
 
+function pathMatches(pathname: string, prefix: string): boolean {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`)
+}
+
 function getSubdomain(host: string): 'login' | 'client' | 'crew' | null {
   const h = host.split(':')[0].toLowerCase()
 
@@ -159,7 +163,7 @@ export async function middleware(req: NextRequest) {
     if (!user) return redirectToLogin(req)
 
     // Rewrite root to /client prefix so app/client routes serve content
-    if (!pathname.startsWith('/client') && !pathname.startsWith('/api/')) {
+    if (!pathMatches(pathname, '/client') && !pathname.startsWith('/api/')) {
       const url = req.nextUrl.clone()
       url.pathname = pathname === '/' ? '/client' : `/client${pathname}`
       const res = setUserHeaders(NextResponse.rewrite(url), user)
@@ -177,7 +181,7 @@ export async function middleware(req: NextRequest) {
     const user = await verifySession(req)
     if (!user) return redirectToLogin(req)
 
-    if (!pathname.startsWith('/crew') && !pathname.startsWith('/api/')) {
+    if (!pathMatches(pathname, '/crew') && !pathname.startsWith('/api/')) {
       const url = req.nextUrl.clone()
       url.pathname = pathname === '/' ? '/crew' : `/crew${pathname}`
       const res = setUserHeaders(NextResponse.rewrite(url), user)
@@ -192,7 +196,7 @@ export async function middleware(req: NextRequest) {
   if (subdomain === 'login') {
     if (isPublicPath(pathname)) return NextResponse.next()
 
-    if (pathname.startsWith('/admin')) {
+    if (pathMatches(pathname, '/admin')) {
       const user = await verifySession(req)
       if (!user || (!user.is_staff && user.role !== 'STAFF')) {
         return new NextResponse(null, { status: 404 })
@@ -207,10 +211,12 @@ export async function middleware(req: NextRequest) {
   // --- No subdomain (marketing site / direct access) ---
   if (isPublicPath(pathname)) return NextResponse.next()
 
+  // Protected prefixes use exact-or-trailing-slash matching so that sibling
+  // public assets like /client-logos/*.png are NOT auth-gated by accident.
   const isProtected =
-    pathname.startsWith('/client') ||
-    pathname.startsWith('/crew') ||
-    pathname.startsWith('/admin') ||
+    pathMatches(pathname, '/client') ||
+    pathMatches(pathname, '/crew') ||
+    pathMatches(pathname, '/admin') ||
     pathname.startsWith('/api/upload')
 
   if (!isProtected) return NextResponse.next()
@@ -218,7 +224,7 @@ export async function middleware(req: NextRequest) {
   const user = await verifySession(req)
   if (!user) return redirectToLogin(req)
 
-  if (pathname.startsWith('/admin') && !user.is_staff && user.role !== 'STAFF') {
+  if (pathMatches(pathname, '/admin') && !user.is_staff && user.role !== 'STAFF') {
     return new NextResponse(null, { status: 404 })
   }
 
