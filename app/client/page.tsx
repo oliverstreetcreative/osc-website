@@ -27,7 +27,7 @@ export default async function ClientDashboardPage() {
     include: {
       project: true,
     },
-    orderBy: { project: { updated_at: 'desc' } },
+    orderBy: { project: { published_at: 'desc' } },
   })
 
   const projects = participants.map((p) => p.project)

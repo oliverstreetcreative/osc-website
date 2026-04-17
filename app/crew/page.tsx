@@ -30,7 +30,7 @@ export default async function CrewDashboardPage() {
     include: {
       project: true,
     },
-    orderBy: { project: { updated_at: 'desc' } },
+    orderBy: { project: { published_at: 'desc' } },
   })
 
   const projectIds = participants.map((p) => p.project_id)
