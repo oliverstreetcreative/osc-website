@@ -15,7 +15,7 @@ importers:
         specifier: ^6.2.0
         version: 6.19.3
       '@prisma/client':
-        specifier: ^6.2.0
+        specifier: 6.19.3
         version: 6.19.3(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)
       '@radix-ui/react-accordion':
         specifier: 1.2.2
@@ -214,7 +214,7 @@ importers:
         specifier: ^8.5
         version: 8.5.8
       prisma:
-        specifier: ^6.2.0
+        specifier: 6.19.3
         version: 6.19.3(typescript@5.9.3)
       tailwindcss:
         specifier: ^4.1.9
