@@ -18,11 +18,24 @@ const STATE_PATH = process.env.PUBLISH_STATE_PATH ??
 // column map (bible_col → portal_col), and optional filter
 // -------------------------------------------------------------------------
 
+function tryUnpackBaserow(val: unknown): unknown {
+  if (typeof val !== 'string') return val
+  const trimmed = val.trim()
+  if (!trimmed.startsWith('{') || !trimmed.includes('"value"')) return val
+  try {
+    const parsed = JSON.parse(trimmed)
+    if (parsed && typeof parsed === 'object' && 'value' in parsed) return parsed.value
+  } catch {}
+  return val
+}
+
 interface TableConfig {
   bibleTable: string
   portalTable: string
   columns: Record<string, string>
   filter?: string
+  extraSelect?: string[]
+  computeFields?: (row: Record<string, unknown>) => Record<string, unknown>
 }
 
 const TABLES: TableConfig[] = [
@@ -49,7 +62,31 @@ const TABLES: TableConfig[] = [
       id: 'source_bible_id',
       name: 'name',
       first_name: 'first_name',
+      last_name: 'last_name',
       email: 'email',
+      company: 'company',
+      phone: 'phone',
+      is_staff: 'is_staff',
+      portal_allowed: 'portal_allowed',
+    },
+    filter: 'portal_allowed = 1',
+    extraSelect: ['clients'],
+    computeFields: (row) => {
+      const isStaff = row.is_staff === 1 || row.is_staff === '1' || row.is_staff === true
+      let role: string = 'CREW'
+      if (isStaff) {
+        role = 'STAFF'
+      } else {
+        try {
+          const clients = typeof row.clients === 'string' ? JSON.parse(row.clients) : row.clients
+          if (Array.isArray(clients) && clients.length > 0) role = 'CLIENT'
+        } catch {}
+      }
+      return {
+        role,
+        is_staff: isStaff,
+        portal_allowed: Boolean(row.portal_allowed),
+      }
     },
   },
   {
@@ -361,7 +398,8 @@ Environment:
 
   for (const config of tablesToPublish) {
     const bibleCols = Object.keys(config.columns).join(', ')
-    let sql = `SELECT rowid, ${bibleCols} FROM ${config.bibleTable}`
+    const extraCols = config.extraSelect?.length ? ', ' + config.extraSelect.join(', ') : ''
+    let sql = `SELECT rowid, ${bibleCols}${extraCols} FROM ${config.bibleTable}`
     if (config.filter) sql += ` WHERE ${config.filter}`
 
     let rows: Record<string, unknown>[]
@@ -394,7 +432,11 @@ Environment:
       const data: Record<string, unknown> = {}
       for (const [bibleCol, portalCol] of Object.entries(config.columns)) {
         if (portalCol === 'source_bible_id') continue
-        data[portalCol] = row[bibleCol] ?? null
+        data[portalCol] = tryUnpackBaserow(row[bibleCol]) ?? null
+      }
+
+      if (config.computeFields) {
+        Object.assign(data, config.computeFields(row))
       }
 
       const rowHash = hashRow(data)
