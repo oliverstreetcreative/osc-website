@@ -575,3 +575,27 @@ model Testimonial {
   @@index([source_bible_id, source_bible_table], name: "idx_testimonials_source_bible")
   @@map("testimonials")
 }
+
+// ---------------------------------------------------------------------------
+// Publication Runs (monitoring)
+// ---------------------------------------------------------------------------
+
+model PublicationRun {
+  id              String   @id @default(uuid()) @db.Uuid
+  started_at      DateTime
+  completed_at    DateTime
+  status          String
+  duration_ms     Int
+  tables_summary  Json
+  total_processed Int      @default(0)
+  total_created   Int      @default(0)
+  total_updated   Int      @default(0)
+  total_skipped   Int      @default(0)
+  total_revoked   Int      @default(0)
+  total_errors    Int      @default(0)
+  error_details   String?
+  triggered_by    String   @default("cron")
+
+  @@index([completed_at])
+  @@map("publication_runs")
+}

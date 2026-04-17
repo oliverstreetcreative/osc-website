@@ -304,6 +304,65 @@ async function publishBatch(
 // Main
 // -------------------------------------------------------------------------
 
+interface TableSummary {
+  table: string
+  processed: number
+  created: number
+  updated: number
+  skipped: number
+  revoked: number
+  errors: number
+}
+
+async function logPublishRun(
+  startedAt: Date,
+  completedAt: Date,
+  totals: { processed: number; created: number; updated: number; skipped: number; revoked: number; errors: number },
+  tablesSummary: TableSummary[],
+  triggeredBy: string,
+): Promise<void> {
+  const runsUrl = PUBLISH_URL.replace(/\/api\/publish$/, '/api/admin/publish-runs')
+  const durationMs = completedAt.getTime() - startedAt.getTime()
+
+  const status =
+    totals.errors === 0
+      ? 'success'
+      : totals.processed > totals.errors
+        ? 'partial'
+        : 'failed'
+
+  try {
+    const res = await fetch(runsUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${PUBLISH_SECRET}`,
+      },
+      body: JSON.stringify({
+        started_at: startedAt.toISOString(),
+        completed_at: completedAt.toISOString(),
+        status,
+        duration_ms: durationMs,
+        tables_summary: tablesSummary,
+        total_processed: totals.processed,
+        total_created: totals.created,
+        total_updated: totals.updated,
+        total_skipped: totals.skipped,
+        total_revoked: totals.revoked,
+        total_errors: totals.errors,
+        triggered_by: triggeredBy,
+      }),
+    })
+    if (!res.ok) {
+      const text = await res.text()
+      console.warn(`[publish] Run logging failed (${res.status}): ${text}`)
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.warn(`[publish] Run logging error: ${msg}`)
+  }
+}
+
 async function main() {
   const { values } = parseArgs({
     options: {
@@ -312,6 +371,7 @@ async function main() {
       table: { type: 'string' },
       json: { type: 'boolean', default: false },
       help: { type: 'boolean', default: false },
+      'triggered-by': { type: 'string', default: 'cron' },
     },
   })
 
@@ -326,8 +386,9 @@ Options:
   --full       Republish all rows (ignore change detection)
   --dry-run    Show what would be published without sending
   --table NAME Only publish a specific table (bible table name)
-  --json       Output results as JSON
-  --help       Show this help
+  --json          Output results as JSON
+  --triggered-by  Tag the run source (cron, manual, on_demand; default: cron)
+  --help          Show this help
 
 Environment:
   BIBLE_PATH        Path to bible.db (default: Dropbox path)
@@ -343,11 +404,14 @@ Environment:
     process.exit(1)
   }
 
+  const startedAt = new Date()
+
   const db = new Database(BIBLE_PATH, { readonly: true })
   const state = values.full ? { lastRun: '', hashes: {} } : loadState()
   const newState: PublishState = { lastRun: new Date().toISOString(), hashes: {} }
 
   const totals = { processed: 0, created: 0, updated: 0, skipped: 0, revoked: 0, errors: 0 }
+  const tablesSummary: TableSummary[] = []
   const BATCH_SIZE = 50
 
   // Tables that require FK resolution (project_id, person_id) are deferred
@@ -381,6 +445,16 @@ Environment:
       const msg = err instanceof Error ? err.message : String(err)
       console.error(`Error reading ${config.bibleTable}: ${msg}`)
       continue
+    }
+
+    const tableSummary: TableSummary = {
+      table: config.bibleTable,
+      processed: 0,
+      created: 0,
+      updated: 0,
+      skipped: 0,
+      revoked: 0,
+      errors: 0,
     }
 
     const currentRowIds = new Set<string>()
@@ -457,6 +531,11 @@ Environment:
         totals.updated += result.updated
         totals.skipped += result.skipped
         totals.errors += result.errors.length
+        tableSummary.processed += result.processed
+        tableSummary.created += result.created
+        tableSummary.updated += result.updated
+        tableSummary.skipped += result.skipped
+        tableSummary.errors += result.errors.length
         if (result.errors.length > 0 && !values.json) {
           for (const e of result.errors) {
             console.error(`  Error on ${config.bibleTable} id=${e.source_bible_id}: ${e.error}`)
@@ -466,6 +545,7 @@ Environment:
         const msg = err instanceof Error ? err.message : String(err)
         console.error(`  Publish error for ${config.bibleTable}: ${msg}`)
         totals.errors++
+        tableSummary.errors++
       }
     }
 
@@ -475,18 +555,34 @@ Environment:
       try {
         const result = await publishBatch(config.portalTable, 'revoke', batch)
         totals.revoked += result.revoked
+        tableSummary.revoked += result.revoked
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         console.error(`  Revoke error for ${config.bibleTable}: ${msg}`)
         totals.errors++
+        tableSummary.errors++
       }
     }
+
+    tablesSummary.push(tableSummary)
   }
 
   db.close()
 
   if (!values['dry-run']) {
     saveState(newState)
+  }
+
+  const completedAt = new Date()
+
+  if (!values['dry-run']) {
+    await logPublishRun(
+      startedAt,
+      completedAt,
+      totals,
+      tablesSummary,
+      values['triggered-by'] ?? 'cron',
+    )
   }
 
   if (values.json) {
