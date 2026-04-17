@@ -1,0 +1,422 @@
+#!/usr/bin/env npx tsx
+import Database from 'better-sqlite3'
+import { createHash } from 'crypto'
+import { parseArgs } from 'node:util'
+
+const BIBLE_PATH = process.env.BIBLE_PATH ??
+  '/Volumes/84TB RAID5/Dropbox (Personal)/OLIVER STREET CREATIVE/_admin/bible.db'
+
+const PUBLISH_URL = process.env.PUBLISH_URL ?? 'https://oliverstreetcreative.com/api/publish'
+const PUBLISH_SECRET = process.env.PUBLISH_SECRET ?? ''
+
+const STATE_PATH = process.env.PUBLISH_STATE_PATH ??
+  '/Volumes/84TB RAID5/Dropbox (Personal)/OLIVER STREET CREATIVE/_admin/.publish-state.json'
+
+// -------------------------------------------------------------------------
+// Bible → Portal table mapping
+// Each entry: Bible table, Portal table name (matching /api/publish TABLE_MAP),
+// column map (bible_col → portal_col), and optional filter
+// -------------------------------------------------------------------------
+
+interface TableConfig {
+  bibleTable: string
+  portalTable: string
+  columns: Record<string, string>
+  filter?: string
+}
+
+const TABLES: TableConfig[] = [
+  {
+    bibleTable: 'projects',
+    portalTable: 'projects',
+    columns: {
+      id: 'source_bible_id',
+      name: 'name',
+      job_number: 'job_number',
+      status: 'status',
+      project_phase: 'project_phase',
+      shoot_start_date: 'shoot_start_date',
+      shoot_end_date: 'shoot_end_date',
+      delivery_date: 'delivery_date',
+      client_portal_enabled: 'client_portal_enabled',
+    },
+    filter: "client_portal_enabled = 1 OR client_portal_enabled = 'true'",
+  },
+  {
+    bibleTable: 'people',
+    portalTable: 'persons',
+    columns: {
+      id: 'source_bible_id',
+      name: 'name',
+      first_name: 'first_name',
+      email: 'email',
+    },
+  },
+  {
+    bibleTable: 'deliverables',
+    portalTable: 'deliverables',
+    columns: {
+      id: 'source_bible_id',
+      name: 'name',
+      deliverable_type: 'deliverable_type',
+      description: 'description',
+      due_date: 'due_date',
+      review_status: 'review_status',
+      client_approved: 'client_approved',
+      delivered: 'delivered',
+      delivered_date: 'delivered_date',
+      client_visible: 'client_visible',
+      dropbox_path: 'dropbox_path',
+    },
+  },
+  {
+    bibleTable: 'project_updates',
+    portalTable: 'project_updates',
+    columns: {
+      id: 'source_bible_id',
+      body: 'body',
+      author: 'author',
+      posted_at: 'posted_at',
+    },
+  },
+  {
+    bibleTable: 'change_orders',
+    portalTable: 'change_orders',
+    columns: {
+      id: 'source_bible_id',
+      description: 'description',
+      status: 'status',
+      cost_impact: 'cost_impact',
+      proposed_at: 'proposed_at',
+      approved_at: 'approved_at',
+      approved_by: 'approved_by',
+    },
+  },
+  {
+    bibleTable: 'obligations',
+    portalTable: 'obligations',
+    columns: {
+      id: 'source_bible_id',
+      name: 'name',
+      description: 'description',
+      amount: 'amount',
+      due_date: 'due_date',
+      paid_date: 'paid_date',
+      status: 'status',
+      type: 'type',
+      category: 'category',
+    },
+  },
+  {
+    bibleTable: 'shoot_periods',
+    portalTable: 'shoot_periods',
+    columns: {
+      id: 'source_bible_id',
+      name: 'name',
+      start_date: 'start_date',
+      end_date: 'end_date',
+      period_type: 'period_type',
+      description: 'description',
+      call_time: 'call_time',
+      wrap_time: 'wrap_time',
+    },
+  },
+  {
+    bibleTable: 'tasks',
+    portalTable: 'tasks',
+    columns: {
+      id: 'source_bible_id',
+      title: 'title',
+      description: 'description',
+      status: 'status',
+      priority: 'priority',
+      phase: 'phase',
+      due_date: 'due_date',
+      completed_date: 'completed_date',
+    },
+  },
+  {
+    bibleTable: 'project_participants',
+    portalTable: 'project_participants',
+    columns: {
+      id: 'source_bible_id',
+      name: 'name',
+      participant_type: 'participant_type',
+      role: 'role',
+      rate_type: 'rate_type',
+      rate_amount: 'rate_amount',
+    },
+  },
+  {
+    bibleTable: 'testimonials',
+    portalTable: 'testimonials',
+    columns: {
+      id: 'source_bible_id',
+      name: 'name',
+      quote_text: 'quote_text',
+      context: 'context',
+      date_received: 'date_received',
+      permission_status: 'permission_status',
+    },
+  },
+  {
+    bibleTable: 'deliverable_reviews',
+    portalTable: 'deliverable_reviews',
+    columns: {
+      id: 'source_bible_id',
+      name: 'name',
+      status: 'status',
+      reviewed_at: 'reviewed_at',
+      version: 'version',
+    },
+  },
+]
+
+// -------------------------------------------------------------------------
+// State tracking — hash-based change detection
+// -------------------------------------------------------------------------
+
+interface PublishState {
+  lastRun: string
+  hashes: Record<string, Record<string, string>> // table → rowId → hash
+}
+
+function loadState(): PublishState {
+  try {
+    const fs = require('fs')
+    return JSON.parse(fs.readFileSync(STATE_PATH, 'utf-8'))
+  } catch {
+    return { lastRun: '', hashes: {} }
+  }
+}
+
+function saveState(state: PublishState) {
+  const fs = require('fs')
+  const path = require('path')
+  fs.mkdirSync(path.dirname(STATE_PATH), { recursive: true })
+  fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2))
+}
+
+function hashRow(row: Record<string, unknown>): string {
+  return createHash('sha256').update(JSON.stringify(row)).digest('hex')
+}
+
+// -------------------------------------------------------------------------
+// Publishing
+// -------------------------------------------------------------------------
+
+interface PublishResult {
+  processed: number
+  created: number
+  updated: number
+  skipped: number
+  revoked: number
+  errors: Array<{ source_bible_id: number; error: string }>
+}
+
+async function publishBatch(
+  portalTable: string,
+  action: 'upsert' | 'revoke',
+  rows: Array<{ source_bible_id: number; source_bible_table: string; publication_version: number; data: Record<string, unknown> }>,
+): Promise<PublishResult> {
+  const res = await fetch(PUBLISH_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${PUBLISH_SECRET}`,
+    },
+    body: JSON.stringify({ table: portalTable, action, rows }),
+  })
+
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Publish failed (${res.status}): ${text}`)
+  }
+
+  return res.json() as Promise<PublishResult>
+}
+
+// -------------------------------------------------------------------------
+// Main
+// -------------------------------------------------------------------------
+
+async function main() {
+  const { values } = parseArgs({
+    options: {
+      full: { type: 'boolean', default: false },
+      'dry-run': { type: 'boolean', default: false },
+      table: { type: 'string' },
+      json: { type: 'boolean', default: false },
+      help: { type: 'boolean', default: false },
+    },
+  })
+
+  if (values.help) {
+    console.log(`
+publish.ts — Sync Bible data to Portal DB via /api/publish
+
+Usage:
+  npx tsx scripts/publish.ts [options]
+
+Options:
+  --full       Republish all rows (ignore change detection)
+  --dry-run    Show what would be published without sending
+  --table NAME Only publish a specific table (bible table name)
+  --json       Output results as JSON
+  --help       Show this help
+
+Environment:
+  BIBLE_PATH        Path to bible.db (default: Dropbox path)
+  PUBLISH_URL       URL of /api/publish endpoint
+  PUBLISH_SECRET    Bearer token for /api/publish
+  PUBLISH_STATE_PATH  Path to state file for change tracking
+`)
+    process.exit(0)
+  }
+
+  if (!PUBLISH_SECRET) {
+    console.error('Error: PUBLISH_SECRET environment variable is required')
+    process.exit(1)
+  }
+
+  const db = new Database(BIBLE_PATH, { readonly: true })
+  const state = values.full ? { lastRun: '', hashes: {} } : loadState()
+  const newState: PublishState = { lastRun: new Date().toISOString(), hashes: {} }
+
+  const totals = { processed: 0, created: 0, updated: 0, skipped: 0, revoked: 0, errors: 0 }
+  const BATCH_SIZE = 50
+
+  const tablesToPublish = values.table
+    ? TABLES.filter(t => t.bibleTable === values.table)
+    : TABLES
+
+  if (values.table && tablesToPublish.length === 0) {
+    console.error(`Unknown table: ${values.table}. Available: ${TABLES.map(t => t.bibleTable).join(', ')}`)
+    process.exit(1)
+  }
+
+  for (const config of tablesToPublish) {
+    const bibleCols = Object.keys(config.columns).join(', ')
+    let sql = `SELECT rowid, ${bibleCols} FROM ${config.bibleTable}`
+    if (config.filter) sql += ` WHERE ${config.filter}`
+
+    let rows: Record<string, unknown>[]
+    try {
+      rows = db.prepare(sql).all() as Record<string, unknown>[]
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error(`Error reading ${config.bibleTable}: ${msg}`)
+      continue
+    }
+
+    const currentRowIds = new Set<string>()
+    const upsertBatch: Array<{ source_bible_id: number; source_bible_table: string; publication_version: number; data: Record<string, unknown> }> = []
+
+    for (const row of rows) {
+      const bibleId = Number(row.rowid)
+      const rowIdStr = String(bibleId)
+      currentRowIds.add(rowIdStr)
+
+      const data: Record<string, unknown> = {}
+      for (const [bibleCol, portalCol] of Object.entries(config.columns)) {
+        if (portalCol === 'source_bible_id') continue
+        data[portalCol] = row[bibleCol] ?? null
+      }
+
+      const rowHash = hashRow(data)
+      if (!newState.hashes[config.bibleTable]) newState.hashes[config.bibleTable] = {}
+      newState.hashes[config.bibleTable][rowIdStr] = rowHash
+
+      const prevHash = state.hashes[config.bibleTable]?.[rowIdStr]
+      if (prevHash === rowHash && !values.full) continue
+
+      const version = Date.now()
+      upsertBatch.push({
+        source_bible_id: bibleId,
+        source_bible_table: config.bibleTable,
+        publication_version: version,
+        data,
+      })
+    }
+
+    // Detect revocations: rows that were in previous state but not in current
+    const revokeBatch: typeof upsertBatch = []
+    const prevRows = state.hashes[config.bibleTable] ?? {}
+    for (const prevId of Object.keys(prevRows)) {
+      if (!currentRowIds.has(prevId)) {
+        revokeBatch.push({
+          source_bible_id: Number(prevId),
+          source_bible_table: config.bibleTable,
+          publication_version: Date.now(),
+          data: {},
+        })
+      }
+    }
+
+    if (!values.json) {
+      const changeCount = upsertBatch.length + revokeBatch.length
+      if (changeCount > 0) {
+        console.log(`${config.bibleTable}: ${upsertBatch.length} upsert, ${revokeBatch.length} revoke (of ${rows.length} total rows)`)
+      }
+    }
+
+    if (values['dry-run']) {
+      totals.processed += upsertBatch.length + revokeBatch.length
+      continue
+    }
+
+    // Send upserts in batches
+    for (let i = 0; i < upsertBatch.length; i += BATCH_SIZE) {
+      const batch = upsertBatch.slice(i, i + BATCH_SIZE)
+      try {
+        const result = await publishBatch(config.portalTable, 'upsert', batch)
+        totals.processed += result.processed
+        totals.created += result.created
+        totals.updated += result.updated
+        totals.skipped += result.skipped
+        totals.errors += result.errors.length
+        if (result.errors.length > 0 && !values.json) {
+          for (const e of result.errors) {
+            console.error(`  Error on ${config.bibleTable} id=${e.source_bible_id}: ${e.error}`)
+          }
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error(`  Publish error for ${config.bibleTable}: ${msg}`)
+        totals.errors++
+      }
+    }
+
+    // Send revocations
+    for (let i = 0; i < revokeBatch.length; i += BATCH_SIZE) {
+      const batch = revokeBatch.slice(i, i + BATCH_SIZE)
+      try {
+        const result = await publishBatch(config.portalTable, 'revoke', batch)
+        totals.revoked += result.revoked
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        console.error(`  Revoke error for ${config.bibleTable}: ${msg}`)
+        totals.errors++
+      }
+    }
+  }
+
+  db.close()
+
+  if (!values['dry-run']) {
+    saveState(newState)
+  }
+
+  if (values.json) {
+    console.log(JSON.stringify(totals))
+  } else {
+    console.log(`\nDone. Processed: ${totals.processed}, Created: ${totals.created}, Updated: ${totals.updated}, Skipped: ${totals.skipped}, Revoked: ${totals.revoked}, Errors: ${totals.errors}`)
+  }
+
+  process.exit(totals.errors > 0 ? 1 : 0)
+}
+
+main().catch(err => {
+  console.error('Fatal error:', err)
+  process.exit(1)
+})
