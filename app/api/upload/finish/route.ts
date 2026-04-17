@@ -6,6 +6,7 @@ import {
   finishDropboxSession,
   getDropboxAccessToken,
 } from "../../../../lib/upload";
+import { isImpersonating } from "@/lib/auth/impersonation";
 
 function uploadContextToFolder(uploadContext?: string): string {
   if (!uploadContext) return "Uploads";
@@ -24,6 +25,14 @@ function uploadContextToFolder(uploadContext?: string): string {
 
 export async function POST(req: NextRequest) {
   try {
+    // Impersonation check — read-only mode
+    if (await isImpersonating()) {
+      return NextResponse.json(
+        { error: "Impersonation mode is read-only. Stop impersonating to take actions." },
+        { status: 403 },
+      );
+    }
+
     const userId = req.headers.get("x-user-id");
     const userEmail = req.headers.get("x-user-email") ?? "unknown";
     if (!userId) {

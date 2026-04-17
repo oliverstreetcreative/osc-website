@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getPortalUser } from '@/lib/portal-auth'
-import { SignOutButton } from './components/SignOutButton'
+import { SignOutButton } from '../client/components/SignOutButton'
 import { ImpersonationBanner } from '@/components/ImpersonationBanner'
 
-export default async function ClientPortalLayout({
+export default async function CrewPortalLayout({
   children,
 }: {
   children: React.ReactNode
@@ -45,7 +45,7 @@ export default async function ClientPortalLayout({
         {/* Brand */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Link
-            href="/client"
+            href="/crew"
             style={{
               fontFamily: 'var(--font-garamond)',
               fontStyle: 'italic',
@@ -69,7 +69,7 @@ export default async function ClientPortalLayout({
               borderRadius: '4px',
             }}
           >
-            Portal
+            Crew
           </span>
         </div>
 
@@ -101,7 +101,8 @@ export default async function ClientPortalLayout({
             gap: '4px',
           }}
         >
-          <NavLink href="/client">Dashboard</NavLink>
+          <NavLink href="/crew">Dashboard</NavLink>
+          <NavLink href="/crew/invoices">Invoices</NavLink>
         </nav>
 
         {/* Main content */}
