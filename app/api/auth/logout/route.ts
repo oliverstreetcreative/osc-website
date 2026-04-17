@@ -2,13 +2,17 @@ import { NextResponse } from 'next/server'
 
 export async function POST() {
   const res = NextResponse.json({ ok: true })
-  // Clear the session cookie
-  res.cookies.set('osc_session', '', {
-    maxAge: 0,
-    path: '/',
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-  })
+  // Session cookie is scoped to .oliverstreetcreative.com so all subdomains share
+  // it; clearing it requires the same domain attribute.
+  for (const name of ['osc_session', 'osc_impersonating']) {
+    res.cookies.set(name, '', {
+      domain: '.oliverstreetcreative.com',
+      path: '/',
+      maxAge: 0,
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: true,
+    })
+  }
   return res
 }
