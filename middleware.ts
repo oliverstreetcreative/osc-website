@@ -24,6 +24,15 @@ function isPublicPath(pathname: string): boolean {
   return false
 }
 
+// On portal subdomains (client.*, crew.*) the site's marketing / and /casting etc.
+// are not public — the portal dashboard lives at /. Only infra paths and the auth
+// handshake should bypass session checks here.
+function isPortalInfraPath(pathname: string): boolean {
+  if (pathname.startsWith('/api/auth/')) return true
+  if (pathname.startsWith('/_next/') || pathname.startsWith('/favicon')) return true
+  return false
+}
+
 function getSubdomain(host: string): 'login' | 'client' | 'crew' | null {
   const h = host.split(':')[0].toLowerCase()
 
@@ -144,7 +153,7 @@ export async function middleware(req: NextRequest) {
 
   // --- Subdomain: client.* ---
   if (subdomain === 'client') {
-    if (isPublicPath(pathname)) return NextResponse.next()
+    if (isPortalInfraPath(pathname)) return NextResponse.next()
 
     const user = await verifySession(req)
     if (!user) return redirectToLogin(req)
@@ -152,7 +161,7 @@ export async function middleware(req: NextRequest) {
     // Rewrite root to /client prefix so app/client routes serve content
     if (!pathname.startsWith('/client') && !pathname.startsWith('/api/')) {
       const url = req.nextUrl.clone()
-      url.pathname = `/client${pathname}`
+      url.pathname = pathname === '/' ? '/client' : `/client${pathname}`
       const res = setUserHeaders(NextResponse.rewrite(url), user)
       return applyImpersonation(req, res, user, pathname)
     }
@@ -163,14 +172,14 @@ export async function middleware(req: NextRequest) {
 
   // --- Subdomain: crew.* ---
   if (subdomain === 'crew') {
-    if (isPublicPath(pathname)) return NextResponse.next()
+    if (isPortalInfraPath(pathname)) return NextResponse.next()
 
     const user = await verifySession(req)
     if (!user) return redirectToLogin(req)
 
     if (!pathname.startsWith('/crew') && !pathname.startsWith('/api/')) {
       const url = req.nextUrl.clone()
-      url.pathname = `/crew${pathname}`
+      url.pathname = pathname === '/' ? '/crew' : `/crew${pathname}`
       const res = setUserHeaders(NextResponse.rewrite(url), user)
       return applyImpersonation(req, res, user, pathname)
     }
