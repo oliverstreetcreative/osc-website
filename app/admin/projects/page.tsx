@@ -24,7 +24,7 @@ export default async function AdminProjectsPage() {
         },
       },
     },
-    orderBy: { updated_at: 'desc' },
+    orderBy: { published_at: 'desc' },
   })
 
   return (
