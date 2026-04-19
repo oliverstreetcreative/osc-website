@@ -102,6 +102,7 @@ export default async function ClientPortalLayout({
           }}
         >
           <NavLink href="/client">Dashboard</NavLink>
+          <NavLink href="/client/issues">Issues</NavLink>
         </nav>
 
         {/* Main content */}
