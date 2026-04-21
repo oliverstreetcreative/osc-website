@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import PortalUploader from '@/components/portal/uppy-uploader'
 
 type ProjectAssignment = {
   participantId: string
@@ -459,6 +460,28 @@ export default function SubmitInvoicePage() {
               style={{ ...inputStyle, resize: 'vertical' }}
             />
           </div>
+
+          {/* Invoice PDF upload */}
+          {projectId && (
+            <div style={{ marginBottom: '28px' }}>
+              <label style={labelStyle}>Attach Invoice PDF (optional)</label>
+              <p style={{ fontSize: '12px', color: 'var(--quiet)', marginBottom: '12px' }}>
+                Upload a PDF invoice if you have one prepared.
+              </p>
+              <PortalUploader
+                projectId={projectId}
+                uploadContext="invoice"
+                maxFileSize={50 * 1024 * 1024}
+                onUploadComplete={(result) => {
+                  setNotes((prev) =>
+                    prev
+                      ? `${prev}\n\nAttached: ${result.filename}`
+                      : `Attached: ${result.filename}`
+                  )
+                }}
+              />
+            </div>
+          )}
 
           {/* Live total */}
           <div
