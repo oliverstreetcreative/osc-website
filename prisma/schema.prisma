@@ -24,22 +24,22 @@ enum Role {
 // ---------------------------------------------------------------------------
 
 model Person {
-  id             String   @id @default(uuid()) @db.Uuid
-  email          String   @unique
+  id             String  @id @default(uuid()) @db.Uuid
+  email          String  @unique
   name           String
   first_name     String?
   last_name      String?
   company        String?
   phone          String?
-  is_staff       Boolean  @default(false)
-  portal_allowed Boolean  @default(true)
+  is_staff       Boolean @default(false)
+  portal_allowed Boolean @default(true)
   role           Role
 
   // Publication metadata
-  source_bible_id      Int
-  source_bible_table   String
-  published_at         DateTime
-  publication_version  Int      @default(1)
+  source_bible_id     Int
+  source_bible_table  String
+  published_at        DateTime
+  publication_version Int      @default(1)
 
   // Relations
   project_contacts      ProjectContact[]
@@ -53,6 +53,7 @@ model Person {
   testimonials          Testimonial[]
   trips                 Trip[]
   assigned_tasks        Task[]
+  error_reports         PortalErrorReport[]
 
   @@index([source_bible_id, source_bible_table], name: "idx_people_source_bible")
   @@map("people")
@@ -63,20 +64,20 @@ model Person {
 // ---------------------------------------------------------------------------
 
 model Project {
-  id                    String   @id @default(uuid()) @db.Uuid
+  id                    String  @id @default(uuid()) @db.Uuid
   name                  String
-  status                String   @default("active")
-  phase                 String   @default("Proposal")
+  status                String  @default("active")
+  phase                 String  @default("Proposal")
   job_number            String?
-  client_portal_enabled Boolean  @default(false)
-  client_visible        Boolean  @default(false)
-  crew_visible          Boolean  @default(false)
+  client_portal_enabled Boolean @default(false)
+  client_visible        Boolean @default(false)
+  crew_visible          Boolean @default(false)
 
   // Publication metadata
-  source_bible_id      Int
-  source_bible_table   String
-  published_at         DateTime
-  publication_version  Int      @default(1)
+  source_bible_id     Int
+  source_bible_table  String
+  published_at        DateTime
+  publication_version Int      @default(1)
 
   // Relations
   project_contacts     ProjectContact[]
@@ -91,6 +92,7 @@ model Project {
   portal_uploads       PortalUpload[]
   portal_events        PortalEvent[]
   testimonials         Testimonial[]
+  error_reports        PortalErrorReport[]
 
   @@index([source_bible_id, source_bible_table], name: "idx_projects_source_bible")
   @@map("projects")
@@ -101,16 +103,16 @@ model Project {
 // ---------------------------------------------------------------------------
 
 model ProjectContact {
-  id         String  @id @default(uuid()) @db.Uuid
-  project_id String  @db.Uuid
-  person_id  String  @db.Uuid
-  role       String  @default("client")
+  id         String @id @default(uuid()) @db.Uuid
+  project_id String @db.Uuid
+  person_id  String @db.Uuid
+  role       String @default("client")
 
   // Publication metadata
-  source_bible_id      Int
-  source_bible_table   String
-  published_at         DateTime
-  publication_version  Int      @default(1)
+  source_bible_id     Int
+  source_bible_table  String
+  published_at        DateTime
+  publication_version Int      @default(1)
 
   // Relations
   project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
@@ -134,10 +136,10 @@ model ProjectParticipant {
   crew_visible Boolean @default(false)
 
   // Publication metadata
-  source_bible_id      Int
-  source_bible_table   String
-  published_at         DateTime
-  publication_version  Int      @default(1)
+  source_bible_id     Int
+  source_bible_table  String
+  published_at        DateTime
+  publication_version Int      @default(1)
 
   // Relations
   project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
@@ -154,26 +156,26 @@ model ProjectParticipant {
 // ---------------------------------------------------------------------------
 
 model Deliverable {
-  id                  String    @id @default(uuid()) @db.Uuid
-  project_id          String    @db.Uuid
-  name                String
-  deliverable_type    String    @default("video")
-  description         String?
-  client_visible      Boolean   @default(false)
-  review_status       String    @default("Not Ready")
-  current_version     Int       @default(1)
-  dropbox_replay_url  String?
-  shared_at           DateTime?
+  id                 String    @id @default(uuid()) @db.Uuid
+  project_id         String    @db.Uuid
+  name               String
+  deliverable_type   String    @default("video")
+  description        String?
+  client_visible     Boolean   @default(false)
+  review_status      String    @default("Not Ready")
+  current_version    Int       @default(1)
+  dropbox_replay_url String?
+  shared_at          DateTime?
 
   // Publication metadata
-  source_bible_id      Int
-  source_bible_table   String
-  published_at         DateTime
-  publication_version  Int      @default(1)
+  source_bible_id     Int
+  source_bible_table  String
+  published_at        DateTime
+  publication_version Int      @default(1)
 
   // Relations
-  project              Project               @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  deliverable_reviews  DeliverableReview[]
+  project               Project               @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  deliverable_reviews   DeliverableReview[]
   deliverable_approvals DeliverableApproval[]
 
   @@index([project_id])
@@ -186,21 +188,21 @@ model Deliverable {
 // ---------------------------------------------------------------------------
 
 model DeliverableReview {
-  id                String    @id @default(uuid()) @db.Uuid
-  deliverable_id    String    @db.Uuid
-  reviewer_id       String    @db.Uuid
-  version           Int       @default(1)
-  status            String    @default("Pending Review")
-  notes             String    @default("")
-  timecode_seconds  Int?
-  decision          String?
-  reviewed_at       DateTime
+  id               String   @id @default(uuid()) @db.Uuid
+  deliverable_id   String   @db.Uuid
+  reviewer_id      String   @db.Uuid
+  version          Int      @default(1)
+  status           String   @default("Pending Review")
+  notes            String   @default("")
+  timecode_seconds Int?
+  decision         String?
+  reviewed_at      DateTime
 
   // Publication metadata
-  source_bible_id      Int
-  source_bible_table   String
-  published_at         DateTime
-  publication_version  Int      @default(1)
+  source_bible_id     Int
+  source_bible_table  String
+  published_at        DateTime
+  publication_version Int      @default(1)
 
   // Relations
   deliverable Deliverable @relation(fields: [deliverable_id], references: [id], onDelete: Cascade)
@@ -225,10 +227,10 @@ model DeliverableApproval {
   decided_at     DateTime
 
   // Publication metadata
-  source_bible_id      Int
-  source_bible_table   String
-  published_at         DateTime
-  publication_version  Int      @default(1)
+  source_bible_id     Int
+  source_bible_table  String
+  published_at        DateTime
+  publication_version Int      @default(1)
 
   // Relations
   deliverable Deliverable @relation(fields: [deliverable_id], references: [id], onDelete: Cascade)
@@ -255,10 +257,10 @@ model ProjectUpdate {
   client_replied_at DateTime?
 
   // Publication metadata
-  source_bible_id      Int
-  source_bible_table   String
-  published_at         DateTime
-  publication_version  Int      @default(1)
+  source_bible_id     Int
+  source_bible_table  String
+  published_at        DateTime
+  publication_version Int      @default(1)
 
   // Relations
   project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
@@ -284,10 +286,10 @@ model ChangeOrder {
   approved_by    String?
 
   // Publication metadata
-  source_bible_id      Int
-  source_bible_table   String
-  published_at         DateTime
-  publication_version  Int      @default(1)
+  source_bible_id     Int
+  source_bible_table  String
+  published_at        DateTime
+  publication_version Int      @default(1)
 
   // Relations
   project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
@@ -314,10 +316,10 @@ model Obligation {
   client_visible  Boolean   @default(false)
 
   // Publication metadata
-  source_bible_id      Int
-  source_bible_table   String
-  published_at         DateTime
-  publication_version  Int      @default(1)
+  source_bible_id     Int
+  source_bible_table  String
+  published_at        DateTime
+  publication_version Int      @default(1)
 
   // Relations
   project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
@@ -332,21 +334,21 @@ model Obligation {
 // ---------------------------------------------------------------------------
 
 model ShootPeriod {
-  id             String    @id @default(uuid()) @db.Uuid
-  project_id     String    @db.Uuid
+  id             String   @id @default(uuid()) @db.Uuid
+  project_id     String   @db.Uuid
   description    String?
-  start_date     DateTime  @db.Date
-  end_date       DateTime  @db.Date
+  start_date     DateTime @db.Date
+  end_date       DateTime @db.Date
   period_type    String?
   call_time      String?
-  client_visible Boolean   @default(false)
-  crew_visible   Boolean   @default(false)
+  client_visible Boolean  @default(false)
+  crew_visible   Boolean  @default(false)
 
   // Publication metadata
-  source_bible_id      Int
-  source_bible_table   String
-  published_at         DateTime
-  publication_version  Int      @default(1)
+  source_bible_id     Int
+  source_bible_table  String
+  published_at        DateTime
+  publication_version Int      @default(1)
 
   // Relations
   project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
@@ -361,20 +363,20 @@ model ShootPeriod {
 // ---------------------------------------------------------------------------
 
 model Trip {
-  id             String    @id @default(uuid()) @db.Uuid
-  person_id      String    @db.Uuid
-  project_id     String?   @db.Uuid
+  id             String   @id @default(uuid()) @db.Uuid
+  person_id      String   @db.Uuid
+  project_id     String?  @db.Uuid
   purpose        String?
-  departure_date DateTime  @db.Date
-  return_date    DateTime  @db.Date
-  status         String    @default("pending")
-  crew_visible   Boolean   @default(false)
+  departure_date DateTime @db.Date
+  return_date    DateTime @db.Date
+  status         String   @default("pending")
+  crew_visible   Boolean  @default(false)
 
   // Publication metadata
-  source_bible_id      Int
-  source_bible_table   String
-  published_at         DateTime
-  publication_version  Int      @default(1)
+  source_bible_id     Int
+  source_bible_table  String
+  published_at        DateTime
+  publication_version Int      @default(1)
 
   // Relations
   person  Person   @relation(fields: [person_id], references: [id], onDelete: Cascade)
@@ -390,22 +392,22 @@ model Trip {
 // ---------------------------------------------------------------------------
 
 model Task {
-  id                 String    @id @default(uuid()) @db.Uuid
-  project_id         String    @db.Uuid
-  assignee_person_id String?   @db.Uuid
+  id                 String  @id @default(uuid()) @db.Uuid
+  project_id         String  @db.Uuid
+  assignee_person_id String? @db.Uuid
   phase              String?
   title              String
-  status             String    @default("todo")
-  client_visible     Boolean   @default(false)
-  crew_visible       Boolean   @default(false)
+  status             String  @default("todo")
+  client_visible     Boolean @default(false)
+  crew_visible       Boolean @default(false)
   priority           String?
   blocked_by         Json?
 
   // Publication metadata
-  source_bible_id      Int
-  source_bible_table   String
-  published_at         DateTime
-  publication_version  Int      @default(1)
+  source_bible_id     Int
+  source_bible_table  String
+  published_at        DateTime
+  publication_version Int      @default(1)
 
   // Relations
   project  Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
@@ -431,10 +433,10 @@ model PortalUpload {
   uploaded_at     DateTime
 
   // Publication metadata
-  source_bible_id      Int
-  source_bible_table   String
-  published_at         DateTime
-  publication_version  Int      @default(1)
+  source_bible_id     Int
+  source_bible_table  String
+  published_at        DateTime
+  publication_version Int      @default(1)
 
   // Relations
   project  Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
@@ -450,23 +452,23 @@ model PortalUpload {
 // ---------------------------------------------------------------------------
 
 model PortalEvent {
-  id          String    @id @default(uuid()) @db.Uuid
-  project_id  String?   @db.Uuid
-  person_id   String?   @db.Uuid
-  event_type  String
-  summary     String
-  details     Json?
-  occurred_at DateTime  @default(now())
+  id           String    @id @default(uuid()) @db.Uuid
+  project_id   String?   @db.Uuid
+  person_id    String?   @db.Uuid
+  event_type   String
+  summary      String
+  details      Json?
+  occurred_at  DateTime  @default(now())
   processed_at DateTime?
 
   // Source: who originated this event
-  source      String    // 'portal_client' | 'portal_crew' | 'portal_admin' | 'bible'
+  source String // 'portal_client' | 'portal_crew' | 'portal_admin' | 'bible'
 
   // Publication metadata (null for portal-originated events)
-  source_bible_id      Int?
-  source_bible_table   String?
-  published_at         DateTime?
-  publication_version  Int?      @default(1)
+  source_bible_id     Int?
+  source_bible_table  String?
+  published_at        DateTime?
+  publication_version Int?      @default(1)
 
   // Relations
   project Project? @relation(fields: [project_id], references: [id], onDelete: SetNull)
@@ -515,6 +517,38 @@ model PortalSession {
 }
 
 // ---------------------------------------------------------------------------
+// Portal Error Reports (portal-native, no publication metadata)
+// ---------------------------------------------------------------------------
+
+model PortalErrorReport {
+  id                 String    @id @default(uuid()) @db.Uuid
+  reporter_id        String    @db.Uuid
+  project_id         String?   @db.Uuid
+  source_table       String?
+  source_bible_id    Int?
+  source_bible_table String?
+  portal_url         String?
+  description        String
+  severity           String    @default("moderate")
+  status             String    @default("open")
+  triaged_at         DateTime?
+  triaged_by_agent   String?
+  resolved_at        DateTime?
+  resolution_notes   String?
+  paperclip_issue_id String?
+  created_at         DateTime  @default(now())
+
+  // Relations
+  reporter Person   @relation(fields: [reporter_id], references: [id], onDelete: Cascade)
+  project  Project? @relation(fields: [project_id], references: [id], onDelete: SetNull)
+
+  @@index([reporter_id])
+  @@index([project_id])
+  @@index([status])
+  @@map("portal_error_reports")
+}
+
+// ---------------------------------------------------------------------------
 // Testimonials
 // ---------------------------------------------------------------------------
 
@@ -528,10 +562,10 @@ model Testimonial {
   approved     Boolean  @default(false)
 
   // Publication metadata
-  source_bible_id      Int
-  source_bible_table   String
-  published_at         DateTime
-  publication_version  Int      @default(1)
+  source_bible_id     Int
+  source_bible_table  String
+  published_at        DateTime
+  publication_version Int      @default(1)
 
   // Relations
   project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
