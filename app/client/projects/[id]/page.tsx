@@ -6,6 +6,7 @@ import { formatCurrency, formatDate } from '@/lib/portal-utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { UpdateReplyForm } from './components/UpdateReplyForm'
+import FileUploadSection from './components/FileUploadSection'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -314,6 +315,7 @@ export default async function ProjectDetailPage({ params }: Props) {
                 {d.name}
               </a>
             ))}
+          <FileUploadSection projectId={id} />
         </SectionCard>
 
         {/* 5. Invoices */}
