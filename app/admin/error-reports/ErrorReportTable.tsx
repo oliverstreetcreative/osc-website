@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 
 // ---------------------------------------------------------------------------
 // Types (mirror Prisma shape passed from server)
@@ -238,9 +238,8 @@ export function ErrorReportTable({ reports }: { reports: ReportRow[] }) {
               const hasNotes = !!report.resolution_notes
 
               return (
-                <>
+                <React.Fragment key={report.id}>
                   <tr
-                    key={report.id}
                     onClick={() => toggleRow(report.id)}
                     style={{
                       borderBottom: isExpanded
@@ -448,7 +447,7 @@ export function ErrorReportTable({ reports }: { reports: ReportRow[] }) {
                       </td>
                     </tr>
                   )}
-                </>
+                </React.Fragment>
               )
             })}
           </tbody>
