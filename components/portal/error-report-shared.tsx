@@ -26,10 +26,8 @@ export function statusStyle(status: string): CSSProperties {
 
 export function severityStyle(severity: string): CSSProperties {
   switch (severity) {
-    case 'critical':
+    case 'blocking':
       return { color: 'var(--red)', borderColor: 'rgba(220,53,69,0.4)' }
-    case 'major':
-      return { color: 'var(--gold)', borderColor: 'rgba(242,193,78,0.4)' }
     case 'moderate':
     default:
       return { color: 'var(--quiet)', borderColor: 'rgba(138,138,132,0.3)' }

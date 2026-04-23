@@ -64,12 +64,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       person_id: person.id,
       project_id: body.project_id || null,
       event_type: 'error_flagged',
-      payload: JSON.stringify({
+      summary: `Error report: ${body.description.trim().slice(0, 100)}`,
+      details: {
         report_id: report.id,
         source_table: body.source_table,
         severity,
         description: body.description.trim().slice(0, 200),
-      }),
+      },
       source: 'portal_client',
     },
   })
@@ -81,6 +82,14 @@ export async function GET(): Promise<NextResponse> {
   const hdrs = await headers()
   const userId = hdrs.get('x-user-id')
   if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const person = await db.person.findUnique({
+    where: { id: userId },
+    select: { id: true, portal_allowed: true },
+  })
+  if (!person?.portal_allowed) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
