@@ -249,25 +249,17 @@ export async function middleware(req: NextRequest) {
 
   // --- No subdomain (marketing site / direct access) ---
 
-  // The village live-stream page is also reachable via the direct path
-  // /village on the main domain (Next.js resolves the route regardless of
-  // subdomain). Gate it here so the password requirement can't be bypassed
-  // by hitting the raw URL. /village/login and /village/api/unlock are
-  // exempt so the form can render and post.
+  // Canonicalize the village live stream to its dedicated subdomain — one
+  // URL for viewers to share. 308 preserves the HTTP method, so form POSTs
+  // to /village/api/unlock survive the redirect. The /village prefix is
+  // stripped since the subdomain's middleware rewrites root paths onto it.
   if (pathMatches(pathname, '/village')) {
-    const isLogin = pathMatches(pathname, '/village/login')
-    const isUnlock = pathMatches(pathname, '/village/api/unlock')
-    if (!isLogin && !isUnlock) {
-      const token = req.cookies.get(VILLAGE_COOKIE_NAME)?.value
-      const ok = await verifyVillageCookie(token)
-      if (!ok) {
-        const url = req.nextUrl.clone()
-        url.pathname = '/village/login'
-        url.search = ''
-        return NextResponse.redirect(url)
-      }
-    }
-    return NextResponse.next()
+    const url = req.nextUrl.clone()
+    url.host = 'village.oliverstreetcreative.com'
+    url.protocol = 'https:'
+    url.port = ''
+    url.pathname = pathname.replace(/^\/village/, '') || '/'
+    return NextResponse.redirect(url, 308)
   }
 
   if (isPublicPath(pathname)) return NextResponse.next()

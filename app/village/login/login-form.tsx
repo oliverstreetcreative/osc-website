@@ -13,13 +13,18 @@ export function VillageLoginForm() {
     setBusy(true)
     setError(null)
     try {
-      const res = await fetch("/api/unlock", {
+      // Always target the underlying route directly. On village.* the
+      // middleware rewrites /api/unlock to this same path, but on
+      // oliverstreetcreative.com/village/login the main-domain flow has no
+      // rewrite, so a bare /api/unlock 404s. This form is used from both.
+      const res = await fetch("/village/api/unlock", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
       })
       if (res.ok) {
-        window.location.replace("/")
+        const onSubdomain = window.location.hostname.startsWith("village.")
+        window.location.replace(onSubdomain ? "/" : "/village")
         return
       }
       setError("Wrong password.")
