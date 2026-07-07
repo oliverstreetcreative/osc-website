@@ -37,12 +37,13 @@ function pathMatches(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`)
 }
 
-function getSubdomain(host: string): 'login' | 'client' | 'crew' | null {
+function getSubdomain(host: string): 'login' | 'client' | 'crew' | 'village' | null {
   const h = host.split(':')[0].toLowerCase()
 
   if (h.startsWith('client.')) return 'client'
   if (h.startsWith('crew.')) return 'crew'
   if (h.startsWith('login.')) return 'login'
+  if (h.startsWith('village.')) return 'village'
 
   return null
 }
@@ -190,6 +191,21 @@ export async function middleware(req: NextRequest) {
 
     const res = setUserHeaders(NextResponse.next(), user)
     return applyImpersonation(req, res, user, pathname)
+  }
+
+  // --- Subdomain: village.* ---
+  // Public live-stream viewer. No auth. Rewrites all paths onto /village so the
+  // subdomain root serves app/village/page.tsx.
+  if (subdomain === 'village') {
+    if (isPortalInfraPath(pathname)) return NextResponse.next()
+
+    if (!pathMatches(pathname, '/village')) {
+      const url = req.nextUrl.clone()
+      url.pathname = pathname === '/' ? '/village' : `/village${pathname}`
+      return NextResponse.rewrite(url)
+    }
+
+    return NextResponse.next()
   }
 
   // --- Subdomain: login.* ---

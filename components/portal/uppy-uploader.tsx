@@ -1,11 +1,10 @@
 "use client"
 
-import '@uppy/core/dist/style.min.css'
-import '@uppy/dashboard/dist/style.min.css'
+import '@uppy/core/css/style.min.css'
+import '@uppy/dashboard/css/style.min.css'
 
 import Uppy, { BasePlugin, type PluginOpts, type UppyFile } from '@uppy/core'
-// @ts-ignore
-import Dashboard from '@uppy/react/lib/Dashboard.js'
+import { Dashboard } from '@uppy/react'
 import { MutableRefObject, useEffect, useRef, useState } from 'react'
 
 interface PortalUploaderProps {
