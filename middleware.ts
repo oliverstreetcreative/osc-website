@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
+import { VILLAGE_COOKIE_NAME, verifyVillageCookie } from '@/app/village/lib'
 
 const SESSION_COOKIE_NAME = 'osc_session'
 const IMPERSONATION_COOKIE_NAME = 'osc_impersonating'
@@ -194,14 +195,36 @@ export async function middleware(req: NextRequest) {
   }
 
   // --- Subdomain: village.* ---
-  // Public live-stream viewer. No auth. Rewrites all paths onto /village so the
-  // subdomain root serves app/village/page.tsx.
+  // Password-gated live-stream viewer. Rewrites all paths onto /village so
+  // the subdomain root serves app/village/page.tsx. Requires a valid
+  // village_access cookie; /login and /api/unlock are exempt so the password
+  // form can render and post.
   if (subdomain === 'village') {
     if (isPortalInfraPath(pathname)) return NextResponse.next()
 
-    if (!pathMatches(pathname, '/village')) {
+    const targetPath = pathMatches(pathname, '/village')
+      ? pathname
+      : pathname === '/'
+        ? '/village'
+        : `/village${pathname}`
+
+    const isLogin = pathMatches(targetPath, '/village/login')
+    const isUnlock = pathMatches(targetPath, '/village/api/unlock')
+
+    if (!isLogin && !isUnlock) {
+      const token = req.cookies.get(VILLAGE_COOKIE_NAME)?.value
+      const ok = await verifyVillageCookie(token)
+      if (!ok) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/login'
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
+    }
+
+    if (targetPath !== pathname) {
       const url = req.nextUrl.clone()
-      url.pathname = pathname === '/' ? '/village' : `/village${pathname}`
+      url.pathname = targetPath
       return NextResponse.rewrite(url)
     }
 
