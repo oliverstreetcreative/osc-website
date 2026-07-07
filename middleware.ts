@@ -248,6 +248,28 @@ export async function middleware(req: NextRequest) {
   }
 
   // --- No subdomain (marketing site / direct access) ---
+
+  // The village live-stream page is also reachable via the direct path
+  // /village on the main domain (Next.js resolves the route regardless of
+  // subdomain). Gate it here so the password requirement can't be bypassed
+  // by hitting the raw URL. /village/login and /village/api/unlock are
+  // exempt so the form can render and post.
+  if (pathMatches(pathname, '/village')) {
+    const isLogin = pathMatches(pathname, '/village/login')
+    const isUnlock = pathMatches(pathname, '/village/api/unlock')
+    if (!isLogin && !isUnlock) {
+      const token = req.cookies.get(VILLAGE_COOKIE_NAME)?.value
+      const ok = await verifyVillageCookie(token)
+      if (!ok) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/village/login'
+        url.search = ''
+        return NextResponse.redirect(url)
+      }
+    }
+    return NextResponse.next()
+  }
+
   if (isPublicPath(pathname)) return NextResponse.next()
 
   // Protected prefixes use exact-or-trailing-slash matching so that sibling
