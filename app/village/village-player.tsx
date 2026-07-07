@@ -19,7 +19,7 @@ export function VillagePlayer() {
       <MuxPlayer
         streamType="live"
         playbackId={PLAYBACK_ID}
-        metadataVideoTitle="The Village"
+        metadataVideoTitle="Video Village"
         accentColor="#ffffff"
         style={{
           width: "100%",
