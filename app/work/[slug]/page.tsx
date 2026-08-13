@@ -197,11 +197,12 @@ export default function WorkVideoPage({ params }: Props) {
             href="/#contact"
             style={{
               display: "inline-block",
-              padding: "14px 32px",
-              backgroundColor: "#D13B2E",
-              color: "white",
-              fontSize: "14px",
-              fontWeight: 700,
+              padding: "10px 24px",
+              backgroundColor: "transparent",
+              border: "1px solid #E07830",
+              color: "#E07830",
+              fontSize: "12px",
+              fontWeight: 600,
               textTransform: "uppercase",
               letterSpacing: "0.08em",
               textDecoration: "none",
@@ -221,8 +222,7 @@ export default function WorkVideoPage({ params }: Props) {
           textAlign: "center",
         }}
       >
-        © {new Date().getFullYear()} Oliver Street Creative · Covington, KY ·
-        Serving Greater Cincinnati &amp; Northern Kentucky
+        © {new Date().getFullYear()} Oliver Street Creative · Covington, KY
       </footer>
     </div>
   )
