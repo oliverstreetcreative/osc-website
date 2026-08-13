@@ -71,9 +71,9 @@ export default function WorkVideoPage({ params }: Props) {
       >
         <Link href="/" style={{ display: "flex", alignItems: "center" }}>
           <img
-            src="/oliver-street-creative-logo.png"
+            src="/logo.png"
             alt="Oliver Street Creative"
-            style={{ height: "44px", width: "auto" }}
+            style={{ height: "64px", width: "auto" }}
           />
         </Link>
         <Link
