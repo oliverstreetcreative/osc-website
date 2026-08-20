@@ -24,6 +24,11 @@ export const FOR_PAGES: ForPage[] = [
       "boone-county-2025",
     ],
   },
+  {
+    slug: "horizon",
+    prospect: "Horizon Community Funds",
+    videoSlugs: ["phoenixs-story", "janells-story"],
+  },
 ]
 
 export function getForPage(slug: string): ForPage | undefined {
