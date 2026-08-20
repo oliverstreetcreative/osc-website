@@ -901,9 +901,8 @@ export default function HomePage() {
           </div>
 
           <p style={{ textAlign: "center", marginTop: "48px", fontSize: "14px", color: "rgba(255,255,255,0.6)" }}>
-            More sample work available by request —{" "}
             <a href="#contact" onClick={handleNavClick} style={{ color: "white", textDecoration: "underline", textUnderlineOffset: "4px" }}>
-              just ask
+              More sample work available by request
             </a>.
           </p>
         </section>
