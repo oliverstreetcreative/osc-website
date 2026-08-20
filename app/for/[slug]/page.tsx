@@ -89,7 +89,7 @@ export default async function ForProspectPage({ params }: Props) {
           <div style={{ padding: "16px 4px 40px" }}>
             <div
               style={{
-                fontSize: "11px",
+                fontSize: "16px",
                 fontWeight: 700,
                 textTransform: "uppercase",
                 letterSpacing: "0.15em",
