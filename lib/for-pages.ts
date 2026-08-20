@@ -20,7 +20,6 @@ export const FOR_PAGES: ForPage[] = [
     prospect: "First Financial Bank",
     videoSlugs: [
       "widening-the-lens",
-      "widening-the-lens-taft",
       "phoenixs-story",
       "boone-county-2025",
     ],
