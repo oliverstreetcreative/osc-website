@@ -89,6 +89,18 @@ export default function ForProspectPage({ params }: Props) {
         <div style={{ width: "100%", maxWidth: "1200px" }}>
           {/* Headline */}
           <div style={{ padding: "16px 4px 40px" }}>
+            <div
+              style={{
+                fontSize: "11px",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.15em",
+                marginBottom: "20px",
+                color: "rgba(255,255,255,0.45)",
+              }}
+            >
+              Selected work for
+            </div>
             <h1
               style={{
                 fontSize: "clamp(28px, 5vw, 48px)",
@@ -98,17 +110,16 @@ export default function ForProspectPage({ params }: Props) {
                 margin: 0,
                 display: "flex",
                 alignItems: "center",
-                gap: "0.45em",
+                gap: "0.5em",
                 flexWrap: "wrap",
               }}
             >
-              <span>Selected work for</span>
               {page.prospectLogo && (
                 <img
                   src={page.prospectLogo}
                   alt={page.prospect}
                   style={{
-                    height: "1.3em",
+                    height: "clamp(40px, 6vw, 56px)",
                     width: "auto",
                     filter: page.isLightLogo
                       ? "none"
