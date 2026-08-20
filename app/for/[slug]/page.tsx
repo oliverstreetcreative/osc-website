@@ -101,6 +101,21 @@ export default function ForProspectPage({ params }: Props) {
             >
               Selected work
             </div>
+            {page.prospectLogo && (
+              <img
+                src={page.prospectLogo}
+                alt={page.prospect}
+                style={{
+                  height: "44px",
+                  width: "auto",
+                  marginBottom: "20px",
+                  display: "block",
+                  filter: page.isLightLogo
+                    ? "none"
+                    : "brightness(0) invert(1)",
+                }}
+              />
+            )}
             <h1
               style={{
                 fontSize: "clamp(28px, 5vw, 48px)",

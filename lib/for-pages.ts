@@ -8,6 +8,10 @@ export interface ForPage {
   slug: string
   /** the prospect's name as it appears on the page, e.g. "First Financial Bank" */
   prospect: string
+  /** path under /public, e.g. "/prospect-logos/first-financial-bank-logo.png" */
+  prospectLogo?: string
+  /** true when the logo file is already white/light (skip the invert filter) */
+  isLightLogo?: boolean
   /** optional line under the headline */
   intro?: string
   /** library slugs from lib/work-videos.ts, in the order they appear */
@@ -18,6 +22,7 @@ export const FOR_PAGES: ForPage[] = [
   {
     slug: "first-financial-bank",
     prospect: "First Financial Bank",
+    prospectLogo: "/prospect-logos/first-financial-bank-logo.png",
     videoSlugs: [
       "phoenixs-story",
       "widening-the-lens",
@@ -27,6 +32,8 @@ export const FOR_PAGES: ForPage[] = [
   {
     slug: "horizon",
     prospect: "Horizon Community Funds",
+    prospectLogo: "/prospect-logos/horizon-community-funds-logo-white.png",
+    isLightLogo: true,
     videoSlugs: ["phoenixs-story", "janells-story"],
   },
 ]
