@@ -1,23 +1,20 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { FOR_PAGES, getForPage } from "@/lib/for-pages"
-import {
-  getLibraryVideo,
-  muxEmbedSrc,
-  muxThumbnail,
-} from "@/lib/work-videos"
+import { getPortfolioData, logoSrc } from "@/lib/portfolio-data"
+import { muxEmbedSrc } from "@/lib/work-videos"
 
 interface Props {
   params: { slug: string }
 }
 
-export function generateStaticParams() {
-  return FOR_PAGES.map((p) => ({ slug: p.slug }))
-}
+// Pull definitions live in Dropbox and are read per-request, so a new
+// prospect page is a data change, not a deploy.
+export const dynamic = "force-dynamic"
 
-export function generateMetadata({ params }: Props): Metadata {
-  const page = getForPage(params.slug)
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { pages } = await getPortfolioData()
+  const page = pages.find((p) => p.slug === params.slug)
   if (!page) return {}
 
   return {
@@ -28,12 +25,13 @@ export function generateMetadata({ params }: Props): Metadata {
   }
 }
 
-export default function ForProspectPage({ params }: Props) {
-  const page = getForPage(params.slug)
+export default async function ForProspectPage({ params }: Props) {
+  const { pages, videos: library } = await getPortfolioData()
+  const page = pages.find((p) => p.slug === params.slug)
   if (!page) notFound()
 
   const videos = page.videoSlugs
-    .map((slug) => getLibraryVideo(slug))
+    .map((slug) => library.find((v) => v.slug === slug))
     .filter((v): v is NonNullable<typeof v> => Boolean(v))
 
   return (
@@ -116,7 +114,7 @@ export default function ForProspectPage({ params }: Props) {
             >
               {page.prospectLogo && (
                 <img
-                  src={page.prospectLogo}
+                  src={logoSrc(page.prospectLogo)}
                   alt={page.prospect}
                   style={{
                     height: "clamp(48px, 8vw, 80px)",
