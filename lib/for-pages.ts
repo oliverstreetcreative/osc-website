@@ -34,9 +34,10 @@ export const FOR_PAGES: ForPage[] = [
   },
   {
     slug: "horizon",
-    prospect: "Horizon Community Funds",
-    prospectLogo: "/prospect-logos/horizon-community-funds-logo-white.png",
+    prospect: "Horizon Community Foundation",
+    prospectLogo: "/prospect-logos/horizon-community-foundation-logo-white.png",
     isLightLogo: true,
+    logoIncludesName: true,
     videoSlugs: ["phoenixs-story", "janells-story"],
   },
 ]
