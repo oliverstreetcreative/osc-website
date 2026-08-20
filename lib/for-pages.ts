@@ -12,6 +12,8 @@ export interface ForPage {
   prospectLogo?: string
   /** true when the logo file is already white/light (skip the invert filter) */
   isLightLogo?: boolean
+  /** true when the logo artwork contains the prospect's name, so the headline drops the text */
+  logoIncludesName?: boolean
   /** optional line under the headline */
   intro?: string
   /** library slugs from lib/work-videos.ts, in the order they appear */
@@ -23,6 +25,7 @@ export const FOR_PAGES: ForPage[] = [
     slug: "first-financial-bank",
     prospect: "First Financial Bank",
     prospectLogo: "/prospect-logos/first-financial-bank-logo.png",
+    logoIncludesName: true,
     videoSlugs: [
       "phoenixs-story",
       "widening-the-lens",

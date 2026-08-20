@@ -89,33 +89,6 @@ export default function ForProspectPage({ params }: Props) {
         <div style={{ width: "100%", maxWidth: "1200px" }}>
           {/* Headline */}
           <div style={{ padding: "16px 4px 40px" }}>
-            <div
-              style={{
-                fontSize: "11px",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.15em",
-                marginBottom: "16px",
-                color: "rgba(255,255,255,0.45)",
-              }}
-            >
-              Selected work
-            </div>
-            {page.prospectLogo && (
-              <img
-                src={page.prospectLogo}
-                alt={page.prospect}
-                style={{
-                  height: "44px",
-                  width: "auto",
-                  marginBottom: "20px",
-                  display: "block",
-                  filter: page.isLightLogo
-                    ? "none"
-                    : "brightness(0) invert(1)",
-                }}
-              />
-            )}
             <h1
               style={{
                 fontSize: "clamp(28px, 5vw, 48px)",
@@ -123,9 +96,29 @@ export default function ForProspectPage({ params }: Props) {
                 letterSpacing: "-0.02em",
                 lineHeight: 1.1,
                 margin: 0,
+                display: "flex",
+                alignItems: "center",
+                gap: "0.45em",
+                flexWrap: "wrap",
               }}
             >
-              For {page.prospect}
+              <span>Selected work for</span>
+              {page.prospectLogo && (
+                <img
+                  src={page.prospectLogo}
+                  alt={page.prospect}
+                  style={{
+                    height: "1.3em",
+                    width: "auto",
+                    filter: page.isLightLogo
+                      ? "none"
+                      : "brightness(0) invert(1)",
+                  }}
+                />
+              )}
+              {(!page.prospectLogo || !page.logoIncludesName) && (
+                <span>{page.prospect}</span>
+              )}
             </h1>
             {page.intro && (
               <p
