@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { WORK_VIDEOS, muxEmbedSrc, muxThumbnail } from "@/lib/work-videos"
 
 interface TMDBData {
   person: any
@@ -820,8 +821,8 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* PORTFOLIO — GREEN BAND */}
-        <section id="portfolio" className="sp" style={{ backgroundColor: "#3A8A5C", color: "white" }}>
+        {/* PORTFOLIO — BLACK BAND */}
+        <section id="portfolio" className="sp" style={{ backgroundColor: "#000000", color: "white" }}>
           <div className="section-header">
             <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: "24px", color: "rgba(255,255,255,0.5)" }}>
               Portfolio
@@ -837,41 +838,12 @@ export default function HomePage() {
           </div>
 
           <div className="grid-3col" style={{ gap: "24px" }}>
-            {[
-              {
-                title: "Phoenix's Story",
-                alt: "Phoenix's Story — Learning Grove nonprofit fundraising video by Oliver Street Creative",
-                client: "Learning Grove, Gala Event 2025",
-                embedSrc: "https://player.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM?thumbnail_time=147&thumbnail_url=https%3A%2F%2Fimage.mux.com%2FWZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D147&poster=https%3A%2F%2Fimage.mux.com%2FWZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D147",
-                thumbnail: "https://image.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM/thumbnail.webp?width=1920&time=147",
-                clientLogo: "/client-logos/learning-grove-logo.png",
-                clientName: "Learning Grove",
-              },
-              {
-                title: "2025 End-of-Year Report",
-                alt: "2025 End-of-Year Report — Boone County government video production by Oliver Street Creative",
-                client: "Boone County Prosecutors' Office",
-                embedSrc: "https://player.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8?thumbnail_time=104&thumbnail_url=https%3A%2F%2Fimage.mux.com%2FIhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D104&poster=https%3A%2F%2Fimage.mux.com%2FIhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D104",
-                thumbnail: "https://image.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8/thumbnail.webp?width=1920&time=104",
-                clientLogo: "/client-logos/boone-county-logo-white-text.png",
-                clientName: "Boone County Prosecutors' Office",
-                isLightLogo: true,
-              },
-              {
-                title: "Janell's Story",
-                alt: "Janell's Story — Beech Acres nonprofit brand storytelling video by Oliver Street Creative",
-                client: "Beech Acres, Love Grows Here Event 2024",
-                embedSrc: "https://player.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co?accent-color=%23E07830&thumbnail_time=238&thumbnail_url=https%3A%2F%2Fimage.mux.com%2FcmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D238&poster=https%3A%2F%2Fimage.mux.com%2FcmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D238",
-                thumbnail: "https://image.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co/thumbnail.webp?width=1920&time=238",
-                clientLogo: "/client-logos/beech-acres-logo.png",
-                clientName: "Beech Acres",
-              },
-            ].map((item, idx) => (
-              <div key={idx} style={{ backgroundColor: "rgba(0,0,0,0.2)", overflow: "hidden", cursor: "pointer" }} onClick={() => setVideoModalSrc(item.embedSrc)}>
+            {WORK_VIDEOS.map((item, idx) => (
+              <div key={idx} style={{ backgroundColor: "rgba(255,255,255,0.06)", overflow: "hidden", cursor: "pointer" }} onClick={() => setVideoModalSrc(muxEmbedSrc(item))}>
                 <div style={{ position: "relative", aspectRatio: "16/9", overflow: "hidden" }}>
                   <img
-                    src={item.thumbnail}
-                    alt={item.alt || item.title}
+                    src={muxThumbnail(item)}
+                    alt={`${item.title} — ${item.clientName} video by Oliver Street Creative`}
                     style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s" }}
                     loading="lazy"
                     onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.03)")}
@@ -927,6 +899,13 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+
+          <p style={{ textAlign: "center", marginTop: "48px", fontSize: "14px", color: "rgba(255,255,255,0.6)" }}>
+            More sample work available by request —{" "}
+            <a href="#contact" onClick={handleNavClick} style={{ color: "white", textDecoration: "underline", textUnderlineOffset: "4px" }}>
+              just ask
+            </a>.
+          </p>
         </section>
 
         {/* CONTACT — RED BAND */}

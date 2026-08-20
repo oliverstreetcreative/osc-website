@@ -1,5 +1,12 @@
-// Standalone portfolio video pages (/work/<slug>).
-// Same Mux embeds as the homepage portfolio band — keep the two in sync.
+// The video library. Every Mux-hosted piece OSC can show lives here.
+//
+// - WORK_VIDEOS: the public portfolio — each gets a /work/<slug> page and a
+//   card in the homepage portfolio band. Keep this list SHORT (three) — the
+//   band says "more sample work by request" for the rest.
+// - LIBRARY_VIDEOS: everything, including unlisted pieces that only appear in
+//   curated /for/<prospect> pulls (see lib/for-pages.ts).
+//
+// New entries are normally added by the osc-portfolio skill after a Mux upload.
 
 export interface WorkVideo {
   slug: string
@@ -8,10 +15,29 @@ export interface WorkVideo {
   clientName: string
   clientLogo: string
   isLightLogo?: boolean
-  embedSrc: string
-  thumbnail: string
+  playbackId: string
+  /** seconds into the video used for the poster/thumbnail frame */
+  thumbTime: number
+  /** optional Mux player accent color, e.g. "#E07830" */
+  accentColor?: string
   description: string
 }
+
+export function muxThumbnail(v: WorkVideo): string {
+  return `https://image.mux.com/${v.playbackId}/thumbnail.webp?width=1920&time=${v.thumbTime}`
+}
+
+export function muxEmbedSrc(v: WorkVideo): string {
+  const thumb = encodeURIComponent(muxThumbnail(v))
+  const accent = v.accentColor
+    ? `accent-color=${encodeURIComponent(v.accentColor)}&`
+    : ""
+  return `https://player.mux.com/${v.playbackId}?${accent}thumbnail_time=${v.thumbTime}&thumbnail_url=${thumb}&poster=${thumb}`
+}
+
+// ---------------------------------------------------------------------------
+// The public portfolio — three pieces, no more.
+// ---------------------------------------------------------------------------
 
 export const WORK_VIDEOS: WorkVideo[] = [
   {
@@ -20,10 +46,8 @@ export const WORK_VIDEOS: WorkVideo[] = [
     client: "Learning Grove, Gala Event 2025",
     clientName: "Learning Grove",
     clientLogo: "/client-logos/learning-grove-logo.png",
-    embedSrc:
-      "https://player.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM?thumbnail_time=147&thumbnail_url=https%3A%2F%2Fimage.mux.com%2FWZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D147&poster=https%3A%2F%2Fimage.mux.com%2FWZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D147",
-    thumbnail:
-      "https://image.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM/thumbnail.webp?width=1920&time=147",
+    playbackId: "WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM",
+    thumbTime: 147,
     description:
       "A fundraising story film for Learning Grove, premiered at their 2025 gala.",
   },
@@ -34,10 +58,8 @@ export const WORK_VIDEOS: WorkVideo[] = [
     clientName: "Boone County Prosecutors' Office",
     clientLogo: "/client-logos/boone-county-logo-white-text.png",
     isLightLogo: true,
-    embedSrc:
-      "https://player.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8?thumbnail_time=104&thumbnail_url=https%3A%2F%2Fimage.mux.com%2FIhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D104&poster=https%3A%2F%2Fimage.mux.com%2FIhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D104",
-    thumbnail:
-      "https://image.mux.com/IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8/thumbnail.webp?width=1920&time=104",
+    playbackId: "IhCzSQ9YtLEvyAYYDfVBtob5cTIoUWR93LYRXYJ02uT8",
+    thumbTime: 104,
     description:
       "An end-of-year report film for the Boone County Prosecutors' Office.",
   },
@@ -47,15 +69,47 @@ export const WORK_VIDEOS: WorkVideo[] = [
     client: "Beech Acres, Love Grows Here Event 2024",
     clientName: "Beech Acres",
     clientLogo: "/client-logos/beech-acres-logo.png",
-    embedSrc:
-      "https://player.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co?accent-color=%23E07830&thumbnail_time=238&thumbnail_url=https%3A%2F%2Fimage.mux.com%2FcmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D238&poster=https%3A%2F%2Fimage.mux.com%2FcmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co%2Fthumbnail.webp%3Fwidth%3D1920%26time%3D238",
-    thumbnail:
-      "https://image.mux.com/cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co/thumbnail.webp?width=1920&time=238",
+    playbackId: "cmaTQdFokL801czQtX01YSxMgOX02E02LbVLHPVcudwY01Co",
+    thumbTime: 238,
+    accentColor: "#E07830",
     description:
       "A story film for Beech Acres Parenting Center, premiered at the 2024 Love Grows Here breakfast.",
   },
 ]
 
+// ---------------------------------------------------------------------------
+// Unlisted pieces — no public page; available to /for/<prospect> pulls.
+// ---------------------------------------------------------------------------
+
+export const UNLISTED_VIDEOS: WorkVideo[] = [
+  {
+    slug: "widening-the-lens",
+    title: "Widening The Lens",
+    client: "Learning Grove",
+    clientName: "Learning Grove",
+    clientLogo: "/client-logos/learning-grove-logo.png",
+    playbackId: "nemEDduO54TJY02tCO1XtzSbFUfgVii1cUtSbiEpcAV4",
+    thumbTime: 200,
+    description: "A documentary film for Learning Grove's Widening The Lens initiative.",
+  },
+  {
+    slug: "widening-the-lens-taft",
+    title: "Widening The Lens — Taft",
+    client: "Learning Grove",
+    clientName: "Learning Grove",
+    clientLogo: "/client-logos/learning-grove-logo.png",
+    playbackId: "2kvmflozQYx02uNHKyYegHDUTg02vcDb1PDmjoRodT9Zk",
+    thumbTime: 40,
+    description: "The Taft companion film from Learning Grove's Widening The Lens initiative.",
+  },
+]
+
+export const LIBRARY_VIDEOS: WorkVideo[] = [...WORK_VIDEOS, ...UNLISTED_VIDEOS]
+
 export function getWorkVideo(slug: string): WorkVideo | undefined {
   return WORK_VIDEOS.find((v) => v.slug === slug)
+}
+
+export function getLibraryVideo(slug: string): WorkVideo | undefined {
+  return LIBRARY_VIDEOS.find((v) => v.slug === slug)
 }

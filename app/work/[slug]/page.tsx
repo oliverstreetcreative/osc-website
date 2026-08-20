@@ -1,7 +1,12 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { WORK_VIDEOS, getWorkVideo } from "@/lib/work-videos"
+import {
+  WORK_VIDEOS,
+  getWorkVideo,
+  muxEmbedSrc,
+  muxThumbnail,
+} from "@/lib/work-videos"
 
 interface Props {
   params: { slug: string }
@@ -30,7 +35,7 @@ export function generateMetadata({ params }: Props): Metadata {
       type: "video.other",
       images: [
         {
-          url: video.thumbnail,
+          url: muxThumbnail(video),
           width: 1920,
           height: 1080,
           alt: `${video.title} — ${video.client}`,
@@ -41,7 +46,7 @@ export function generateMetadata({ params }: Props): Metadata {
       card: "summary_large_image",
       title: `${video.title} — ${video.clientName}`,
       description: video.description,
-      images: [video.thumbnail],
+      images: [muxThumbnail(video)],
     },
   }
 }
@@ -111,7 +116,7 @@ export default function WorkVideoPage({ params }: Props) {
             }}
           >
             <iframe
-              src={video.embedSrc}
+              src={muxEmbedSrc(video)}
               title={video.title}
               style={{ width: "100%", height: "100%", border: 0 }}
               allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
