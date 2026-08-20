@@ -119,7 +119,7 @@ export default function ForProspectPage({ params }: Props) {
                   src={page.prospectLogo}
                   alt={page.prospect}
                   style={{
-                    height: "clamp(40px, 6vw, 56px)",
+                    height: "clamp(48px, 8vw, 80px)",
                     width: "auto",
                     filter: page.isLightLogo
                       ? "none"
