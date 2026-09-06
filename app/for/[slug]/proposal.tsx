@@ -5,7 +5,7 @@
 
 import type { ForProposal } from "@/lib/for-pages"
 import type { WorkVideo } from "@/lib/work-videos"
-import { muxEmbedSrc } from "@/lib/work-videos"
+import { VideoGrid } from "./video-grid"
 
 const ORANGE = "#E07830"
 const DIM = "rgba(255,255,255,0.62)"
@@ -249,53 +249,7 @@ export function ProposalBody({
           <Eyebrow>Selected work</Eyebrow>
           <H2>{proposal.workTitle ?? "Work like what you're after"}</H2>
           {proposal.workIntro && <Para>{proposal.workIntro}</Para>}
-          <div style={{ marginTop: "32px" }}>
-            {videos.map((video) => (
-              <div key={video.slug} style={{ marginBottom: "56px" }}>
-                <div
-                  style={{
-                    width: "100%",
-                    aspectRatio: "16/9",
-                    backgroundColor: "black",
-                    overflow: "hidden",
-                  }}
-                >
-                  <iframe
-                    src={muxEmbedSrc(video)}
-                    title={video.title}
-                    style={{ width: "100%", height: "100%", border: 0 }}
-                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                    allowFullScreen
-                  />
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "14px",
-                    padding: "20px 4px 0",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <img
-                    src={video.clientLogo}
-                    alt={video.clientName}
-                    style={{
-                      height: "30px",
-                      width: "auto",
-                      filter: video.isLightLogo ? "none" : "brightness(0) invert(1)",
-                    }}
-                  />
-                  <div>
-                    <div style={{ fontSize: "clamp(18px, 2.4vw, 24px)", fontWeight: 800, letterSpacing: "-0.01em" }}>
-                      {video.title}
-                    </div>
-                    <div style={{ fontSize: "14px", color: DIM }}>{video.client}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <VideoGrid videos={videos} />
         </Section>
       )}
 
