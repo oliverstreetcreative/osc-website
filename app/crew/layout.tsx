@@ -104,6 +104,7 @@ export default async function CrewPortalLayout({
         >
           <NavLink href="/crew">Dashboard</NavLink>
           <NavLink href="/crew/invoices">Invoices</NavLink>
+          <NavLink href="/crew/issues">Issues</NavLink>
           <ActivityFeed />
         </nav>
 
