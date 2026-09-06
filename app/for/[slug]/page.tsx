@@ -3,6 +3,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { getPortfolioData, logoSrc } from "@/lib/portfolio-data"
 import { muxEmbedSrc } from "@/lib/work-videos"
+import { ProposalBody, ProposalHero } from "./proposal"
 
 interface Props {
   params: { slug: string }
@@ -17,9 +18,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const page = pages.find((p) => p.slug === params.slug)
   if (!page) return {}
 
+  const isProposal = Boolean(page.proposal)
   return {
-    title: `Selected work for ${page.prospect} | Oliver Street Creative`,
-    description: `A hand-picked selection of Oliver Street Creative films for ${page.prospect}.`,
+    title: isProposal
+      ? `A proposal for ${page.prospect} | Oliver Street Creative`
+      : `Selected work for ${page.prospect} | Oliver Street Creative`,
+    description: isProposal
+      ? `${page.proposal?.headline} — a proposal from Oliver Street Creative for ${page.prospect}.`
+      : `A hand-picked selection of Oliver Street Creative films for ${page.prospect}.`,
     // These pages are for one recipient — never for search engines.
     robots: { index: false, follow: false },
   }
@@ -33,6 +39,34 @@ export default async function ForProspectPage({ params }: Props) {
   const videos = page.videoSlugs
     .map((slug) => library.find((v) => v.slug === slug))
     .filter((v): v is NonNullable<typeof v> => Boolean(v))
+
+  const prospectMark = (
+    <>
+      {page.prospectLogo && (
+        <img
+          src={logoSrc(page.prospectLogo)}
+          alt={page.prospect}
+          style={{
+            height: "clamp(48px, 8vw, 80px)",
+            width: "auto",
+            filter: page.isLightLogo ? "none" : "brightness(0) invert(1)",
+          }}
+        />
+      )}
+      {(!page.prospectLogo || !page.logoIncludesName) && (
+        <span
+          style={{
+            fontSize: "clamp(28px, 5vw, 48px)",
+            fontWeight: 900,
+            letterSpacing: "-0.02em",
+            lineHeight: 1.1,
+          }}
+        >
+          {page.prospect}
+        </span>
+      )}
+    </>
+  )
 
   return (
     <div
@@ -85,6 +119,13 @@ export default async function ForProspectPage({ params }: Props) {
         }}
       >
         <div style={{ width: "100%", maxWidth: "1200px" }}>
+          {page.proposal ? (
+            <>
+              <ProposalHero proposal={page.proposal} prospect={page.prospect} logo={prospectMark} />
+              <ProposalBody proposal={page.proposal} videos={videos} />
+            </>
+          ) : (
+            <>
           {/* Headline */}
           <div style={{ padding: "16px 4px 40px" }}>
             <div
@@ -208,9 +249,12 @@ export default async function ForProspectPage({ params }: Props) {
               </div>
             </div>
           ))}
+            </>
+          )}
         </div>
 
         {/* CTA */}
+        {!page.proposal && (
         <div
           style={{
             marginTop: "16px",
@@ -259,6 +303,7 @@ export default async function ForProspectPage({ params }: Props) {
             Get in touch
           </Link>
         </div>
+        )}
       </main>
 
       {/* Footer */}
