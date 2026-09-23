@@ -19,9 +19,9 @@ const ebGaramond = EB_Garamond({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://oliverstreetcreative.com"),
-  title: "Oliver Street Creative | Brand Story Video Production | Cincinnati & Northern Kentucky",
+  title: "Oliver Street Creative | Stories that build trust, move hearts, and close deals | Cincinnati & Northern Kentucky",
   description:
-    "Full-service video production in Covington, KY serving Greater Cincinnati. Strategic brand stories for businesses and nonprofits — concept to delivery.",
+    "Stories that build trust, move hearts, and close deals. Testimonials, brand films, fundraising story films, and campaign work from Covington, KY, serving Greater Cincinnati.",
   keywords:
     "video production Cincinnati, corporate video production, nonprofit video production, brand storytelling, Covington KY video, marketing video, full-service video production, documentary, commercial video, Northern Kentucky videographer",
   authors: [{ name: "Oliver Street Creative" }],
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Oliver Street Creative — Strategic Video for Businesses & Nonprofits",
-    description: "Full-service video production in Covington, KY. We craft cinematic stories that build trust, drive donations, and close deals. Serving Cincinnati & Northern Kentucky.",
+    description: "Stories that build trust, move hearts, and close deals. Video production in Covington, KY, serving Cincinnati & Northern Kentucky.",
     url: "https://oliverstreetcreative.com",
     siteName: "Oliver Street Creative",
     images: [
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Oliver Street Creative — Strategic Video for Businesses & Nonprofits",
-    description: "Full-service video production in Covington, KY. Cinematic stories that build trust and drive results.",
+    description: "Stories that build trust, move hearts, and close deals. Video production in Covington, KY.",
     images: ["/og-image.png"],
   },
   viewport: "width=device-width, initial-scale=1",
