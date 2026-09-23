@@ -19,9 +19,9 @@ const ebGaramond = EB_Garamond({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://oliverstreetcreative.com"),
-  title: "Oliver Street Creative | Stories that build trust, move hearts, and close deals | Cincinnati & Northern Kentucky",
+  title: "Oliver Street Creative | Stories that move hearts, open minds, and build trust | Cincinnati & Northern Kentucky",
   description:
-    "Stories that build trust, move hearts, and close deals. Testimonials, brand films, fundraising story films, and campaign work from Covington, KY, serving Greater Cincinnati.",
+    "Stories that move hearts, open minds, and build trust. Fundraising story films, campaign and advocacy work, testimonials and brand films from Covington, KY, serving Greater Cincinnati.",
   keywords:
     "video production Cincinnati, corporate video production, nonprofit video production, brand storytelling, Covington KY video, marketing video, full-service video production, documentary, commercial video, Northern Kentucky videographer",
   authors: [{ name: "Oliver Street Creative" }],
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Oliver Street Creative — Strategic Video for Businesses & Nonprofits",
-    description: "Stories that build trust, move hearts, and close deals. Video production in Covington, KY, serving Cincinnati & Northern Kentucky.",
+    description: "Stories that move hearts, open minds, and build trust. Video production in Covington, KY, serving Cincinnati & Northern Kentucky.",
     url: "https://oliverstreetcreative.com",
     siteName: "Oliver Street Creative",
     images: [
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Oliver Street Creative — Strategic Video for Businesses & Nonprofits",
-    description: "Stories that build trust, move hearts, and close deals. Video production in Covington, KY.",
+    description: "Stories that move hearts, open minds, and build trust. Video production in Covington, KY.",
     images: ["/og-image.png"],
   },
   viewport: "width=device-width, initial-scale=1",

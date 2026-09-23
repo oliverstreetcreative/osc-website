@@ -9,9 +9,9 @@ import { WORK_VIDEOS, muxEmbedSrc, muxThumbnail, type WorkVideo } from "@/lib/wo
 // The visual system (Kodak palette, Inter 900 headings, EB Garamond italic
 // accents, band sections, nav/splash) is unchanged on purpose — Sam has not
 // given a visual direction yet. What changed is the MESSAGE:
-//   tagline  — "Stories that build trust, move hearts, and close deals."
-//   thesis   — sam-voice draft v2 (osc-thesis-v2-2026-09-23), marked DRAFT
-//   pillars  — BUILD TRUST / MOVE HEARTS / CLOSE DEALS, each backed only by
+//   tagline  — "Stories that move hearts, open minds, and build trust." (Sam, 9/23)
+//   thesis   — sam-voice draft v3 (osc-thesis-v3-2026-09-23), marked DRAFT
+//   pillars  — MOVE HEARTS / OPEN MINDS / BUILD TRUST, each backed only by
 //              work that is already public on /work/ or quotes already on
 //              the site. Nothing invented.
 // Every AI-generated image of Sam is gone; a labelled placeholder holds the
@@ -24,7 +24,7 @@ interface TMDBData {
   tv_credits: any
 }
 
-type PillarKey = "build-trust" | "move-hearts" | "close-deals"
+type PillarKey = "move-hearts" | "open-minds" | "build-trust"
 
 interface Pillar {
   key: PillarKey
@@ -43,20 +43,6 @@ interface Pillar {
 // old homepage — no new client words.
 const PILLARS: Pillar[] = [
   {
-    key: "build-trust",
-    label: "Build trust",
-    color: "#2E6B9C",
-    what: "Testimonials and brand films",
-    body:
-      "A real customer or a real founder saying what they actually think, shot so the person comes through and not the pitch.",
-    workSlugs: ["boone-county-2025"],
-    quote: {
-      text: "Oliver Street brought a level of depth and soul to our production that we wouldn't have had otherwise.",
-      name: "Louis Kelly",
-      title: "Boone County Prosecutor",
-    },
-  },
-  {
     key: "move-hearts",
     label: "Move hearts",
     color: "#D13B2E",
@@ -71,19 +57,33 @@ const PILLARS: Pillar[] = [
     },
   },
   {
-    key: "close-deals",
-    label: "Close deals",
-    color: "#F2C14E",
-    what: "Sales and campaign work",
+    key: "open-minds",
+    label: "Open minds",
+    color: "#2E6B9C",
+    what: "Campaigns, advocacy and education",
     body:
-      "Video made to move one specific person to one specific decision.",
+      "Video made to change what someone thinks, and then what they do about it.",
     workSlugs: [],
     quote: {
       text: "It comes down to content, creativity, creative editing, and storytelling. That's what separates the crowd from working with Oliver Street.",
       name: "Al Haehnle",
       title: "Director, Landslide Films",
     },
-    note: "Sample sales and campaign work available by request.",
+    note: "Sample campaign, advocacy and education work available by request.",
+  },
+  {
+    key: "build-trust",
+    label: "Build trust",
+    color: "#F2C14E",
+    what: "Testimonials, brand and commercial films",
+    body:
+      "A real customer or a real founder saying what they actually think, shot so the person comes through and not the pitch.",
+    workSlugs: ["boone-county-2025"],
+    quote: {
+      text: "Oliver Street brought a level of depth and soul to our production that we wouldn't have had otherwise.",
+      name: "Louis Kelly",
+      title: "Boone County Prosecutor",
+    },
   },
 ]
 
@@ -406,10 +406,10 @@ export default function HomePage() {
           </div>
 
           <h1 className="mobile-center-block" style={{ fontSize: "clamp(40px, 7vw, 96px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, color: "#F7F6F3", maxWidth: "980px", margin: "0 auto 40px auto" }}>
-            <span className="sr-only">Oliver Street Creative — stories that build trust, move hearts, and close deals. Video production in Cincinnati &amp; Covington, KY.</span>
+            <span className="sr-only">Oliver Street Creative — stories that move hearts, open minds, and build trust. Video production in Cincinnati &amp; Covington, KY.</span>
             <span aria-hidden="true">
-              Stories that build trust, move hearts, and{" "}
-              <span style={{ ...SERIF_ITALIC, color: "#E07830" }}>close deals.</span>
+              Stories that move hearts, open minds, and{" "}
+              <span style={{ ...SERIF_ITALIC, color: "#E07830" }}>build trust.</span>
             </span>
           </h1>
 
@@ -462,7 +462,7 @@ export default function HomePage() {
                   color: "rgba(255,255,255,0.85)",
                 }}
               >
-                Draft copy · v2 · 9/23/26 · awaiting Sam
+                Draft copy · v3 · 9/23/26 · awaiting Sam
               </div>
 
               <p className="services-body" style={{ marginBottom: "16px" }}>
@@ -647,7 +647,7 @@ export default function HomePage() {
                           left: "12px",
                           padding: "4px 10px",
                           backgroundColor: pillar.color,
-                          color: pillar.key === "close-deals" ? "#141412" : "#F7F6F3",
+                          color: pillar.key === "build-trust" ? "#141412" : "#F7F6F3",
                           fontSize: "11px",
                           fontWeight: 700,
                           letterSpacing: "0.12em",
@@ -1042,7 +1042,7 @@ export default function HomePage() {
         {/* FOOTER */}
         <footer className="footer-bar">
           <div>© 2026 Oliver Street Creative</div>
-          <div>Stories that build trust, move hearts, and close deals.</div>
+          <div>Stories that move hearts, open minds, and build trust.</div>
           <div>Covington, KY</div>
         </footer>
       </main>
