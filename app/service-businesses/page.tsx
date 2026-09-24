@@ -96,6 +96,28 @@ const CSS = `
   .cta.ghost { background: transparent; color:#F7F6F3; border: 2px solid rgba(247,246,243,.5); margin-left: 10px; }
   .foot { padding: 40px 20px 60px; text-align:center; font-size: 13px; color: rgba(247,246,243,.45); border-top: 1px solid rgba(255,255,255,.1); }
   .foot a { margin: 0 10px; text-decoration:none; color: rgba(247,246,243,.7); }
+  .num small.long { text-transform:none; letter-spacing:0; font-weight:600; font-size: clamp(19px, 2.3vw, 28px); line-height:1.3; color: rgba(247,246,243,.88); max-width: 24ch; margin-left:auto; margin-right:auto; }
+  .in-word { font-size: .32em; font-weight: 800; letter-spacing: 0; vertical-align: .9em; margin: 0 .12em; }
+  /* ---- MOTION VARIANT (?feel=on) - Sam is trying it on his phone; default stays calm ---- */
+  .sb-top-r { display:flex; align-items:center; }
+  .sb-feel { margin-left: 10px; font-size: 11px; font-weight: 700; letter-spacing:.12em; text-transform:uppercase; color: rgba(247,246,243,.7); text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+  .prog { display:none; }
+  html[data-feel="on"] .prog { display:block; position: fixed; right: 5px; top: 84px; bottom: 28px; width: 3px; border-radius: 3px; background: rgba(247,246,243,.14); z-index: 6; pointer-events:none; }
+  html[data-feel="on"] .prog i { display:block; width:100%; height:100%; border-radius: 3px; background:#E07830; transform-origin: top; transform: scaleY(var(--p, 0)); }
+  @supports (animation-timeline: scroll()) {
+    html[data-feel="on"] .prog i { animation: sb-prog linear both; animation-timeline: scroll(root); }
+  }
+  @keyframes sb-prog { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  html[data-feel="on"] .r { animation: none; }
+  html[data-feel="on"] .r > * { opacity: 0; transform: translateY(36px); transition: opacity .55s ease-out, transform .55s ease-out; }
+  html[data-feel="on"] .r > .seen { opacity: 1; transform: none; }
+  @supports (animation-timeline: view()) {
+    html[data-feel="on"] .r > * { opacity: 1; transform: none; transition: none; animation: sb-settle linear both; animation-timeline: view(); animation-range: entry 0% cover 42%; }
+  }
+  @keyframes sb-settle { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    html[data-feel="on"] .r > * { animation: none !important; opacity: 1 !important; transform: none !important; transition: none !important; }
+  }
   .r { opacity: 1; }
   @supports (animation-timeline: view()) {
     .r { animation: sb-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 35%; }
@@ -110,8 +132,31 @@ const CSS = `
     .pair .num { font-size: 16.5vw; }
     .arrow { font-size: 32px; }
     .sb-top { padding: 12px 16px; }
+    .wide-only { display: none; }
   }
 `
+
+// Motion variant switch. ?feel=on turns on the per-block settle-in and the
+// right-edge progress bar. CSS does the work where scroll-driven animations
+// exist; this only adds fallbacks (IntersectionObserver fade, scroll listener
+// for the bar) where they don't. Nothing runs when the variant is off.
+const FEEL_JS = `(function(){try{
+var on=new URLSearchParams(location.search).get('feel')==='on';
+var a=document.getElementById('sb-feel');
+if(a){a.textContent='Motion: '+(on?'on':'off');a.href=on?location.pathname:'?feel=on';}
+if(!on)return;
+document.documentElement.setAttribute('data-feel','on');
+var S=window.CSS&&CSS.supports;
+if(!(S&&CSS.supports('animation-timeline: view()'))&&'IntersectionObserver' in window){
+ var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('seen');io.unobserve(e.target);}});},{rootMargin:'0px 0px -12% 0px'});
+ var go=function(){document.querySelectorAll('.r > *').forEach(function(el){io.observe(el);});};
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();
+}
+if(!(S&&CSS.supports('animation-timeline: scroll()'))){
+ var upd=function(){var b=document.getElementById('sb-prog');if(!b)return;var h=document.documentElement;var m=h.scrollHeight-h.clientHeight;b.style.setProperty('--p',m>0?(h.scrollTop/m).toFixed(4):'0');};
+ addEventListener('scroll',upd,{passive:true});addEventListener('resize',upd);document.addEventListener('DOMContentLoaded',upd);upd();
+}
+}catch(e){}})();`
 
 export default function ServiceBusinessesPage() {
   const proof: WorkVideo[] = PROOF_SLUGS
@@ -127,8 +172,14 @@ export default function ServiceBusinessesPage() {
           <img src="/logo.png" alt="Oliver Street Creative" />
         </Link>
         {/* DRAFT MARKER - copy awaiting Sam */}
-        <span className="sb-draft">Draft · 9/23/26 · copy awaiting Sam</span>
+        <span className="sb-top-r">
+          <span className="sb-draft">Draft · 9/24/26<span className="wide-only"> · copy awaiting Sam</span></span>
+          {/* STAGING TRY-OUT: flips the motion variant. Remove once Sam picks. */}
+          <a className="sb-feel" id="sb-feel" href="?feel=on">Motion: off</a>
+        </span>
       </header>
+      <div className="prog" aria-hidden="true"><i id="sb-prog" /></div>
+      <script dangerouslySetInnerHTML={{ __html: FEEL_JS }} />
 
       <main>
         {/* 1 · THE HOOK - opens on real OSC footage: our own clients on camera.
@@ -157,10 +208,10 @@ export default function ServiceBusinessesPage() {
         {/* 2 · THE MARKET TRUTH */}
         <section id="trust" className="s alt">
           <div className="in r">
-            <div className="eyebrow">What people actually trust</div>
-            <h2 className="mid">Nielsen asked forty thousand people what they trust. Number one, by a mile: <span className="accent">someone they know.</span></h2>
+            <p className="num">88%<small className="long">trust a recommendation from someone they know more than anything else</small></p>
+            <p className="lede">Word of mouth beats every ad you could buy.</p>
             <span className="src">
-              Nielsen, <a href="https://www.nielsen.com/insights/2021/beyond-martech-building-trust-with-consumers-and-engaging-where-sentiment-is-high/" target="_blank" rel="noopener noreferrer">Trust in Advertising</a>, 2021. 40,000 people, five regions.
+              Nielsen, <a href="https://www.nielsen.com/insights/2021/beyond-martech-building-trust-with-consumers-and-engaging-where-sentiment-is-high/" target="_blank" rel="noopener noreferrer">Trust in Advertising</a>, 2021. Survey of more than 40,000 people in five regions.
             </span>
           </div>
         </section>
@@ -168,15 +219,15 @@ export default function ServiceBusinessesPage() {
         {/* 3 · THE SHIFT */}
         <section id="shift" className="s">
           <div className="in r">
-            <div className="eyebrow">Five years ago, four in five people trusted a review like a friend&rsquo;s word</div>
+            <div className="eyebrow">People who trust an online review as much as a friend&rsquo;s recommendation</div>
             <div className="pair">
               <p className="num">79%<small>2020</small></p>
               <span className="arrow" aria-hidden="true">&rarr;</span>
               <p className="num accent">42%<small>2025</small></p>
             </div>
-            <p className="lede">Now it&rsquo;s two in five. People learned the reviews can be bought.</p>
+            <p className="lede">Nearly cut in half in five years. People still read reviews - they just don&rsquo;t trust the reviewer like they used to.</p>
             <span className="src">
-              BrightLocal, <a href="https://www.brightlocal.com/research/local-consumer-review-survey-2025/" target="_blank" rel="noopener noreferrer">Local Consumer Review Survey 2025</a>. 1,026 US adults.
+              BrightLocal, <a href="https://www.brightlocal.com/research/local-consumer-review-survey-2025/" target="_blank" rel="noopener noreferrer">Local Consumer Review Survey 2025</a>. Survey of 1,026 US adults.
             </span>
           </div>
         </section>
@@ -184,9 +235,9 @@ export default function ServiceBusinessesPage() {
         {/* 4 · WHERE THEY WENT */}
         <section id="watch" className="s alt">
           <div className="in r">
-            <p className="num">3<span className="accent">/</span>4<small>watch video before they call</small></p>
-            <p className="lede">Three out of four people looking for a local business are watching video first. The question is whether it&rsquo;s yours.</p>
-            <span className="src">Same BrightLocal survey, 2025.</span>
+            <p className="num">3<span className="accent in-word"> in </span>4<small className="long">watch video when they look up a local business</small></p>
+            <p className="lede">So when someone looks you up, there&rsquo;s a good chance they&rsquo;re watching something. The question is whether it&rsquo;s yours.</p>
+            <span className="src">Same BrightLocal survey, 2025: 76% of US adults.</span>
           </div>
         </section>
 
@@ -248,9 +299,9 @@ export default function ServiceBusinessesPage() {
           <div className="in r">
             <div className="eyebrow">What we&rsquo;d tell you not to buy</div>
             <div className="body" style={{ maxWidth: "44ch" }}>
-              <p><strong>Not a brand video.</strong> Drone shots and a voiceover about your values. Nobody trusts a company describing itself. That&rsquo;s the whole point of the Nielsen number.</p>
+              <p><strong>Not a brand video.</strong> Drone shots and a voiceover about your values. Nobody trusts a company describing itself. That&rsquo;s what the 88% is telling you.</p>
               <p><strong>Not a scripted customer.</strong> We ask questions. They answer. If it&rsquo;s written for them, it&rsquo;s an ad, and people can tell.</p>
-              <p><strong>Not a paid one.</strong> Since October 2024 a bought testimonial is a federal violation. The real kind is the only kind, which is good news for a company whose customers already like them.</p>
+              <p><strong>Not a bought one.</strong> Since October 2024 the FTC bans fake testimonials and paying people for good reviews. Good news if your customers already like you.</p>
             </div>
             <span className="src">
               FTC, <a href="https://www.ftc.gov/news-events/news/press-releases/2024/08/federal-trade-commission-announces-final-rule-banning-fake-reviews-testimonials" target="_blank" rel="noopener noreferrer">Rule on the Use of Consumer Reviews and Testimonials</a>, 16 CFR Part 465, effective October 21, 2024.
