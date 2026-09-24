@@ -98,35 +98,23 @@ const CSS = `
   .foot a { margin: 0 10px; text-decoration:none; color: rgba(247,246,243,.7); }
   .num small.long { text-transform:none; letter-spacing:0; font-weight:600; font-size: clamp(19px, 2.3vw, 28px); line-height:1.3; color: rgba(247,246,243,.88); max-width: 24ch; margin-left:auto; margin-right:auto; }
   .in-word { font-size: .32em; font-weight: 800; letter-spacing: 0; vertical-align: .9em; margin: 0 .12em; }
-  /* ---- MOTION VARIANT (?feel=on) - Sam is trying it on his phone; default stays calm ---- */
-  .sb-top-r { display:flex; align-items:center; }
-  .sb-feel { margin-left: 10px; font-size: 11px; font-weight: 700; letter-spacing:.12em; text-transform:uppercase; color: rgba(247,246,243,.7); text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; line-height: 1; }
-  .feel-on { display:none; }
-  html[data-feel="on"] .feel-on { display:inline; }
-  html[data-feel="on"] .feel-off { display:none; }
-  .prog { display:none; }
-  html[data-feel="on"] .prog { display:block; position: fixed; right: 5px; top: 84px; bottom: 28px; width: 3px; border-radius: 3px; background: rgba(247,246,243,.14); z-index: 6; pointer-events:none; }
-  html[data-feel="on"] .prog i { display:block; width:100%; height:100%; border-radius: 3px; background:#E07830; transform-origin: top; transform: scaleY(var(--p, 0)); }
+  /* ---- MOTION (Sam picked it 9/24): each line settles in by mid-screen + right-edge progress bar ---- */
+  .prog { position: fixed; right: 5px; top: 84px; bottom: 28px; width: 3px; border-radius: 3px; background: rgba(247,246,243,.14); z-index: 6; pointer-events:none; }
+  .prog i { display:block; width:100%; height:100%; border-radius: 3px; background:#E07830; transform-origin: top; transform: scaleY(var(--p, 0)); }
   @supports (animation-timeline: scroll()) {
-    html[data-feel="on"] .prog i { animation: sb-prog linear both; animation-timeline: scroll(root); }
+    .prog i { animation: sb-prog linear both; animation-timeline: scroll(root); }
   }
   @keyframes sb-prog { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-  html[data-feel="on"] .r { animation: none; }
-  html[data-feel="on"] .r > * { opacity: 0; transform: translateY(36px); transition: opacity .55s ease-out, transform .55s ease-out; }
-  html[data-feel="on"] .r > .seen { opacity: 1; transform: none; }
+  /* Fallback (no scroll-driven animations): only hides lines once the script is running, so no-JS still shows everything. */
+  html[data-motion="io"] .r > * { opacity: 0; transform: translateY(36px); transition: opacity .55s ease-out, transform .55s ease-out; }
+  html[data-motion="io"] .r > .seen { opacity: 1; transform: none; }
   @supports (animation-timeline: view()) {
-    html[data-feel="on"] .r > * { opacity: 1; transform: none; transition: none; animation: sb-settle linear both; animation-timeline: view(); animation-range: entry 0% cover 42%; }
+    .r > * { animation: sb-settle linear both; animation-timeline: view(); animation-range: entry 0% cover 42%; }
   }
   @keyframes sb-settle { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
   @media (prefers-reduced-motion: reduce) {
-    html[data-feel="on"] .r > * { animation: none !important; opacity: 1 !important; transform: none !important; transition: none !important; }
+    .r > * { animation: none !important; opacity: 1 !important; transform: none !important; transition: none !important; }
   }
-  .r { opacity: 1; }
-  @supports (animation-timeline: view()) {
-    .r { animation: sb-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 35%; }
-  }
-  @keyframes sb-rise { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
-  @media (prefers-reduced-motion: reduce) { .r { animation: none !important; } }
   @media (max-width: 720px) {
     .s { padding: clamp(64px, 10vh, 110px) 18px; }
     .grid { grid-template-columns: 1fr; }
@@ -139,16 +127,14 @@ const CSS = `
   }
 `
 
-// Motion variant switch. ?feel=on turns on the per-block settle-in and the
-// right-edge progress bar. CSS does the work where scroll-driven animations
-// exist; this only adds fallbacks (IntersectionObserver fade, scroll listener
-// for the bar) where they don't. Nothing runs when the variant is off.
-const FEEL_JS = `(function(){try{
-var on=new URLSearchParams(location.search).get('feel')==='on';
-if(!on)return;
-document.documentElement.setAttribute('data-feel','on');
+// Motion fallbacks. CSS does the settle-in and the progress bar wherever
+// scroll-driven animations exist (current iOS Safari, Chrome). Only where they
+// don't, this adds an IntersectionObserver fade and a scroll listener for the
+// bar. It never touches text React rendered (that broke hydration once).
+const MOTION_JS = `(function(){try{
 var S=window.CSS&&CSS.supports;
 if(!(S&&CSS.supports('animation-timeline: view()'))&&'IntersectionObserver' in window){
+ document.documentElement.setAttribute('data-motion','io');
  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('seen');io.unobserve(e.target);}});},{rootMargin:'0px 0px -12% 0px'});
  var go=function(){document.querySelectorAll('.r > *').forEach(function(el){io.observe(el);});};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();
@@ -173,15 +159,10 @@ export default function ServiceBusinessesPage() {
           <img src="/logo.png" alt="Oliver Street Creative" />
         </Link>
         {/* DRAFT MARKER - copy awaiting Sam */}
-        <span className="sb-top-r">
-          <span className="sb-draft">Draft · 9/24/26<span className="wide-only"> · copy awaiting Sam</span></span>
-          {/* STAGING TRY-OUT: flips the motion variant. Remove once Sam picks. */}
-          <a className="sb-feel feel-off" href="?feel=on">Motion: off</a>
-          <a className="sb-feel feel-on" href="/service-businesses">Motion: on</a>
-        </span>
+        <span className="sb-draft">Draft · 9/24/26<span className="wide-only"> · copy awaiting Sam</span></span>
       </header>
       <div className="prog" aria-hidden="true"><i id="sb-prog" /></div>
-      <script dangerouslySetInnerHTML={{ __html: FEEL_JS }} />
+      <script dangerouslySetInnerHTML={{ __html: MOTION_JS }} />
 
       <main>
         {/* 1 · THE HOOK - opens on real OSC footage: our own clients on camera.
@@ -311,17 +292,20 @@ export default function ServiceBusinessesPage() {
           </div>
         </section>
 
-        {/* 9 · THE GIVE - the iPhone guide slot (blog, not published yet) */}
+        {/* 9 · THE GIVE - the iPhone guide, offered as a real gift (Sam's words, 9/24).
+            The PDF is the clean share copy of the working draft, hosted at
+            /guides/iphone-testimonial-guide.pdf. When the Ghost blog post goes
+            live, repoint this link there. */}
         <section id="guide" className="s">
           <div className="in r">
-            <div className="eyebrow">Want to try it on your phone first?</div>
-            <h2 className="mid">Good. Here&rsquo;s how.</h2>
+            <div className="eyebrow">Still thinking you&rsquo;d rather do it yourself?</div>
+            <h2 className="mid">Here&rsquo;s a guide we wrote to help you do that.</h2>
             <div className="body">
-              <p>We&rsquo;re putting together a guide to getting a testimonial that actually works on an iPhone. Where to stand, what to ask. When to stop talking.</p>
-              <p>Shoot the job progress yourself. Let us do the one where your customer&rsquo;s face is the product.</p>
+              <p>The technology is very accessible today. If you have the time and the drive, you can absolutely do this yourself.</p>
+              <p>It&rsquo;s the whole job, start to finish - from asking the customer to the file your website plays.</p>
+              <p>We&rsquo;re here for the folks who would rather take it off their plate.</p>
             </div>
-            {/* LINK PLACEHOLDER - the guide will live on blog.oliverstreetcreative.com; swap the href when it's published */}
-            <a className="cta ghost" href="https://blog.oliverstreetcreative.com/" style={{ marginLeft: 0 }}>The iPhone guide - coming soon</a>
+            <a className="cta ghost" href="/guides/iphone-testimonial-guide.pdf" target="_blank" rel="noopener" style={{ marginLeft: 0 }}>Get the iPhone guide (PDF)</a>
           </div>
         </section>
 
