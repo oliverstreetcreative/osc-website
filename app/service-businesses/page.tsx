@@ -59,9 +59,9 @@ const CSS = `
   .sb-top { position: sticky; top:0; z-index:5; display:flex; align-items:center; justify-content:space-between; padding: 14px 20px; background: rgba(20,20,18,.82); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); }
   .sb-top img { height: 34px; width:auto; display:block; }
   .sb-draft { font-size: 11px; font-weight: 700; letter-spacing:.12em; text-transform:uppercase; color: rgba(247,246,243,.85); border: 1px dashed rgba(247,246,243,.55); padding: 5px 9px; }
-  .s { min-height: 100svh; display:grid; place-items:center; padding: 14vh 20px; text-align:center; }
+  .s { min-height: min(100svh, 1000px); display:grid; place-items:center; padding: 14vh 20px; text-align:center; }
   .s.alt { background:#000; }
-  .s.short { min-height: 70svh; }
+  .s.short { min-height: min(70svh, 760px); }
   .in { max-width: 880px; margin: 0 auto; }
   .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: rgba(247,246,243,.5); margin-bottom: 22px; }
   .big { font-size: clamp(40px, 8.6vw, 116px); font-weight: 800; line-height: .98; letter-spacing: -.035em; margin: 0; text-wrap: balance; }
