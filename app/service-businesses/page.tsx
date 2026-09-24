@@ -264,11 +264,11 @@ export default function ServiceBusinessesPage() {
             <div className="eyebrow">Want to try it on your phone first?</div>
             <h2 className="mid">Good. Here&rsquo;s how.</h2>
             <div className="body">
-              <p>We wrote up how to get a testimonial that actually works on an iPhone. Where to stand, what to ask. When to stop talking.</p>
+              <p>We&rsquo;re putting together a guide to getting a testimonial that actually works on an iPhone. Where to stand, what to ask. When to stop talking.</p>
               <p>Shoot the job progress yourself. Let us do the one where your customer&rsquo;s face is the product.</p>
             </div>
             {/* LINK PLACEHOLDER - the guide will live on blog.oliverstreetcreative.com; swap the href when it's published */}
-            <a className="cta ghost" href="https://blog.oliverstreetcreative.com/" style={{ marginLeft: 0 }}>The iPhone testimonial guide (coming)</a>
+            <a className="cta ghost" href="https://blog.oliverstreetcreative.com/" style={{ marginLeft: 0 }}>The iPhone guide - coming soon</a>
           </div>
         </section>
 
