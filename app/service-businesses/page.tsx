@@ -61,6 +61,9 @@ const CSS = `
   .sb-draft { font-size: 11px; font-weight: 700; letter-spacing:.12em; text-transform:uppercase; color: rgba(247,246,243,.85); border: 1px dashed rgba(247,246,243,.55); padding: 5px 9px; }
   .s { min-height: min(100svh, 1000px); display:grid; place-items:center; padding: 14vh 20px; text-align:center; }
   .s.alt { background:#000; }
+  .hero { position: relative; overflow: hidden; }
+  .hero-v { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .hero-shade { position:absolute; inset:0; background: linear-gradient(180deg, rgba(20,20,18,.55) 0%, rgba(20,20,18,.72) 55%, #141412 100%); }
   .s.short { min-height: min(70svh, 760px); }
   .in { max-width: 880px; margin: 0 auto; }
   .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: rgba(247,246,243,.5); margin-bottom: 22px; }
@@ -126,9 +129,23 @@ export default function ServiceBusinessesPage() {
       </header>
 
       <main>
-        {/* 1 · THE HOOK */}
-        <section className="s">
-          <div className="in r">
+        {/* 1 · THE HOOK - opens on real OSC footage: our own clients on camera.
+            Muted HLS loop; iOS Safari plays it natively (no player JS), other
+            browsers show the poster frame. Starts at the reel's poster moment. */}
+        <section className="s hero">
+          <video
+            className="hero-v"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            poster={thumb(REEL.playbackId, REEL.thumbTime, 1280)}
+            src={`https://stream.mux.com/${REEL.playbackId}.m3u8#t=${REEL.thumbTime}`}
+            aria-hidden="true"
+          />
+          <div className="hero-shade" aria-hidden="true" />
+          <div className="in r" style={{ position: "relative" }}>
             <div className="eyebrow">For painters, roofers, remodelers and the trades · Cincinnati</div>
             <h1 className="big">The referral you can <span className="accent">replay.</span></h1>
             <p className="lede">A real customer, on camera, in the finished space. That&rsquo;s word of mouth your next customer can watch.</p>
