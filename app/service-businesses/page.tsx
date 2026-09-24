@@ -134,7 +134,7 @@ export default function ServiceBusinessesPage() {
         {/* 1 · THE HOOK - opens on real OSC footage: our own clients on camera.
             Muted HLS loop; iOS Safari plays it natively (no player JS), other
             browsers show the poster frame. Starts at the reel's poster moment. */}
-        <section className="s hero">
+        <section id="hook" className="s hero">
           <video
             className="hero-v"
             autoPlay
@@ -155,7 +155,7 @@ export default function ServiceBusinessesPage() {
         </section>
 
         {/* 2 · THE MARKET TRUTH */}
-        <section className="s alt">
+        <section id="trust" className="s alt">
           <div className="in r">
             <div className="eyebrow">What people actually trust</div>
             <h2 className="mid">Nielsen asked forty thousand people what they trust. Number one, by a mile: <span className="accent">someone they know.</span></h2>
@@ -166,7 +166,7 @@ export default function ServiceBusinessesPage() {
         </section>
 
         {/* 3 · THE SHIFT */}
-        <section className="s">
+        <section id="shift" className="s">
           <div className="in r">
             <div className="eyebrow">Five years ago, four in five people trusted a review like a friend&rsquo;s word</div>
             <div className="pair">
@@ -182,7 +182,7 @@ export default function ServiceBusinessesPage() {
         </section>
 
         {/* 4 · WHERE THEY WENT */}
-        <section className="s alt">
+        <section id="watch" className="s alt">
           <div className="in r">
             <p className="num">3<span className="accent">/</span>4<small>watch video before they call</small></p>
             <p className="lede">Three out of four people looking for a local business are watching video first. The question is whether it&rsquo;s yours.</p>
@@ -191,7 +191,7 @@ export default function ServiceBusinessesPage() {
         </section>
 
         {/* 5 · WHAT IT MEANS FOR YOU */}
-        <section className="s">
+        <section id="so" className="s">
           <div className="in r">
             <div className="eyebrow">So</div>
             <h2 className="mid">Put your happiest customer on camera.</h2>
@@ -204,7 +204,7 @@ export default function ServiceBusinessesPage() {
         </section>
 
         {/* 6 · VIDEO - designed around a real 2-minute piece of Sam, not shot yet */}
-        <section className="s alt">
+        <section id="video" className="s alt">
           <div className="in r" style={{ maxWidth: "1100px" }}>
             <div className="eyebrow">Two minutes from Sam</div>
             <h2 className="mid">Why this works, from the guy who&rsquo;ll be holding the camera.</h2>
@@ -216,7 +216,7 @@ export default function ServiceBusinessesPage() {
         </section>
 
         {/* 7 · PROOF - real OSC work, the same three Sam chose for Cincinnati Painting Co */}
-        <section className="s">
+        <section id="work" className="s">
           <div className="in r" style={{ maxWidth: "1200px" }}>
             <div className="eyebrow">Work like what you&rsquo;re after</div>
             <h2 className="mid">Our clients, on camera, on what it was like.</h2>
@@ -244,7 +244,7 @@ export default function ServiceBusinessesPage() {
         </section>
 
         {/* 8 · THE HONESTY - Sam's own lines from the 9/6 proposal */}
-        <section className="s alt">
+        <section id="honest" className="s alt">
           <div className="in r">
             <div className="eyebrow">What we&rsquo;d tell you not to buy</div>
             <div className="body" style={{ maxWidth: "44ch" }}>
@@ -259,7 +259,7 @@ export default function ServiceBusinessesPage() {
         </section>
 
         {/* 9 · THE GIVE - the iPhone guide slot (blog, not published yet) */}
-        <section className="s">
+        <section id="guide" className="s">
           <div className="in r">
             <div className="eyebrow">Want to try it on your phone first?</div>
             <h2 className="mid">Good. Here&rsquo;s how.</h2>
@@ -273,7 +273,7 @@ export default function ServiceBusinessesPage() {
         </section>
 
         {/* 10 · THE INVITATION */}
-        <section className="s alt short">
+        <section id="talk" className="s alt short">
           <div className="in r">
             <div className="rule" />
             <h2 className="mid">Got a job you&rsquo;re proud of? Text me.</h2>
