@@ -83,7 +83,7 @@ const CSS = `
   .frame { position: relative; width: 100%; max-width: 1100px; aspect-ratio: 16/9; margin: 34px auto 0; border: 2px dashed rgba(247,246,243,.5); display:grid; place-items:center; background: #000; }
   .frame .play { width: 76px; height: 76px; border-radius: 50%; background: rgba(247,246,243,.92); display:grid; place-items:center; }
   .frame .play i { display:block; width:0; height:0; border-top: 14px solid transparent; border-bottom: 14px solid transparent; border-left: 22px solid #141412; margin-left: 5px; }
-  .frame .label { position:absolute; left: 14px; top: 12px; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgba(247,246,243,.85); text-align:left; }
+  .frame .label { position:absolute; left: 14px; right: 14px; top: 12px; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgba(247,246,243,.85); text-align:left; }
   .grid { display:grid; grid-template-columns: repeat(3, 1fr); gap: 14px; max-width: 1200px; margin: 36px auto 0; text-align:left; }
   .tile { display:block; background: rgba(255,255,255,.05); text-decoration:none; }
   .tile img { width:100%; aspect-ratio:16/9; object-fit:cover; display:block; }
