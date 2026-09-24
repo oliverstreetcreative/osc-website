@@ -107,7 +107,7 @@ const CSS = `
     .grid { grid-template-columns: 1fr; }
     .cta, .cta.ghost { display:block; margin: 14px 0 0; text-align:center; }
     .pair { gap: 10px; }
-    .pair .num { font-size: 21vw; }
+    .pair .num { font-size: 16.5vw; }
     .arrow { font-size: 32px; }
     .sb-top { padding: 12px 16px; }
   }
