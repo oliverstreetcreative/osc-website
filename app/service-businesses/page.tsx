@@ -59,7 +59,7 @@ const CSS = `
   .sb-top { position: sticky; top:0; z-index:5; display:flex; align-items:center; justify-content:space-between; padding: 14px 20px; background: rgba(20,20,18,.82); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); }
   .sb-top img { height: 34px; width:auto; display:block; }
   .sb-draft { font-size: 11px; font-weight: 700; letter-spacing:.12em; text-transform:uppercase; color: rgba(247,246,243,.85); border: 1px dashed rgba(247,246,243,.55); padding: 5px 9px; }
-  .s { min-height: min(100svh, 1000px); display:grid; place-items:center; padding: 14vh 20px; text-align:center; }
+  .s { min-height: min(100svh, 1000px); display:grid; place-items:center; padding: clamp(72px, 12vh, 150px) 20px; text-align:center; }
   .s.alt { background:#000; }
   .hero { position: relative; overflow: hidden; }
   .hero-v { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
@@ -74,8 +74,8 @@ const CSS = `
   .body p { margin: 0 0 18px; }
   .num { font-size: clamp(110px, 26vw, 300px); font-weight: 900; line-height: .88; letter-spacing: -.06em; margin: 0; }
   .num small { display:block; font-size: clamp(16px, 2vw, 22px); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgba(247,246,243,.5); margin-top: 18px; }
-  .pair { display:flex; gap: clamp(20px, 6vw, 80px); align-items: flex-end; justify-content:center; flex-wrap: wrap; }
-  .pair .num { font-size: clamp(84px, 18vw, 220px); }
+  .pair { display:flex; gap: clamp(12px, 4vw, 56px); align-items: flex-end; justify-content:center; flex-wrap: nowrap; }
+  .pair .num { font-size: clamp(64px, 17vw, 190px); }
   .arrow { font-size: clamp(40px, 6vw, 80px); color:#E07830; align-self:center; line-height:1; }
   .accent { color:#E07830; }
   .src { display:block; margin-top: 30px; font-size: 13px; color: rgba(247,246,243,.42); }
@@ -103,10 +103,12 @@ const CSS = `
   @keyframes sb-rise { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
   @media (prefers-reduced-motion: reduce) { .r { animation: none !important; } }
   @media (max-width: 720px) {
-    .s { padding: 12vh 18px; }
+    .s { padding: clamp(64px, 10vh, 110px) 18px; }
     .grid { grid-template-columns: 1fr; }
     .cta, .cta.ghost { display:block; margin: 14px 0 0; text-align:center; }
-    .pair { gap: 8px 22px; }
+    .pair { gap: 10px; }
+    .pair .num { font-size: 21vw; }
+    .arrow { font-size: 32px; }
     .sb-top { padding: 12px 16px; }
   }
 `
