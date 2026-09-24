@@ -472,7 +472,7 @@ export default function HomePage() {
                 But content isn&rsquo;t what moves people. Trust is. People have to believe you.
               </p>
               <p className="services-body" style={{ marginBottom: "16px" }}>
-                That happens when a real person comes through the screen &mdash; a customer, a founder, a family your work helped. Getting that to come through takes craft. Knowing what to ask, when to stop talking, how to light a face so it looks like a person and not an ad, and how to cut it so it still sounds like them.
+                That happens when a real person comes through the screen - a customer, a founder, a family your work helped. Getting that to come through takes craft. Knowing what to ask, when to stop talking, how to light a face so it looks like a person and not an ad, and how to cut it so it still sounds like them.
               </p>
               <p className="services-body" style={{ marginBottom: "16px" }}>
                 It&rsquo;s not flashy. It&rsquo;s good, honest work. That&rsquo;s what we do.
@@ -502,7 +502,7 @@ export default function HomePage() {
                 Real photo needed
               </div>
               <div style={{ fontSize: "14px", lineHeight: 1.5, maxWidth: "320px", opacity: 0.8 }}>
-                Sam on set, behind the camera or with a client. A real photograph &mdash; no AI imagery. The previous image here was AI-generated and has been removed.
+                Sam on set, behind the camera or with a client. A real photograph - no AI imagery. The previous image here was AI-generated and has been removed.
               </div>
             </div>
           </div>

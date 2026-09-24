@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 import { VILLAGE_COOKIE_NAME, verifyVillageCookie } from '@/app/village/lib'
+import { IS_STAGING } from '@/lib/site-env'
 
 const SESSION_COOKIE_NAME = 'osc_session'
 const IMPERSONATION_COOKIE_NAME = 'osc_impersonating'
@@ -13,6 +14,7 @@ const PUBLIC_PATHS = new Set([
   '/casting',
   '/join-our-crew',
   '/locations',
+  '/service-businesses',
 ])
 
 function isPublicPath(pathname: string): boolean {
@@ -153,7 +155,27 @@ function redirectToLogin(req: NextRequest): NextResponse {
   return NextResponse.redirect(url)
 }
 
+// On the STAGING environment every response carries a noindex header so no
+// draft ever ends up in a search index next to the real site. Production is
+// untouched (IS_STAGING is false there). See app/robots.ts for the robots.txt half.
 export async function middleware(req: NextRequest) {
+  if (IS_STAGING && req.nextUrl.pathname === '/robots.txt') {
+    // Staging's robots.txt closes the door. Production keeps /public/robots.txt.
+    return new NextResponse('User-agent: *\nDisallow: /\n', {
+      status: 200,
+      headers: {
+        'content-type': 'text/plain; charset=utf-8',
+        'cache-control': 'no-store',
+        'X-Robots-Tag': 'noindex, nofollow',
+      },
+    })
+  }
+  const res = await route(req)
+  if (IS_STAGING) res.headers.set('X-Robots-Tag', 'noindex, nofollow')
+  return res
+}
+
+async function route(req: NextRequest): Promise<NextResponse> {
   const { pathname } = req.nextUrl
   const host = req.headers.get('host') ?? ''
   const subdomain = getSubdomain(host)

@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter, EB_Garamond } from "next/font/google"
 import "./globals.css"
+import { IS_STAGING } from "@/lib/site-env"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
     canonical: "https://oliverstreetcreative.com/",
   },
   openGraph: {
-    title: "Oliver Street Creative — Strategic Video for Businesses & Nonprofits",
+    title: "Oliver Street Creative - Stories that move hearts, open minds, and build trust",
     description: "Stories that move hearts, open minds, and build trust. Video production in Covington, KY, serving Cincinnati & Northern Kentucky.",
     url: "https://oliverstreetcreative.com",
     siteName: "Oliver Street Creative",
@@ -46,11 +47,13 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Oliver Street Creative — Strategic Video for Businesses & Nonprofits",
+    title: "Oliver Street Creative - Stories that move hearts, open minds, and build trust",
     description: "Stories that move hearts, open minds, and build trust. Video production in Covington, KY.",
     images: ["/og-image.png"],
   },
   viewport: "width=device-width, initial-scale=1",
+  // Staging only: belt to the X-Robots-Tag braces set in middleware.ts.
+  ...(IS_STAGING ? { robots: { index: false, follow: false } } : {}),
 }
 
 export default function RootLayout({
