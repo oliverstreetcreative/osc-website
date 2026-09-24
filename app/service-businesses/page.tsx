@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { WORK_VIDEOS, muxEmbedSrc, type WorkVideo } from "@/lib/work-videos"
+import { FROM_PRICE, FROM_PRICE_LINE } from "@/lib/silo-offer"
 
 // ---------------------------------------------------------------------------
 // /service-businesses - the first silo page, and the template for the rest.
@@ -91,6 +92,8 @@ const CSS = `
   .tile .t b { display:block; font-size: 17px; font-weight: 800; }
   .tile .t span { display:block; font-size: 13px; color: rgba(247,246,243,.6); margin-top: 3px; }
   .player { width:100%; max-width: 1100px; aspect-ratio: 16/9; margin: 30px auto 0; background:#000; border:0; display:block; }
+  .price { margin: 30px auto 0; font-size: clamp(17px, 1.8vw, 21px); color: rgba(247,246,243,.72); letter-spacing: .01em; }
+  .price b { color: #F7F6F3; font-weight: 800; }
   .rule { width: 48px; height: 3px; background:#E07830; margin: 0 auto 28px; }
   .cta { display:inline-block; margin-top: 30px; padding: 18px 34px; background:#E07830; color:#141412; font-weight: 800; letter-spacing:.06em; text-transform: uppercase; font-size: 14px; text-decoration:none; }
   .cta.ghost { background: transparent; color:#F7F6F3; border: 2px solid rgba(247,246,243,.5); margin-left: 10px; }
@@ -234,6 +237,8 @@ export default function ServiceBusinessesPage() {
               <p>We sit down with them in the finished space and let them say what they&rsquo;d tell a neighbor. No script - we ask, they answer. Then we cut it against the work.</p>
               <p>That&rsquo;s the referral, captured once, watched by people they&rsquo;ll never meet. On your website, and in the follow-up after every estimate.</p>
             </div>
+            {/* FROM PRICE - Sam 9/24; wording lives in lib/silo-offer.ts */}
+            <p className="price" aria-label={FROM_PRICE_LINE}>Packages from <b>{FROM_PRICE}</b> per video</p>
           </div>
         </section>
 
@@ -315,6 +320,7 @@ export default function ServiceBusinessesPage() {
             <div className="rule" />
             <h2 className="mid">Got a job you&rsquo;re proud of? Text me.</h2>
             <p className="lede">I&rsquo;ll read your reviews and tell you which customers belong on camera. No charge, and you can shoot them on a phone if you want!</p>
+            <p className="price" aria-label={FROM_PRICE_LINE}>Packages from <b>{FROM_PRICE}</b> per video</p>
             <div>
               <a className="cta" href="sms:+18595121419">(859) 512-1419</a>
               <a className="cta ghost" href="https://cal.com/oliverstreetcreative" target="_blank" rel="noopener noreferrer">Book 20 minutes</a>
