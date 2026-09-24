@@ -100,7 +100,10 @@ const CSS = `
   .in-word { font-size: .32em; font-weight: 800; letter-spacing: 0; vertical-align: .9em; margin: 0 .12em; }
   /* ---- MOTION VARIANT (?feel=on) - Sam is trying it on his phone; default stays calm ---- */
   .sb-top-r { display:flex; align-items:center; }
-  .sb-feel { margin-left: 10px; font-size: 11px; font-weight: 700; letter-spacing:.12em; text-transform:uppercase; color: rgba(247,246,243,.7); text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+  .sb-feel { margin-left: 10px; font-size: 11px; font-weight: 700; letter-spacing:.12em; text-transform:uppercase; color: rgba(247,246,243,.7); text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; line-height: 1; }
+  .feel-on { display:none; }
+  html[data-feel="on"] .feel-on { display:inline; }
+  html[data-feel="on"] .feel-off { display:none; }
   .prog { display:none; }
   html[data-feel="on"] .prog { display:block; position: fixed; right: 5px; top: 84px; bottom: 28px; width: 3px; border-radius: 3px; background: rgba(247,246,243,.14); z-index: 6; pointer-events:none; }
   html[data-feel="on"] .prog i { display:block; width:100%; height:100%; border-radius: 3px; background:#E07830; transform-origin: top; transform: scaleY(var(--p, 0)); }
@@ -142,8 +145,6 @@ const CSS = `
 // for the bar) where they don't. Nothing runs when the variant is off.
 const FEEL_JS = `(function(){try{
 var on=new URLSearchParams(location.search).get('feel')==='on';
-var a=document.getElementById('sb-feel');
-if(a){a.textContent='Motion: '+(on?'on':'off');a.href=on?location.pathname:'?feel=on';}
 if(!on)return;
 document.documentElement.setAttribute('data-feel','on');
 var S=window.CSS&&CSS.supports;
@@ -175,7 +176,8 @@ export default function ServiceBusinessesPage() {
         <span className="sb-top-r">
           <span className="sb-draft">Draft · 9/24/26<span className="wide-only"> · copy awaiting Sam</span></span>
           {/* STAGING TRY-OUT: flips the motion variant. Remove once Sam picks. */}
-          <a className="sb-feel" id="sb-feel" href="?feel=on">Motion: off</a>
+          <a className="sb-feel feel-off" href="?feel=on">Motion: off</a>
+          <a className="sb-feel feel-on" href="/service-businesses">Motion: on</a>
         </span>
       </header>
       <div className="prog" aria-hidden="true"><i id="sb-prog" /></div>
