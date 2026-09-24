@@ -73,7 +73,7 @@ const CSS = `
   .body { font-size: clamp(18px, 1.9vw, 22px); line-height: 1.45; color: rgba(247,246,243,.78); max-width: 40ch; margin: 22px auto 0; text-align:left; text-wrap: pretty; }
   .body p { margin: 0 0 18px; }
   .num { font-size: clamp(110px, 26vw, 300px); font-weight: 900; line-height: .88; letter-spacing: -.06em; margin: 0; }
-  .num small { display:block; font-size: clamp(16px, 2vw, 22px); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgba(247,246,243,.5); margin-top: 18px; }
+  .num small { display:block; font-size: clamp(16px, 2vw, 22px); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgba(247,246,243,.5); margin-top: clamp(18px, 3.2vw, 44px); }
   .pair { display:flex; gap: clamp(12px, 4vw, 56px); align-items: flex-end; justify-content:center; flex-wrap: nowrap; }
   .pair .num { font-size: clamp(64px, 17vw, 190px); }
   .arrow { font-size: clamp(40px, 6vw, 80px); color:#E07830; align-self:center; line-height:1; }
