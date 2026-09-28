@@ -48,7 +48,7 @@ const PILLARS: Pillar[] = [
     color: "#D13B2E",
     what: "Fundraising and nonprofit story films",
     body:
-      "The film that plays at the gala or the breakfast, in the room where people decide whether to give.",
+      "The video that plays at your gala or fundraising breakfast, right before people decide whether to give.",
     workSlugs: ["phoenixs-story", "janells-story"],
     quote: {
       text: "The partnership with Oliver Street Creative was so valuable in understanding our goals and our values and the mission and impact that we wanted to communicate.",
@@ -62,7 +62,7 @@ const PILLARS: Pillar[] = [
     color: "#2E6B9C",
     what: "Campaigns, advocacy and education",
     body:
-      "Video made to change what someone thinks, and then what they do about it.",
+      "Campaign spots and videos for causes and schools, made to change what people think.",
     workSlugs: [],
     quote: {
       text: "It comes down to content, creativity, creative editing, and storytelling. That's what separates the crowd from working with Oliver Street.",
@@ -77,7 +77,7 @@ const PILLARS: Pillar[] = [
     color: "#F2C14E",
     what: "Testimonials, brand and commercial films",
     body:
-      "A real customer or a real founder saying what they actually think, shot so the person comes through and not the pitch.",
+      "Your customers, or you, on camera talking honestly about the work. We shoot it so they sound like themselves.",
     workSlugs: ["boone-county-2025"],
     quote: {
       text: "Oliver Street brought a level of depth and soul to our production that we wouldn't have had otherwise.",
@@ -86,6 +86,24 @@ const PILLARS: Pillar[] = [
     },
   },
 ]
+
+// Homepage copy, plain-language pass (Jesse Dacri's claudespeak note 9/27;
+// Sam approved it outright 22:35). Written through sam-voice.
+const HOME_COPY: Record<string, string> = {
+  pillarsH2: "What we make.",
+  pillarsLede: "We make three kinds of videos. Here’s each one, with work to show for it.",
+  "body:move-hearts":
+    "The video that plays at your gala or fundraising breakfast, right before people decide whether to give.",
+  "body:open-minds":
+    "Campaign spots and videos for causes and schools, made to change what people think.",
+  "body:build-trust":
+    "Your customers, or you, on camera talking honestly about the work. We shoot it so they sound like themselves.",
+  workH2: "Some of our work.",
+  ownPage: "Watch on its own page",
+  creditsH2: "We come from the movie business.",
+  contactBody:
+    "Book a free call and tell us what you need. We’ll tell you how we’d shoot it and what it would cost.",
+}
 
 const PILLAR_BY_SLUG: Record<string, Pillar> = Object.fromEntries(
   PILLARS.flatMap((p) => p.workSlugs.map((s) => [s, p])),
@@ -127,6 +145,8 @@ export default function HomePage() {
   const splashDismissedRef = useRef(false)
   const heroRef = useRef<HTMLElement>(null)
   const filmCreditsRef = useRef<HTMLDivElement>(null)
+
+  const t = (k: keyof typeof HOME_COPY) => HOME_COPY[k]
 
   useEffect(() => {
     const fetchTMDBData = async () => {
@@ -515,10 +535,10 @@ export default function HomePage() {
               What We Do
             </div>
             <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, maxWidth: "900px", margin: "0 auto 32px auto" }}>
-              Three jobs a story can do.
+              {t("pillarsH2")}
             </h2>
             <div style={{ fontSize: "18px", lineHeight: 1.7, maxWidth: "640px", color: "#8A8A84", margin: "0 auto 64px auto" }}>
-              Every film we make is built to do one of them. Here is what that looks like, with the work to prove it.
+              {t("pillarsLede")}
             </div>
           </div>
 
@@ -545,7 +565,7 @@ export default function HomePage() {
                   <h3 style={{ fontSize: "clamp(28px, 3vw, 40px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05 }}>
                     {p.label}.
                   </h3>
-                  <p style={{ fontSize: "16px", lineHeight: 1.7, color: "#C8C7C2" }}>{p.body}</p>
+                  <p style={{ fontSize: "16px", lineHeight: 1.7, color: "#C8C7C2" }}>{t(`body:${p.key}`)}</p>
 
                   {works.length > 0 && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "4px" }}>
@@ -618,10 +638,10 @@ export default function HomePage() {
               Work
             </div>
             <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, maxWidth: "900px", margin: "0 auto 32px auto" }}>
-              See it for yourself.
+              {t("workH2")}
             </h2>
             <div style={{ fontSize: "18px", lineHeight: 1.7, maxWidth: "640px", color: "rgba(255,255,255,0.75)", margin: "0 auto 64px auto" }}>
-              Here are a few of the stories we&rsquo;ve had the privilege to tell.
+              A few of the films we&rsquo;ve made.
             </div>
           </div>
 
@@ -700,7 +720,7 @@ export default function HomePage() {
                     <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.6)" }}>{item.client}</p>
                     <p style={{ fontSize: "12px", marginTop: "8px" }}>
                       <a href={`/work/${item.slug}`} onClick={(e) => e.stopPropagation()} style={{ color: "rgba(255,255,255,0.6)", textDecoration: "underline", textUnderlineOffset: "4px" }}>
-                        Open in its own page
+                        {t("ownPage")}
                       </a>
                     </p>
                   </div>
@@ -727,7 +747,7 @@ export default function HomePage() {
           </h2>
 
           <p style={{ fontSize: "17px", lineHeight: 1.7, maxWidth: "560px", margin: "0 auto 56px auto", color: "rgba(20,20,18,0.65)" }}>
-            Don&rsquo;t just take our word for it&mdash;hear from the founders, nonprofits, and developers we&rsquo;ve helped tell their stories.
+            Here&rsquo;s what a few of our clients said about working with us.
           </p>
 
           <div className="testimonial-featured" style={{ maxWidth: "1100px", margin: "0 auto 56px auto" }}>
@@ -854,11 +874,11 @@ export default function HomePage() {
             </div>
 
             <h2 style={{ fontSize: "clamp(36px, 6vw, 80px)", fontWeight: 900, letterSpacing: "-0.02em", lineHeight: 1.05, maxWidth: "900px", margin: "0 auto 32px auto" }}>
-              The craft comes from the movies.
+              {t("creditsH2")}
             </h2>
 
             <div style={{ fontSize: "18px", fontWeight: 400, lineHeight: 1.7, maxWidth: "640px", color: "#8A8A84", margin: "0 auto 48px auto" }}>
-              We&rsquo;ve spent years on Hollywood film sets, and that experience shapes every video we make.
+              We&rsquo;ve spent years working on Hollywood film sets. These are some of the movies and shows.
             </div>
           </div>
 
@@ -1023,7 +1043,7 @@ export default function HomePage() {
             <div style={{ padding: "32px", backgroundColor: "rgba(0,0,0,0.2)" }}>
               <h3 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "20px" }}>Ready to Start?</h3>
               <p style={{ lineHeight: 1.8, marginBottom: "24px" }}>
-                Book a free call. Tell us who needs to trust you, and we&rsquo;ll talk about the story that gets you there.
+                {t("contactBody")}
               </p>
               <a
                 href="https://cal.com/oliverstreetcreative"

@@ -27,12 +27,12 @@ import { FROM_PRICE, FROM_PRICE_LINE } from "@/lib/silo-offer"
 export const metadata: Metadata = {
   title: "The referral you can replay | Oliver Street Creative",
   description:
-    "Customer testimonial films for painters, roofers, remodelers and the trades in Cincinnati and Northern Kentucky. A real customer, on camera, in the finished space.",
+    "Customer testimonial videos for painters, roofers, remodelers and the trades in Cincinnati and Northern Kentucky. We film your happiest customer at the finished job.",
   alternates: { canonical: "https://oliverstreetcreative.com/service-businesses" },
   openGraph: {
     title: "The referral you can replay",
     description:
-      "A real customer, on camera, in the finished space. Word of mouth your next customer can watch.",
+      "We film your happiest customer at the finished job, saying what they'd tell a neighbor.",
     url: "https://oliverstreetcreative.com/service-businesses",
     siteName: "Oliver Street Creative",
     type: "website",
@@ -148,7 +148,30 @@ if(!(S&&CSS.supports('animation-timeline: scroll()'))){
 }
 }catch(e){}})();`
 
+// Page copy, plain-language pass (Jesse Dacri's claudespeak note 9/27; Sam
+// approved it outright 22:35). Written through sam-voice.
+const COPY: Record<string, string> = {
+  heroLede:
+    "We film your happiest customer at the finished job, saying what they’d tell a neighbor. Then your next customer gets to hear it.",
+  watchLede: "So when someone looks you up, a video of one of your jobs should be there to find.",
+  so1: "You’ve already got the hard part - a finished job and a customer who’s happy with it.",
+  so2: "We sit down with them at the job and ask questions. There’s no script, they just talk. Then we cut what they say together with footage of the work.",
+  so3: "Put it on your website and send the link with every estimate. Now people who’ve never met that customer get to hear from them.",
+  videoH2: "Hear it from me.",
+  workH2: "Here’s some of our work.",
+  workLede:
+    "The first video is our own clients talking about working with us. Below it are two we made for clients: a fundraising film for Learning Grove and a year-end report for the Boone County Prosecutors’ Office.",
+  honest1:
+    "Skip the drone shots and the voiceover about your values. People don’t trust a company talking about itself - that’s what the 88% means.",
+  honest2:
+    "We ask questions and let your customer answer in their own words. If you write it for them, people can tell.",
+  honest3:
+    "Since October 2024 the FTC bans fake testimonials and paying people for good reviews. That’s good news if your customers already like you!",
+  guide2: "It covers everything, from asking your customer to exporting the video for your website.",
+}
+
 export default function ServiceBusinessesPage() {
+  const t = (k: keyof typeof COPY) => COPY[k]
   const proof: WorkVideo[] = PROOF_SLUGS
     .map((s) => WORK_VIDEOS.find((v) => v.slug === s))
     .filter((v): v is WorkVideo => Boolean(v))
@@ -187,7 +210,7 @@ export default function ServiceBusinessesPage() {
           <div className="in r" style={{ position: "relative" }}>
             <div className="eyebrow">For painters, roofers, remodelers and the trades · Cincinnati</div>
             <h1 className="big">The referral you can <span className="accent">replay.</span></h1>
-            <p className="lede">A real customer, on camera, in the finished space. That&rsquo;s word of mouth your next customer can watch.</p>
+            <p className="lede">{t("heroLede")}</p>
           </div>
         </section>
 
@@ -222,7 +245,7 @@ export default function ServiceBusinessesPage() {
         <section id="watch" className="s alt">
           <div className="in r">
             <p className="num">3<span className="accent in-word"> in </span>4<small className="long">watch video when they look up a local business</small></p>
-            <p className="lede">So when someone looks you up, there&rsquo;s a good chance they&rsquo;re watching something. The question is whether it&rsquo;s yours.</p>
+            <p className="lede">{t("watchLede")}</p>
             <span className="src">Same BrightLocal survey, 2025: 76% of US adults.</span>
           </div>
         </section>
@@ -233,9 +256,9 @@ export default function ServiceBusinessesPage() {
             <div className="eyebrow">So</div>
             <h2 className="mid">Put your happiest customer on camera.</h2>
             <div className="body">
-              <p>The job&rsquo;s done. They love it. The before and after already exists.</p>
-              <p>We sit down with them in the finished space and let them say what they&rsquo;d tell a neighbor. No script - we ask, they answer. Then we cut it against the work.</p>
-              <p>That&rsquo;s the referral, captured once, watched by people they&rsquo;ll never meet. On your website, and in the follow-up after every estimate.</p>
+              <p>{t("so1")}</p>
+              <p>{t("so2")}</p>
+              <p>{t("so3")}</p>
             </div>
             {/* FROM PRICE - Sam 9/24; wording lives in lib/silo-offer.ts */}
             <p className="price" aria-label={FROM_PRICE_LINE}>Packages from <b>{FROM_PRICE}</b> per video</p>
@@ -246,7 +269,7 @@ export default function ServiceBusinessesPage() {
         <section id="video" className="s alt">
           <div className="in r" style={{ maxWidth: "1100px" }}>
             <div className="eyebrow">Two minutes from Sam</div>
-            <h2 className="mid">Why this works, from the guy who&rsquo;ll be holding the camera.</h2>
+            <h2 className="mid">{t("videoH2")}</h2>
             <div className="frame" role="img" aria-label="Video placeholder: Sam on camera, about two minutes, not shot yet">
               <span className="label">VIDEO: Sam on camera, ~2 min stadium pitch - not shot yet</span>
               <div className="play"><i /></div>
@@ -258,8 +281,8 @@ export default function ServiceBusinessesPage() {
         <section id="work" className="s">
           <div className="in r" style={{ maxWidth: "1200px" }}>
             <div className="eyebrow">Work like what you&rsquo;re after</div>
-            <h2 className="mid">Our clients, on camera, on what it was like.</h2>
-            <p className="lede">A story told by one person, a year told by an office, and our own clients on working with us.</p>
+            <h2 className="mid">{t("workH2")}</h2>
+            <p className="lede">{t("workLede")}</p>
             <iframe
               className="player"
               src={`https://player.mux.com/${REEL.playbackId}?thumbnail_time=${REEL.thumbTime}&poster=${encodeURIComponent(thumb(REEL.playbackId, REEL.thumbTime, 1280))}`}
@@ -287,9 +310,9 @@ export default function ServiceBusinessesPage() {
           <div className="in r">
             <div className="eyebrow">What we&rsquo;d tell you not to buy</div>
             <div className="body" style={{ maxWidth: "44ch" }}>
-              <p><strong>Not a brand video.</strong> Drone shots and a voiceover about your values. Nobody trusts a company describing itself. That&rsquo;s what the 88% is telling you.</p>
-              <p><strong>Not a scripted customer.</strong> We ask questions. They answer. If it&rsquo;s written for them, it&rsquo;s an ad, and people can tell.</p>
-              <p><strong>Not a bought one.</strong> Since October 2024 the FTC bans fake testimonials and paying people for good reviews. Good news if your customers already like you.</p>
+              <p><strong>Not a brand video.</strong> {t("honest1")}</p>
+              <p><strong>Not a scripted customer.</strong> {t("honest2")}</p>
+              <p><strong>Not a bought one.</strong> {t("honest3")}</p>
             </div>
             <span className="src">
               FTC, <a href="https://www.ftc.gov/news-events/news/press-releases/2024/08/federal-trade-commission-announces-final-rule-banning-fake-reviews-testimonials" target="_blank" rel="noopener noreferrer">Rule on the Use of Consumer Reviews and Testimonials</a>, 16 CFR Part 465, effective October 21, 2024.
@@ -307,7 +330,7 @@ export default function ServiceBusinessesPage() {
             <h2 className="mid">Here&rsquo;s a guide we wrote to help you do that.</h2>
             <div className="body">
               <p>The technology is very accessible today. If you have the time and the drive, you can absolutely do this yourself.</p>
-              <p>It&rsquo;s the whole job, start to finish - from asking the customer to the file your website plays.</p>
+              <p>{t("guide2")}</p>
               <p>We&rsquo;re here for the folks who would rather take it off their plate.</p>
             </div>
             <a className="cta ghost" href="/guides/iphone-testimonial-guide.pdf" target="_blank" rel="noopener" style={{ marginLeft: 0 }}>Get the iPhone guide (PDF)</a>

@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       ? `A proposal for ${page.prospect} | Oliver Street Creative`
       : `Selected work for ${page.prospect} | Oliver Street Creative`,
     description: isProposal
-      ? `${page.proposal?.headline} — a proposal from Oliver Street Creative for ${page.prospect}.`
+      ? `${page.proposal?.headline} A proposal from Oliver Street Creative for ${page.prospect}.`
       : `A hand-picked selection of Oliver Street Creative films for ${page.prospect}.`,
     // These pages are for one recipient — never for search engines.
     robots: { index: false, follow: false },
