@@ -3,8 +3,9 @@
 set -euo pipefail
 
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
-export HOME="/Users/sampatton"
+REPO="$(cd "$(dirname "$0")/.." && pwd)"   # this Mac's checkout, whatever the login name
 
-cd /Users/sampatton/code/osc-website
+cd "$REPO"
+mkdir -p logs
 railway run -- npx tsx scripts/publish.ts "$@" \
-  >> /Users/sampatton/code/osc-website/logs/publish.log 2>&1
+  >> "$REPO"/logs/publish.log 2>&1
