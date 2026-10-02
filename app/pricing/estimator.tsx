@@ -1,35 +1,30 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import type { Vocab } from "@/lib/estimator/vocab"
 
-// The estimator's controls. Holds NO prices: every change posts the choices to
-// /api/estimate and shows what comes back.
+// The SIMPLE quote's controls. Holds NO prices: every change posts the answers
+// to /api/estimate and shows the range that comes back.
 
-type Level = "simple" | "story" | "produced"
-type Result = {
-  low: number
-  high: number
-  from: number
-  flexible: { applied: boolean; pctLabel: string; saved: number; heldAtFloor: boolean }
-}
-
-const LEVELS: { id: Level; name: string; note: string }[] = [
-  { id: "simple", name: "Simple", note: "One person talking, one place. A testimonial." },
-  { id: "story", name: "A story", note: "A few people, a couple of places. Most of our work." },
-  { id: "produced", name: "Big production", note: "More setups, more people, a bigger day." },
-]
-
+type Range = { low: number; high: number }
 const money = (n: number) => "$" + n.toLocaleString("en-US")
 
-export default function Estimator({ mode }: { mode: "range" | "floor" }) {
-  const [level, setLevel] = useState<Level>("simple")
-  const [shootDays, setShootDays] = useState(1)
-  const [videos, setVideos] = useState(1)
-  const [drone, setDrone] = useState(false)
-  const [socialCuts, setSocialCuts] = useState(false)
-  const [flexibleDates, setFlexibleDates] = useState(false)
-  const [result, setResult] = useState<Result | null>(null)
+export default function Estimator({ vocab }: { vocab: Vocab }) {
+  const [kind, setKind] = useState(vocab.kinds[0].id)
+  const [quality, setQuality] = useState(vocab.qualities[0].id)
+  const [deadline, setDeadline] = useState("firm")
+  const [handles, setHandles] = useState<string[]>(vocab.handles.filter((h) => h.defaultOn).map((h) => h.id))
+  const [showDays, setShowDays] = useState(false)
+  const [shootDays, setShootDays] = useState(vocab.kinds[0].shootDays)
+  const [daysTouched, setDaysTouched] = useState(false)
+  const [pickupDays, setPickupDays] = useState(0)
+  const [range, setRange] = useState<Range | null>(null)
   const seq = useRef(0)
+
+  // The day count is pre-filled from the kind of video until someone moves it.
+  useEffect(() => {
+    if (!daysTouched) setShootDays(vocab.kinds.find((k) => k.id === kind)?.shootDays ?? 1)
+  }, [kind, daysTouched, vocab.kinds])
 
   useEffect(() => {
     const id = ++seq.current
@@ -38,96 +33,112 @@ export default function Estimator({ mode }: { mode: "range" | "floor" }) {
         const r = await fetch("/api/estimate", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ level, shootDays, videos, drone, socialCuts, flexibleDates }),
+          body: JSON.stringify({
+            kind, quality, deadline, handles,
+            shootDays: showDays && daysTouched ? shootDays : undefined,
+            pickupDays: showDays ? pickupDays : undefined,
+          }),
         })
         const j = await r.json()
-        if (id === seq.current && r.ok) setResult(j)
+        if (id === seq.current && r.ok) setRange(j)
       } catch {
-        /* keep the last number */
+        /* keep the last range */
       }
     }, 120)
     return () => clearTimeout(t)
-  }, [level, shootDays, videos, drone, socialCuts, flexibleDates])
+  }, [kind, quality, deadline, handles, shootDays, pickupDays, showDays, daysTouched])
+
+  const toggle = (id: string) => setHandles((hs) => (hs.includes(id) ? hs.filter((h) => h !== id) : [...hs, id]))
 
   return (
     <div className="pe-card">
       <fieldset className="pe-q">
         <legend>What kind of video?</legend>
         <div className="pe-levels">
-          {LEVELS.map((l) => (
-            <button
-              key={l.id}
-              type="button"
-              className={"pe-level" + (level === l.id ? " on" : "")}
-              aria-pressed={level === l.id}
-              onClick={() => setLevel(l.id)}
-            >
-              <b>{l.name}</b>
-              <span>{l.note}</span>
+          {vocab.kinds.map((k) => (
+            <button key={k.id} type="button" className={"pe-level" + (kind === k.id ? " on" : "")} aria-pressed={kind === k.id} onClick={() => setKind(k.id)}>
+              <b>{k.label}</b>
+              <span>{k.note}</span>
             </button>
           ))}
         </div>
       </fieldset>
 
-      <label className="pe-q">
-        <span className="pe-qh">
-          How many shoot days? <b>{shootDays}</b>
-        </span>
-        <input type="range" min={1} max={5} step={1} value={shootDays} onChange={(e) => setShootDays(+e.target.value)} />
-        <span className="pe-scale"><i>1</i><i>5</i></span>
-      </label>
+      <fieldset className="pe-q">
+        <legend>How should it look?</legend>
+        <div className="pe-levels">
+          {vocab.qualities.map((q) => (
+            <button key={q.id} type="button" className={"pe-level" + (quality === q.id ? " on" : "")} aria-pressed={quality === q.id} onClick={() => setQuality(q.id)}>
+              <b>{q.label}</b>
+              <span>{q.note}</span>
+            </button>
+          ))}
+        </div>
+      </fieldset>
 
-      <label className="pe-q">
-        <span className="pe-qh">
-          How many finished videos? <b>{videos}</b>
+      <fieldset className="pe-q">
+        <legend>How strict is your deadline?</legend>
+        <div className="pe-seg" role="radiogroup">
+          {vocab.deadlines.map((d) => (
+            <button key={d.id} type="button" role="radio" aria-checked={deadline === d.id} className={deadline === d.id ? "on" : ""} onClick={() => setDeadline(d.id)}>
+              {d.label}
+            </button>
+          ))}
+        </div>
+        <span className="pe-sub">
+          {vocab.deadlines.find((d) => d.id === deadline)?.note}
+          {deadline === "flexible" && <em className="pe-drafttag"> DRAFT % · amount not set yet</em>}
         </span>
-        <input type="range" min={1} max={6} step={1} value={videos} onChange={(e) => setVideos(+e.target.value)} />
-        <span className="pe-sub">Each one up to about 4 minutes.</span>
-      </label>
+      </fieldset>
 
-      <div className="pe-q">
-        <span className="pe-qh">Extras</span>
-        <label className="pe-check">
-          <input type="checkbox" checked={drone} onChange={(e) => setDrone(e.target.checked)} />
-          <span>Drone shots</span>
-        </label>
-        <label className="pe-check">
-          <input type="checkbox" checked={socialCuts} onChange={(e) => setSocialCuts(e.target.checked)} />
-          <span>Short cut-downs for social</span>
-        </label>
-      </div>
+      <fieldset className="pe-q">
+        <legend>Oliver Street handles&hellip;</legend>
+        <div className="pe-checks">
+          {vocab.handles.map((h) => (
+            <label key={h.id} className="pe-check">
+              <input type="checkbox" checked={handles.includes(h.id)} onChange={() => toggle(h.id)} />
+              <span>{h.label}</span>
+            </label>
+          ))}
+        </div>
+        <span className="pe-sub">Leave a box empty if you&rsquo;ll bring that yourself.</span>
+      </fieldset>
 
-      <label className="pe-flex">
-        <input type="checkbox" checked={flexibleDates} onChange={(e) => setFlexibleDates(e.target.checked)} />
-        <span>
-          <b>I&rsquo;m flexible on dates</b>
-          <span>Let us pick a shoot date that fits our calendar and you pay less.</span>
-          <em className="pe-drafttag">{result?.flexible.pctLabel ?? "DRAFT %"} · amount not set yet</em>
-        </span>
-      </label>
+      {!showDays ? (
+        <button type="button" className="pe-more" onClick={() => setShowDays(true)}>
+          Know how many days you need? Adjust them &rsaquo;
+        </button>
+      ) : (
+        <div className="pe-q">
+          <label className="pe-q" style={{ marginBottom: 18 }}>
+            <span className="pe-qh">
+              Shoot days <b>{shootDays}</b>
+            </span>
+            <input type="range" min={1} max={5} step={1} value={shootDays} onChange={(e) => { setDaysTouched(true); setShootDays(+e.target.value) }} />
+          </label>
+          <div className="pe-qh">
+            <span>Pickup days</span>
+            <span className="pe-step">
+              <button type="button" aria-label="Fewer pickup days" onClick={() => setPickupDays((n) => Math.max(0, n - 1))}>&minus;</button>
+              <b>{pickupDays}</b>
+              <button type="button" aria-label="More pickup days" onClick={() => setPickupDays((n) => Math.min(3, n + 1))}>+</button>
+            </span>
+          </div>
+          <span className="pe-sub">A short extra day later, with just a camera or a drone.</span>
+        </div>
+      )}
 
       <div className="pe-result" aria-live="polite">
-        {!result ? (
-          <p className="pe-num">…</p>
-        ) : mode === "floor" || result.low === result.high ? (
-          <>
-            <p className="pe-say">Projects like this start at</p>
-            <p className="pe-num">{money(result.from)}</p>
-          </>
-        ) : (
-          <>
-            <p className="pe-say">Most projects like this land between</p>
-            <p className="pe-num">
-              {money(result.low)}<span className="pe-dash">&ndash;</span>{money(result.high)}
-            </p>
-          </>
-        )}
-        {result?.flexible.applied && result.flexible.saved > 0 && (
-          <p className="pe-save">About {money(result.flexible.saved)} less with flexible dates.</p>
-        )}
-        {result?.flexible.applied && result.flexible.heldAtFloor && (
-          <p className="pe-save dim">$3,999 is our floor, so the smallest jobs stay there.</p>
-        )}
+        <p className="pe-say">Projects like this usually land between</p>
+        <p className="pe-num">
+          {range ? (
+            <>
+              {money(range.low)}<span className="pe-dash">&ndash;</span>{money(range.high)}
+            </>
+          ) : (
+            "…"
+          )}
+        </p>
         <div className="pe-ctas">
           <a className="pe-cta" href="sms:+18595121419">Text Sam · (859) 512-1419</a>
           <a className="pe-cta ghost" href="https://cal.com/oliverstreetcreative" target="_blank" rel="noopener noreferrer">

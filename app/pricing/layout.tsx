@@ -25,10 +25,19 @@ const CSS = `
   .pe input[type=range] { width: 100%; accent-color: #E07830; height: 28px; }
   .pe-check { display:flex; gap: 10px; align-items:center; font-size: 16px; padding: 6px 0; }
   .pe input[type=checkbox] { width: 22px; height: 22px; accent-color: #E07830; flex: none; }
+  .pe-checks { display:grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+  .pe-seg { display:grid; grid-template-columns: repeat(3, 1fr); border: 2px solid rgba(247,246,243,.2); }
+  .pe-seg button { background: transparent; color: inherit; border: 0; padding: 12px 6px; font: inherit; font-weight: 700; font-size: 16px; cursor: pointer; }
+  .pe-seg button + button { border-left: 2px solid rgba(247,246,243,.2); }
+  .pe-seg button.on { background: rgba(224,120,48,.18); color: #F7F6F3; box-shadow: inset 0 -3px 0 #E07830; }
+  .pe-more { background: transparent; border: 0; color: #E07830; font: inherit; font-size: 15px; font-weight: 700; padding: 0; margin: 0 0 24px; cursor: pointer; text-align: left; }
+  .pe-step { display:inline-flex; align-items:center; gap: 14px; }
+  .pe-step button { width: 36px; height: 36px; border: 2px solid rgba(247,246,243,.35); background: transparent; color: inherit; font-size: 20px; line-height: 1; cursor: pointer; }
+  .pe-step b { color:#E07830; font-size: 22px; min-width: 1ch; text-align:center; }
   .pe-flex { display:flex; gap: 12px; align-items:flex-start; border: 2px dashed rgba(224,120,48,.6); padding: 14px; margin-bottom: 24px; }
   .pe-flex > span > b { display:block; font-size: 17px; }
   .pe-flex > span > span { display:block; font-size: 14px; color: rgba(247,246,243,.65); margin-top: 3px; }
-  .pe-drafttag { display:inline-block; margin-top: 8px; font-style: normal; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color:#E07830; }
+  .pe-drafttag { display:inline-block; margin-top: 4px; font-style: normal; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color:#E07830; }
   .pe-result { text-align:center; border-top: 1px solid rgba(255,255,255,.12); padding-top: 22px; }
   .pe-say { margin:0; font-size: 16px; color: rgba(247,246,243,.65); }
   .pe-num { margin: 6px 0 0; font-size: clamp(38px, 10vw, 64px); font-weight: 900; letter-spacing: -.04em; line-height:1.05; }

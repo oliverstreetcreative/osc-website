@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server"
 import { IS_STAGING } from "@/lib/site-env"
-import { estimate, parseInput } from "@/lib/estimator/pricing"
+import { parseAnswers, simpleRange } from "@/lib/estimator/engine"
 
-// POST /api/estimate - the price estimator's only door to the formula.
-// The page sends the visitor's choices; this sends back a range and nothing
-// else (no line items, no rates). Staging-only until Sam approves the tool.
+// POST /api/estimate - the SIMPLE quote's only door to the formula.
+// Takes the visitor's answers, returns a RANGE and nothing else: no total,
+// no lines, no rates (Sam 10/2). Staging-only until Sam approves the tool.
 export async function POST(req: Request) {
   if (!IS_STAGING && process.env.NODE_ENV === "production") {
     return NextResponse.json({ error: "not found" }, { status: 404 })
@@ -15,7 +15,6 @@ export async function POST(req: Request) {
   } catch {
     // empty or bad body -> defaults
   }
-  return NextResponse.json(estimate(parseInput(body)), {
-    headers: { "cache-control": "no-store" },
-  })
+  const { low, high } = simpleRange(parseAnswers(body))
+  return NextResponse.json({ low, high }, { headers: { "cache-control": "no-store" } })
 }
