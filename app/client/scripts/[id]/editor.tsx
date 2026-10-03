@@ -98,10 +98,10 @@ function Live({
 }: EditorProps & { sync: ScriptSync; editorRef: React.MutableRefObject<Editor | null> }) {
   const snap = useSyncExternalStore(
     useCallback((fn: () => void) => sync.subscribe(fn), [sync]),
-    () => `${sync.state}|${sync.info?.role ?? ""}|${sync.info?.readOnly ?? ""}|${sync.ended ?? ""}|${sync.commentsVersion}`,
-    () => "connecting||||0",
+    () => JSON.stringify([sync.state, sync.info?.role ?? "", sync.info?.readOnly ?? "", sync.ended ?? "", sync.commentsVersion]),
+    () => JSON.stringify(["connecting", "", "", "", 0]),
   )
-  const [state, role, readOnly, ended, commentsVersion] = snap.split("|")
+  const [state, role, readOnly, ended, commentsVersion] = JSON.parse(snap) as [string, string, string, string, number]
   const canWrite = !ended && !readOnly && (role === "editor" || role === "suggester")
   const isEditor = role === "editor" && !readOnly && !ended
   const [mode, setMode] = useState<"editing" | "suggesting">(clientsWords ? "suggesting" : "editing")
