@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes, createHash } from 'crypto'
 import { db } from '@/lib/db'
+import { IS_STAGING } from '@/lib/site-env'
+import { publicOrigin } from '@/lib/client/host'
 
 const LOGIN_HOST = process.env.LOGIN_HOST ?? 'login.oliverstreetcreative.com'
 const MAGIC_LINK_TTL_MINUTES = 15
@@ -52,6 +54,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  // STAGING NEVER EMAILS A CLIENT. Staging holds real client records for
+  // preview, so a sign-in link only goes to an OSC address there.
+  if (IS_STAGING && !email.endsWith('@oliverstreetcreative.com')) {
+    console.log('magic-link: staging, not emailing non-OSC address')
+    return NextResponse.json({ ok: true })
+  }
+
   const rawToken = randomBytes(32).toString('hex')
   const tokenHash = createHash('sha256').update(rawToken).digest('hex')
   const expiresAt = new Date(Date.now() + MAGIC_LINK_TTL_MINUTES * 60 * 1000)
@@ -64,12 +73,14 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  const link = `https://${LOGIN_HOST}/magic?token=${rawToken}`
+  // Link back to the host the person asked from, so they land on the client
+  // site there. Crew/staff on the login host keep their old flow.
+  const link = `${publicOrigin(req)}/magic?token=${rawToken}`
   const html = `
     <div style="font-family: -apple-system, system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #1a1a1a;">
-      <p>Click below to sign in to the Oliver Street Creative portal. This link expires in ${MAGIC_LINK_TTL_MINUTES} minutes and can only be used once.</p>
+      <p>Here is your link to sign in to Oliver Street Creative. This link expires in ${MAGIC_LINK_TTL_MINUTES} minutes and can only be used once.</p>
       <p style="margin: 24px 0;">
-        <a href="${link}" style="display: inline-block; background: #1a1a1a; color: #fff; text-decoration: none; padding: 12px 20px; border-radius: 6px;">Sign in to OSC Portal</a>
+        <a href="${link}" style="display: inline-block; background: #1a1a1a; color: #fff; text-decoration: none; padding: 12px 20px; border-radius: 6px;">Sign in</a>
       </p>
       <p style="color: #666; font-size: 13px;">If you didn't request this, you can safely ignore this email.</p>
       <p style="color: #666; font-size: 13px;">If the button doesn't work, paste this URL into your browser:<br/><span style="word-break: break-all;">${link}</span></p>
@@ -77,7 +88,7 @@ export async function POST(req: NextRequest) {
   `
 
   try {
-    await sendEmail(email, 'Your OSC Portal sign-in link', html)
+    await sendEmail(email, 'Your Oliver Street Creative sign-in link', html)
   } catch (err) {
     console.error('magic-link send failed:', err)
     return NextResponse.json({ error: 'Email delivery failed' }, { status: 500 })

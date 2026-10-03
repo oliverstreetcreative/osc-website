@@ -1,9 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -26,53 +23,46 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--ink)] px-4">
-      <div className="w-full max-w-sm space-y-8">
-        <div className="space-y-2 text-center">
-          <h1
-            className="text-4xl text-[var(--paper)]"
-            style={{ fontFamily: 'var(--font-garamond)', fontStyle: 'italic' }}
-          >
-            Oliver Street Creative
-          </h1>
-          <p className="text-[var(--quiet)] text-sm">Portal access</p>
-        </div>
-
+    <div className="cs-login">
+      <div className="cs-login-box">
+        <a href="/" style={{ display: 'flex', justifyContent: 'center' }}>
+          <span className="cs-mark" aria-label="Oliver Street Creative"><b>Oliver Street</b><i>Creative</i></span>
+        </a>
         {status === 'sent' ? (
-          <div className="text-center space-y-2">
-            <p className="text-[var(--paper)]">Check your email.</p>
-            <p className="text-[var(--quiet)] text-sm">We sent a login link to {email}.</p>
-          </div>
+          <>
+            <h1>Check your email.</h1>
+            <p>We sent a sign-in link to {email}. It works once and expires in 15 minutes.</p>
+            <p className="cs-login-foot">
+              Nothing arrived? Check spam, or{' '}
+              <button onClick={() => setStatus('idle')} style={{ background: 'none', border: 0, color: 'inherit', textDecoration: 'underline', cursor: 'pointer', padding: 0 }}>
+                try again
+              </button>
+              .
+            </p>
+          </>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-[var(--paper)] text-sm">
-                Email address
-              </Label>
-              <Input
-                id="email"
+          <>
+            <h1>Welcome back.</h1>
+            <p>Your projects, films, bills and documents, in one place. Enter your email and we&rsquo;ll send you a link to sign in.</p>
+            <form onSubmit={handleSubmit}>
+              <input
                 type="email"
-                placeholder="you@example.com"
+                inputMode="email"
+                autoComplete="email"
+                placeholder="you@yourcompany.com"
+                aria-label="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={status === 'loading'}
-                className="bg-transparent border-[var(--mid)] text-[var(--paper)] placeholder:text-[var(--quiet)] focus-visible:border-[var(--paper)] focus-visible:ring-0"
               />
-            </div>
-
-            {status === 'error' && (
-              <p className="text-sm text-red-400">Something went wrong. Please try again.</p>
-            )}
-
-            <Button
-              type="submit"
-              disabled={status === 'loading'}
-              className="w-full bg-[var(--paper)] text-[var(--ink)] hover:bg-[var(--faint)]"
-            >
-              {status === 'loading' ? 'Sending…' : 'Send me a login link'}
-            </Button>
-          </form>
+              {status === 'error' && <p style={{ color: '#f2a07a', textAlign: 'left', margin: 0 }}>That didn&rsquo;t go through. Please try again.</p>}
+              <button type="submit" className="cs-btn light" disabled={status === 'loading'}>
+                {status === 'loading' ? 'Sending…' : 'Email me a sign-in link'}
+              </button>
+            </form>
+            <p className="cs-login-foot">No password needed. New to Oliver Street? <a href="sms:+18595121419" style={{ textDecoration: 'underline' }}>Text Sam</a>.</p>
+          </>
         )}
       </div>
     </div>

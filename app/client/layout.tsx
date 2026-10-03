@@ -1,143 +1,63 @@
-import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { getPortalUser } from '@/lib/portal-auth'
-import { SignOutButton } from './components/SignOutButton'
-import { ImpersonationBanner } from '@/components/ImpersonationBanner'
-import { ActivityFeed } from '@/components/portal/ActivityFeed'
+import type { Metadata, Viewport } from "next"
+import { Barlow_Condensed, Lobster } from "next/font/google"
+import { requireClientContext } from "@/lib/client/context"
+import { ImpersonationBanner } from "@/components/ImpersonationBanner"
+import { Wordmark } from "./ui"
+import { Nav, Tabs } from "./nav"
+import "./client.css"
 
-export default async function ClientPortalLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const user = await getPortalUser()
+const barlow = Barlow_Condensed({ subsets: ["latin"], weight: ["600"], variable: "--font-barlow", display: "swap" })
+const lobster = Lobster({ subsets: ["latin"], weight: ["400"], variable: "--font-lobster", display: "swap" })
 
-  if (!user) {
-    redirect('/login')
-  }
+export const metadata: Metadata = {
+  title: { default: "Your account · Oliver Street Creative", template: "%s · Oliver Street Creative" },
+  robots: { index: false, follow: false },
+}
+export const viewport: Viewport = { themeColor: "#141412", width: "device-width", initialScale: 1 }
+export const dynamic = "force-dynamic"
+
+export default async function ClientLayout({ children }: { children: React.ReactNode }) {
+  const ctx = await requireClientContext()
+  const initials = (ctx.user.first_name ?? ctx.user.name ?? "?").trim().slice(0, 1).toUpperCase()
+  const showOrgs = ctx.orgs.length > 1
 
   return (
-    <div
-      style={{
-        minHeight: '100dvh',
-        background: 'var(--ink)',
-        color: 'var(--paper)',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
+    <div className={`cs ${barlow.variable} ${lobster.variable}`}>
       <ImpersonationBanner />
-      {/* Sticky top header */}
-      <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 50,
-          background: '#111',
-          borderBottom: '1px solid rgba(138,138,132,0.2)',
-          padding: '0 24px',
-          height: '56px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '16px',
-        }}
-      >
-        {/* Brand */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Link
-            href="/client"
-            style={{
-              fontFamily: 'var(--font-garamond)',
-              fontStyle: 'italic',
-              fontSize: '18px',
-              color: 'var(--paper)',
-              textDecoration: 'none',
-              fontWeight: 400,
-            }}
-          >
-            Oliver Street Creative
-          </Link>
-          <span
-            style={{
-              fontSize: '10px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-              color: 'var(--quiet)',
-              background: 'rgba(138,138,132,0.15)',
-              padding: '2px 8px',
-              borderRadius: '4px',
-            }}
-          >
-            Portal
-          </span>
-        </div>
-
-        {/* User info + sign out */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span
-            style={{
-              fontSize: '13px',
-              color: 'var(--quiet)',
-            }}
-          >
-            {user.email}
-          </span>
-          <SignOutButton />
+      <header className="cs-top">
+        <div className="cs-top-in">
+          <a href="/client" aria-label="Home"><Wordmark /></a>
+          <Nav />
+          <div className="cs-top-r">
+            {showOrgs ? (
+              <details className="cs-menu">
+                <summary className="cs-chip-btn"><span>{ctx.org.short_name ?? ctx.org.name}</span> ▾</summary>
+                <div className="cs-pop">
+                  {ctx.orgs.map((o) => (
+                    <form key={o.id} action="/client/org" method="post">
+                      <input type="hidden" name="slug" value={o.slug} />
+                      <button className={o.id === ctx.org.id ? "on" : ""}>{o.name}</button>
+                    </form>
+                  ))}
+                </div>
+              </details>
+            ) : null}
+            <details className="cs-menu">
+              <summary className="cs-avatar" aria-label="Account">{initials}</summary>
+              <div className="cs-pop">
+                <div className="cs-pop-head">
+                  <strong>{ctx.user.name}</strong>
+                  <small>{ctx.user.email}</small>
+                </div>
+                <a href="/client/calendar">Calendar feed</a>
+                <a href="/client/signout">Sign out</a>
+              </div>
+            </details>
+          </div>
         </div>
       </header>
-
-      {/* Body: sidebar + main */}
-      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        {/* Left sidebar */}
-        <nav
-          style={{
-            width: '200px',
-            flexShrink: 0,
-            borderRight: '1px solid rgba(138,138,132,0.15)',
-            padding: '24px 0',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '4px',
-          }}
-        >
-          <NavLink href="/client">Dashboard</NavLink>
-          <ActivityFeed />
-        </nav>
-
-        {/* Main content */}
-        <main
-          style={{
-            flex: 1,
-            minWidth: 0,
-            padding: '32px 40px',
-            overflowY: 'auto',
-          }}
-        >
-          {children}
-        </main>
-      </div>
-    </div>
-  )
-}
-
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      style={{
-        display: 'block',
-        padding: '8px 20px',
-        fontSize: '13px',
-        fontWeight: 600,
-        color: 'var(--quiet)',
-        textDecoration: 'none',
-        letterSpacing: '0.03em',
-        transition: 'color 0.15s',
-      }}
-    >
       {children}
-    </Link>
+      <Tabs />
+    </div>
   )
 }

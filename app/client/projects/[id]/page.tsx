@@ -1,499 +1,220 @@
-import { notFound, redirect } from 'next/navigation'
-import Link from 'next/link'
-import { requirePortalUser } from '@/lib/portal-auth'
-import { db } from '@/lib/db'
-import { formatCurrency, formatDate } from '@/lib/portal-utils'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { UpdateReplyForm } from './components/UpdateReplyForm'
-import FileUploadSection from './components/FileUploadSection'
+import Link from "next/link"
+import { notFound } from "next/navigation"
+import { ChevronLeft, Download, ExternalLink, MapPin, Clock } from "lucide-react"
+import { requireClientContext } from "@/lib/client/context"
+import { orgProject } from "@/lib/client/data"
+import { day, duration, money, relativeDue, muxThumb, daysFromToday, todayUTC } from "@/lib/client/format"
+import { eventForOrgs, googleLink } from "@/lib/client/calendar"
+import { pageOrigin } from "@/lib/client/host"
+import { PosterImage, PhaseTracker, DocRow, HelpFooter, AddToCalendar, SectionTitle } from "../../ui"
 
-interface Props {
-  params: Promise<{ id: string }>
+type Dl = { label: string; url?: string; path?: string; size?: string; note?: string }
+
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const ctx = await requireClientContext()
+  const p = await orgProject(ctx.org.id, params.id)
+  return { title: p?.name ?? "Project" }
 }
 
-export async function generateMetadata({ params }: Props) {
-  const { id } = await params
-  const project = await db.project.findUnique({ where: { id }, select: { name: true } })
-  return { title: project ? `${project.name} — OSC Client Portal` : 'Project — OSC Client Portal' }
-}
+export default async function ProjectPage({ params }: { params: { id: string } }) {
+  const ctx = await requireClientContext()
+  const p = await orgProject(ctx.org.id, params.id)
+  if (!p) notFound()
+  const origin = await pageOrigin()
+  const orgName = ctx.org.short_name ?? ctx.org.name
+  const dates = (Array.isArray(p.dates) ? p.dates : []) as { label: string; date: string; note?: string }[]
+  const team = (Array.isArray(p.team) ? p.team : []) as { name: string; role: string }[]
+  const today = todayUTC()
 
-export default async function ProjectDetailPage({ params }: Props) {
-  const { id } = await params
-
-  let user
-  try {
-    user = await requirePortalUser()
-  } catch {
-    redirect('/login')
+  // Timeline: shoot days + key dates, in date order.
+  type Item = { when: Date; title: string; sub?: string; calId: string; shoot?: (typeof p.shoot_periods)[number] }
+  const items: Item[] = [
+    ...p.shoot_periods.map((s) => ({ when: s.start_date, title: s.description ?? "Filming day", calId: `shoot-${s.id}`, shoot: s })),
+    ...dates.map((d, i) => ({ when: new Date(`${d.date}T12:00:00Z`), title: d.label, sub: d.note, calId: `date-${p.id}-${i}` })),
+  ].sort((a, b) => a.when.getTime() - b.when.getTime())
+  const calLinks = new Map<string, string>()
+  for (const it of items.filter((i) => (i.shoot ? i.when >= today : i.when > today))) {
+    const e = await eventForOrgs(it.calId, [ctx.org.id])
+    if (e) calLinks.set(it.calId, googleLink(e, origin))
   }
 
-  // Verify user has access to this project (is a participant)
-  const participant = await db.projectParticipant.findFirst({
-    where: {
-      person_id: user.id,
-      project_id: id,
-      project: { client_portal_enabled: true },
-    },
-  })
-
-  if (!participant) notFound()
-
-  const project = await db.project.findUnique({
-    where: { id },
-    include: {
-      deliverables: {
-        where: { client_visible: true },
-        orderBy: { created_at: 'desc' },
-      },
-      updates: {
-        orderBy: { posted_at: 'desc' },
-        take: 20,
-      },
-      obligations: {
-        where: { type: 'receivable' },
-        orderBy: { obligation_date: 'desc' },
-        take: 10,
-      },
-      _count: { select: { change_orders: true } },
-    },
-  })
-
-  if (!project) notFound()
-
-  // Check for existing testimonial
-  const existingTestimonial = await db.testimonial.findFirst({
-    where: { project_id: id, person_id: user.id },
-    select: { id: true, quote_text: true },
-  })
-
-  const { deliverables, updates, obligations } = project
-  const changeOrderCount = project._count.change_orders
-
   return (
-    <div style={{ maxWidth: '860px' }}>
-      {/* Breadcrumb */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          marginBottom: '24px',
-          fontSize: '13px',
-          color: 'var(--quiet)',
-        }}
-      >
-        <Link href="/client" style={{ color: 'var(--quiet)', textDecoration: 'none' }}>
-          Dashboard
-        </Link>
-        <span style={{ color: 'var(--faint)' }}>/</span>
-        <span style={{ color: 'var(--paper)' }}>{project.name}</span>
-      </div>
-
-      {/* Project header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px',
-          marginBottom: '32px',
-          flexWrap: 'wrap',
-        }}
-      >
-        <h1
-          style={{
-            fontFamily: 'var(--font-inter)',
-            fontWeight: 900,
-            fontSize: 'clamp(22px, 3vw, 32px)',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          {project.name}
-        </h1>
-        {project.phase && (
-          <Badge
-            variant="outline"
-            style={{
-              fontSize: '11px',
-              color: 'var(--quiet)',
-              borderColor: 'rgba(138,138,132,0.3)',
-            }}
-          >
-            {project.phase}
-          </Badge>
-        )}
-        {project.status && (
-          <Badge
-            variant="outline"
-            style={{
-              fontSize: '11px',
-              color: 'var(--quiet)',
-              borderColor: 'rgba(138,138,132,0.3)',
-            }}
-          >
-            {project.status}
-          </Badge>
-        )}
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {/* 1. Proposal & Scope */}
-        <SectionCard title="Proposal & Scope">
-          <p style={{ fontSize: '14px', color: 'var(--quiet)', lineHeight: 1.6 }}>
-            View the approved scope, proposal, and any signed change orders for this project.
-          </p>
-          <div style={{ marginTop: '12px' }}>
-            <Link
-              href={`/client/projects/${id}/scope`}
-              style={{
-                display: 'inline-block',
-                fontSize: '13px',
-                fontWeight: 600,
-                color: 'var(--orange)',
-                textDecoration: 'none',
-                padding: '8px 16px',
-                border: '1px solid rgba(224,120,48,0.4)',
-                borderRadius: '6px',
-              }}
-            >
-              View Scope &amp; Proposal →
-            </Link>
-            {changeOrderCount > 0 && (
-              <span
-                style={{
-                  marginLeft: '12px',
-                  fontSize: '12px',
-                  color: 'var(--quiet)',
-                }}
-              >
-                {changeOrderCount} change order{changeOrderCount !== 1 ? 's' : ''}
-              </span>
-            )}
+    <>
+      <header className="cs-hero">
+        {(p.poster_mux_id || p.poster_path) && (
+          <div className="cs-hero-bg" aria-hidden>
+            {p.poster_mux_id ? <img src={muxThumb(p.poster_mux_id, p.poster_time, 1600)} alt="" /> : <img src={`/client/poster/project/${p.id}`} alt="" />}
           </div>
-        </SectionCard>
+        )}
+        <div className="cs-hero-in">
+          <Link href="/client/projects" className="cs-back"><ChevronLeft size={16} /> Projects</Link>
+          <p className="cs-eyebrow">{[p.kind, p.job_number ? `No. ${p.job_number}` : null].filter(Boolean).join(" · ")}</p>
+          <h1>{p.name}</h1>
+          {p.status_line ? <p className="cs-hero-line">{p.status_line}</p> : null}
+          <PhaseTracker phase={p.phase} />
+        </div>
+      </header>
 
-        {/* 2. Deliverables */}
-        <SectionCard title="Deliverables">
-          {deliverables.length === 0 ? (
-            <p style={{ fontSize: '14px', color: 'var(--quiet)' }}>
-              No deliverables shared yet.
-            </p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {deliverables.map((d) => (
-                <div
-                  key={d.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '10px 0',
-                    borderBottom: '1px solid rgba(138,138,132,0.1)',
-                    gap: '12px',
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <span
-                      style={{
-                        display: 'block',
-                        fontWeight: 500,
-                        fontSize: '14px',
-                        color: 'var(--paper)',
-                        marginBottom: '2px',
-                      }}
-                    >
-                      {d.name}
-                    </span>
-                    <span style={{ fontSize: '12px', color: 'var(--quiet)' }}>
-                      {d.deliverable_type}
-                      {d.due_date ? ` · Due ${formatDate(d.due_date)}` : ''}
-                    </span>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    style={{
-                      fontSize: '11px',
-                      flexShrink: 0,
-                      color: deliverableStatusColor(d.review_status),
-                      borderColor: deliverableStatusColor(d.review_status),
-                    }}
-                  >
-                    {d.review_status || 'Draft'}
-                  </Badge>
+      <main className="cs-main" style={{ paddingTop: 8 }}>
+        <div className="cs-cols">
+          <div>
+            {p.deliverables.length ? (
+              <section className="cs-section">
+                <SectionTitle>{p.deliverables.length > 1 ? "Films" : "Film"}</SectionTitle>
+                <div className="cs-list" style={{ gap: 16 }}>
+                  {p.deliverables.map((f) => {
+                    const downloads = (Array.isArray(f.downloads) ? f.downloads : []) as Dl[]
+                    return (
+                      <article key={f.id} className="cs-card cs-film">
+                        <FilmPlayer f={f} project={p} orgName={orgName} />
+                        <div className="cs-film-body">
+                          <h3>{f.name}</h3>
+                          <p className="cs-film-meta">
+                            {[f.version_label, duration(f.duration_s), f.delivered_at ? `Delivered ${day(f.delivered_at)}` : null].filter(Boolean).join(" · ")}
+                          </p>
+                          {f.description ? <p className="cs-film-desc">{f.description}</p> : null}
+                          {downloads.length || f.watch_url ? (
+                            <div className="cs-dl">
+                              {f.watch_url && !f.file_path && !f.mux_playback_id ? (
+                                <a href={f.watch_url} target="_blank" rel="noopener"><ExternalLink /><span>{downloads.length ? "Watch" : "Watch and download"}</span><small>Frame.io</small></a>
+                              ) : null}
+                              {downloads.map((d, i) => (
+                                <a key={i} href={d.path ? `/client/download/${f.id}/${i}` : d.url} target={d.path ? undefined : "_blank"} rel="noopener">
+                                  {d.path ? <Download /> : <ExternalLink />}
+                                  <span>{d.label}</span>
+                                  <small>{d.size ?? d.note ?? ""}</small>
+                                </a>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      </article>
+                    )
+                  })}
                 </div>
-              ))}
-            </div>
-          )}
-        </SectionCard>
+              </section>
+            ) : null}
 
-        {/* 3. Project Updates */}
-        <SectionCard title="Project Updates">
-          {updates.length === 0 ? (
-            <p style={{ fontSize: '14px', color: 'var(--quiet)' }}>No updates yet.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {updates.map((u) => (
-                <div
-                  key={u.id}
-                  style={{
-                    paddingBottom: '16px',
-                    borderBottom: '1px solid rgba(138,138,132,0.1)',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '8px',
-                      alignItems: 'center',
-                      marginBottom: '6px',
-                    }}
-                  >
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--paper)' }}>
-                      {u.author}
-                    </span>
-                    <span style={{ fontSize: '12px', color: 'var(--quiet)' }}>
-                      {formatDate(u.posted_at)}
-                    </span>
-                  </div>
-                  <p
-                    style={{
-                      fontSize: '14px',
-                      lineHeight: 1.65,
-                      color: 'var(--paper)',
-                      whiteSpace: 'pre-wrap',
-                    }}
-                  >
-                    {u.body}
-                  </p>
-                  {u.client_reply && (
-                    <div
-                      style={{
-                        marginTop: '8px',
-                        paddingLeft: '12px',
-                        borderLeft: '2px solid rgba(138,138,132,0.3)',
-                      }}
-                    >
-                      <p style={{ fontSize: '13px', color: 'var(--quiet)', fontStyle: 'italic' }}>
-                        {u.client_reply}
-                      </p>
-                    </div>
-                  )}
-                  {!u.client_reply && (
-                    <UpdateReplyForm updateId={u.id} projectId={id} />
-                  )}
+            {p.summary ? (
+              <section className="cs-section">
+                <SectionTitle>About this project</SectionTitle>
+                <div className="cs-card cs-pad"><p style={{ fontSize: 15 }}>{p.summary}</p></div>
+              </section>
+            ) : null}
+          </div>
+
+          <div>
+            {items.length ? (
+              <section className="cs-section">
+                <SectionTitle>Key dates</SectionTitle>
+                <div className="cs-card cs-dates">
+                  {items.map((it) => {
+                    const past = it.when < today
+                    const s = it.shoot
+                    return (
+                      <div key={it.calId} className={`cs-date ${past ? "past" : ""}`}>
+                        <time dateTime={it.when.toISOString().slice(0, 10)}>{day(it.when, { month: "short", day: "numeric" })}<br /><span style={{ fontWeight: 500 }}>{it.when.getUTCFullYear()}</span></time>
+                        <div>
+                          <strong>{it.title}</strong>
+                          {s?.call_time ? <small><Clock size={12} style={{ verticalAlign: -1 }} /> Call {s.call_time}</small> : null}
+                          {s?.location ? <small><MapPin size={12} style={{ verticalAlign: -1 }} /> {s.location}{s.address ? `, ${s.address}` : ""}</small> : null}
+                          {s?.bring ? <small>Bring: {s.bring}</small> : null}
+                          {it.sub ? <small>{it.sub}</small> : null}
+                          {calLinks.has(it.calId) ? <AddToCalendar id={it.calId} google={calLinks.get(it.calId)!} /> : null}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
-              ))}
-            </div>
-          )}
-        </SectionCard>
+              </section>
+            ) : null}
 
-        {/* 4. Files & Assets */}
-        <SectionCard title="Files & Assets">
-          <p style={{ fontSize: '14px', color: 'var(--quiet)', lineHeight: 1.6 }}>
-            Shared files and final assets will appear here. Check back after delivery or contact
-            your producer for early access links.
-          </p>
-          {deliverables
-            .filter((d) => d.dropbox_path)
-            .map((d) => (
-              <a
-                key={d.id}
-                href={d.dropbox_path!}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  display: 'block',
-                  marginTop: '8px',
-                  padding: '8px 12px',
-                  border: '1px solid rgba(138,138,132,0.2)',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  color: 'var(--paper)',
-                  textDecoration: 'none',
-                }}
-              >
-                {d.name}
-              </a>
-            ))}
-          <FileUploadSection projectId={id} />
-        </SectionCard>
-
-        {/* 5. Invoices */}
-        <SectionCard title="Invoices">
-          {obligations.length === 0 ? (
-            <p style={{ fontSize: '14px', color: 'var(--quiet)' }}>No invoices yet.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {obligations.map((inv) => (
-                <div
-                  key={inv.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '10px 0',
-                    borderBottom: '1px solid rgba(138,138,132,0.1)',
-                    gap: '16px',
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: '14px',
-                        fontWeight: 500,
-                        color: 'var(--paper)',
-                        marginBottom: '2px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {inv.description || inv.obligation_number || 'Invoice'}
+            {p.invoices.length ? (
+              <section className="cs-section">
+                <SectionTitle href="/client/billing" link="All billing">Billing</SectionTitle>
+                <div className="cs-rows">
+                  {p.invoices.map((inv) => (
+                    <div key={inv.id} className="cs-row">
+                      <span className="cs-row-main">
+                        <strong>{inv.title}</strong>
+                        <small>Invoice {inv.number} · {day(inv.issued_on)}</small>
+                      </span>
+                      <span className="cs-row-end">
+                        <strong>{money(inv.amount)}</strong>
+                        {inv.status === "paid" ? (
+                          <span className="cs-status paid">Paid {day(inv.paid_on, { month: "short", day: "numeric" })}</span>
+                        ) : (
+                          <span className={`cs-status ${inv.due_on && daysFromToday(inv.due_on) < 0 ? "late" : "due"}`}>{relativeDue(inv.due_on)}</span>
+                        )}
+                      </span>
                     </div>
-                    <div style={{ fontSize: '12px', color: 'var(--quiet)' }}>
-                      {formatDate(inv.obligation_date)}
-                      {inv.due_date ? ` · Due ${formatDate(inv.due_date)}` : ''}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'flex-end',
-                      gap: '4px',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--paper)' }}>
-                      {formatCurrency(inv.amount)}
-                    </span>
-                    {inv.invoice_pdf_path && (
-                      <a
-                        href={inv.invoice_pdf_path}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{ fontSize: '11px', color: 'var(--quiet)', textDecoration: 'underline' }}
-                      >
-                        PDF
-                      </a>
-                    )}
-                    <Badge
-                      variant="outline"
-                      style={{
-                        fontSize: '10px',
-                        color: getInvoiceStatusColor(inv.status),
-                        borderColor: getInvoiceStatusColor(inv.status),
-                        textTransform: 'capitalize',
-                      }}
-                    >
-                      {inv.status || 'Pending'}
-                    </Badge>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </SectionCard>
+              </section>
+            ) : null}
 
-        {/* 6. Testimonial */}
-        <SectionCard title="Testimonial">
-          {existingTestimonial ? (
-            <div>
-              <p style={{ fontSize: '14px', color: 'var(--green)', marginBottom: '8px' }}>
-                Thank you! Your testimonial has been received.
-              </p>
-              <blockquote
-                style={{
-                  borderLeft: '3px solid var(--green)',
-                  paddingLeft: '12px',
-                  fontStyle: 'italic',
-                  fontSize: '14px',
-                  color: 'var(--quiet)',
-                  lineHeight: 1.6,
-                }}
-              >
-                "{existingTestimonial.quote_text}"
-              </blockquote>
-            </div>
-          ) : ['Delivered', 'Complete', 'Archived'].includes(project.phase) ? (
-            <div>
-              <p style={{ fontSize: '14px', color: 'var(--quiet)', marginBottom: '12px', lineHeight: 1.6 }}>
-                We'd love to hear about your experience. A testimonial helps us grow and lets
-                future clients know what to expect.
-              </p>
-              <Link
-                href={`/client/projects/${id}/testimonial`}
-                style={{
-                  display: 'inline-block',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  color: 'var(--green)',
-                  textDecoration: 'none',
-                  padding: '8px 16px',
-                  border: '1px solid rgba(58,138,92,0.4)',
-                  borderRadius: '6px',
-                }}
-              >
-                Leave a Testimonial →
-              </Link>
-            </div>
-          ) : (
-            <p style={{ fontSize: '14px', color: 'var(--quiet)' }}>
-              We'll ask for a testimonial once your project is delivered.
-            </p>
-          )}
-        </SectionCard>
-      </div>
-    </div>
+            {p.documents.length ? (
+              <section className="cs-section">
+                <SectionTitle href="/client/documents" link="All documents">Files</SectionTitle>
+                <div className="cs-rows">{p.documents.map((d) => <DocRow key={d.id} doc={d} showProject={false} />)}</div>
+              </section>
+            ) : null}
+
+            {team.length ? (
+              <section className="cs-section">
+                <SectionTitle>Your team</SectionTitle>
+                <div className="cs-rows">
+                  {team.map((t) => (
+                    <div key={t.name} className="cs-row">
+                      <span className="cs-avatar" style={{ width: 40, height: 40 }}>{t.name.slice(0, 1)}</span>
+                      <span className="cs-row-main"><strong>{t.name}</strong><small>{t.role}</small></span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+          </div>
+        </div>
+        <HelpFooter />
+      </main>
+    </>
   )
 }
 
-// ─── Sub-components ────────────────────────────────────────────────────────────
-
-function SectionCard({
-  title,
-  children,
-}: {
-  title: string
-  children: React.ReactNode
+function FilmPlayer({ f, project, orgName }: {
+  f: { id: string; name: string; mux_playback_id: string | null; poster_time: number | null; file_path: string | null; poster_path: string | null; aspect: string | null; watch_url: string | null }
+  project: Parameters<typeof PosterImage>[0]["project"]
+  orgName: string
 }) {
+  const aspect = f.aspect ?? "16/9"
+  if (f.mux_playback_id) {
+    const thumb = encodeURIComponent(muxThumb(f.mux_playback_id, f.poster_time, 1280))
+    return (
+      <div className="cs-player" style={{ aspectRatio: aspect }}>
+        <iframe
+          src={`https://player.mux.com/${f.mux_playback_id}?accent-color=%23E07830&thumbnail_time=${f.poster_time ?? 0}&poster=${thumb}`}
+          title={f.name}
+          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
+          allowFullScreen
+          loading="lazy"
+        />
+      </div>
+    )
+  }
+  if (f.file_path) {
+    return (
+      <div className="cs-player" style={{ aspectRatio: aspect }}>
+        <video controls playsInline preload="metadata" poster={f.poster_path ? `/client/poster/film/${f.id}` : undefined}>
+          <source src={`/client/media/${f.id}#t=0.5`} type="video/mp4" />
+        </video>
+      </div>
+    )
+  }
   return (
-    <Card
-      style={{
-        background: 'rgba(247,246,243,0.04)',
-        border: '1px solid rgba(138,138,132,0.2)',
-      }}
-    >
-      <CardHeader style={{ paddingBottom: '12px' }}>
-        <CardTitle
-          style={{
-            fontSize: '11px',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-            color: 'var(--quiet)',
-          }}
-        >
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
+    <a className="cs-poster" href={f.watch_url ?? undefined} target="_blank" rel="noopener" style={{ display: "block" }}>
+      <PosterImage project={{ ...project, name: f.name }} orgName={orgName} />
+      {f.watch_url ? <span className="cs-poster-tag">Watch on Frame.io</span> : null}
+      {f.watch_url ? <span className="cs-play" aria-hidden><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></span> : null}
+    </a>
   )
-}
-
-function deliverableStatusColor(status: string | null | undefined): string {
-  const s = (status ?? '').toLowerCase().replace(/\s+/g, '-')
-  if (s === 'approved') return 'var(--green)'
-  if (s === 'pending-review' || s === 'in-review') return 'var(--gold)'
-  if (s === 'changes-requested') return 'var(--red)'
-  return 'var(--quiet)'
-}
-
-function getInvoiceStatusColor(status: string | null | undefined): string {
-  const s = (status ?? '').toLowerCase()
-  if (s === 'paid') return 'var(--green)'
-  if (s === 'overdue') return 'var(--red)'
-  if (s === 'pending') return 'var(--gold)'
-  return 'var(--quiet)'
 }

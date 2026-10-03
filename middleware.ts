@@ -25,6 +25,8 @@ function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith('/api/intake')) return true
   if (pathname.startsWith('/api/publish')) return true
   if (pathname === '/api/estimate') return true
+  // Client site: private calendar feeds authenticate by their own token.
+  if (pathname.startsWith('/calendar/')) return true
   if (pathname.startsWith('/f/')) return true
   if (pathname.startsWith('/_next/') || pathname.startsWith('/favicon')) return true
   return false

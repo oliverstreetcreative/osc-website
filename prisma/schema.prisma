@@ -36,10 +36,14 @@ model Person {
   role           Role
 
   // Publication metadata
-  source_bible_id     Int
-  source_bible_table  String
-  published_at        DateTime
+  source_bible_id     Int?
+  source_bible_table  String?
+  published_at        DateTime @default(now())
   publication_version Int      @default(1)
+
+  // Client site (2026-10)
+  memberships    Membership[]
+  calendar_token String?      @unique // private ICS feed: /calendar/<token>.ics
 
   // Relations
   project_contacts      ProjectContact[]
@@ -74,10 +78,29 @@ model Project {
   crew_visible          Boolean @default(false)
 
   // Publication metadata
-  source_bible_id     Int
-  source_bible_table  String
-  published_at        DateTime
+  source_bible_id     Int?
+  source_bible_table  String?
+  published_at        DateTime @default(now())
   publication_version Int      @default(1)
+
+  // Client site (2026-10): curated, client-safe fields from the client book
+  ext_key         String?       @unique
+  organization_id String?       @db.Uuid
+  slug            String?
+  kind            String?
+  summary         String?
+  status_line     String?
+  next_step       String?
+  poster_path     String?
+  poster_mux_id   String?
+  poster_time     Float?
+  dates           Json?
+  team            Json?
+  sort_date       DateTime?
+  hidden          Boolean       @default(false)
+  organization    Organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull)
+  invoices        Invoice[]
+  documents       Document[]
 
   // Relations
   project_contacts     ProjectContact[]
@@ -168,10 +191,26 @@ model Deliverable {
   shared_at          DateTime?
 
   // Publication metadata
-  source_bible_id     Int
-  source_bible_table  String
-  published_at        DateTime
+  source_bible_id     Int?
+  source_bible_table  String?
+  published_at        DateTime @default(now())
   publication_version Int      @default(1)
+
+  // Client site (2026-10)
+  ext_key         String?   @unique
+  mux_playback_id String?
+  file_path       String?
+  aspect          String?
+  poster_path     String?
+  poster_time     Float?
+  duration_s      Int?
+  version_label   String?
+  watch_url       String?
+  review_url      String?
+  downloads       Json?
+  delivered_at    DateTime?
+  sort            Int       @default(0)
+  hidden          Boolean   @default(false)
 
   // Relations
   project               Project               @relation(fields: [project_id], references: [id], onDelete: Cascade)
@@ -345,10 +384,17 @@ model ShootPeriod {
   crew_visible   Boolean  @default(false)
 
   // Publication metadata
-  source_bible_id     Int
-  source_bible_table  String
-  published_at        DateTime
+  source_bible_id     Int?
+  source_bible_table  String?
+  published_at        DateTime @default(now())
   publication_version Int      @default(1)
+
+  // Client site (2026-10)
+  ext_key  String? @unique
+  location String?
+  address  String?
+  bring    String?
+  hidden   Boolean @default(false)
 
   // Relations
   project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
@@ -574,4 +620,99 @@ model Testimonial {
   @@index([project_id])
   @@index([source_bible_id, source_bible_table], name: "idx_testimonials_source_bible")
   @@map("testimonials")
+}
+
+// ---------------------------------------------------------------------------
+// CLIENT SITE (2026-10). Organizations, memberships, invoices, documents.
+// Rows are upserted from the per-client "book" in Dropbox
+// (_admin/client-site/books/<slug>.json) by lib/client/sync.ts. The book is
+// the allowlist: nothing reaches a client page unless it is in the book.
+// ---------------------------------------------------------------------------
+
+enum MemberRole {
+  OWNER
+  APPROVER
+  BILLING
+  VIEWER
+}
+
+model Organization {
+  id            String       @id @default(uuid()) @db.Uuid
+  slug          String       @unique
+  name          String
+  short_name    String?
+  logo_path     String?
+  website       String?
+  billing_email String?
+  hidden        Boolean      @default(false)
+  synced_at     DateTime     @default(now())
+  created_at    DateTime     @default(now())
+  memberships   Membership[]
+  projects      Project[]
+  invoices      Invoice[]
+  documents     Document[]
+
+  @@map("organizations")
+}
+
+model Membership {
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
+  person_id       String       @db.Uuid
+  role            MemberRole   @default(VIEWER)
+  title           String?
+  hidden          Boolean      @default(false)
+  created_at      DateTime     @default(now())
+  organization    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  person          Person       @relation(fields: [person_id], references: [id], onDelete: Cascade)
+
+  @@unique([organization_id, person_id])
+  @@index([person_id])
+  @@map("memberships")
+}
+
+model Invoice {
+  id              String       @id @default(uuid()) @db.Uuid
+  number          String       @unique
+  organization_id String       @db.Uuid
+  project_id      String?      @db.Uuid
+  title           String
+  amount          Decimal      @db.Decimal(10, 2)
+  issued_on       DateTime     @db.Date
+  due_on          DateTime?    @db.Date
+  paid_on         DateTime?    @db.Date
+  status          String       @default("open") // open | paid | void
+  pay_url         String?
+  pdf_path        String?
+  memo            String?
+  hidden          Boolean      @default(false)
+  organization    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  project         Project?     @relation(fields: [project_id], references: [id], onDelete: SetNull)
+
+  @@index([organization_id])
+  @@map("invoices")
+}
+
+model Document {
+  id              String       @id @default(uuid()) @db.Uuid
+  ext_key         String       @unique
+  organization_id String       @db.Uuid
+  project_id      String?      @db.Uuid
+  kind            String // agreement | proposal | release | call-sheet | license | invoice | receipt | w9 | coi | other
+  title           String
+  description     String?
+  dated_on        DateTime?    @db.Date
+  dropbox_path    String?
+  url             String?
+  mime_type       String?
+  size_bytes      Int?
+  signed_by       String?
+  signed_on       DateTime?    @db.Date
+  sha256          String?
+  hidden          Boolean      @default(false)
+  organization    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  project         Project?     @relation(fields: [project_id], references: [id], onDelete: SetNull)
+
+  @@index([organization_id])
+  @@map("documents")
 }

@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
 import { SignJWT } from 'jose'
 import { db } from '@/lib/db'
+import { cookieDomainFor, isSecure } from '@/lib/client/host'
 
 const SESSION_TTL_DAYS = 30
 
 function redirectForRole(role: string, isStaff: boolean): string {
   if (isStaff || role === 'STAFF') return 'https://login.oliverstreetcreative.com/admin'
   if (role === 'CREW') return 'https://crew.oliverstreetcreative.com/'
-  return 'https://client.oliverstreetcreative.com/'
+  // Clients land on the client site on the host they signed in from
+  // (oliverstreetcreative.com/client in production, the staging domain on staging).
+  return '/client'
 }
 
 export async function POST(req: NextRequest) {
@@ -83,11 +86,11 @@ export async function POST(req: NextRequest) {
   const redirectTo = redirectForRole(person.role, person.is_staff)
   const res = NextResponse.json({ redirectTo })
   res.cookies.set('osc_session', jwt, {
-    domain: '.oliverstreetcreative.com',
+    domain: cookieDomainFor(req),
     path: '/',
     httpOnly: true,
     sameSite: 'lax',
-    secure: true,
+    secure: isSecure(req),
     expires: sessionExpiresAt,
   })
   return res
