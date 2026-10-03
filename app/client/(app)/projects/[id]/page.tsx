@@ -147,6 +147,17 @@ export default async function ProjectPage({ params }: { params: { id: string } }
                           <strong>{it.title}</strong>
                           {s?.call_time ? <small><Clock size={12} style={{ verticalAlign: -1 }} /> Call {s.call_time}</small> : null}
                           {s?.location ? <small><MapPin size={12} style={{ verticalAlign: -1 }} /> {s.location}{s.address ? `, ${s.address}` : ""}</small> : null}
+                          {s?.address && !past ? (
+                            // SPEC §21 v2: the map pin is the SHOOT's address (never a person's), as one https link.
+                            <a
+                              className="cs-link"
+                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([s.location, s.address].filter(Boolean).join(", "))}`}
+                              target="_blank"
+                              rel="noopener"
+                            >
+                              <MapPin size={14} /> Directions
+                            </a>
+                          ) : null}
                           {s?.bring ? <small>Bring: {s.bring}</small> : null}
                           {it.sub ? <small>{it.sub}</small> : null}
                           {calLinks.has(it.calId) ? <AddToCalendar id={it.calId} google={calLinks.get(it.calId)!} /> : null}
