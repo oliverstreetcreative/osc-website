@@ -6,7 +6,7 @@
 // History diffs are computed from stored versions on the server, never y-prosemirror's snapshot view (v4 #8: gc on).
 import * as Y from "yjs"
 import { db } from "@/lib/db"
-import { plainText, pmFromYDoc, renderScript, viewOf } from "../doc"
+import { plainText, pmSnapshot, renderScript, viewOf } from "../doc"
 import { restoreUpdate } from "../restore"
 import { commit, type Live } from "./registry"
 
@@ -35,7 +35,7 @@ export async function saveVersion(l: Live, kind: "auto" | "named" | "restore" | 
     select: { person_id: true },
     distinct: ["person_id"],
   })
-  const doc = pmFromYDoc(l.doc)
+  const doc = pmSnapshot(l.doc) // a copy: reading must never change the live document
   const render = renderScript(doc, { wpm: script?.pace_wpm ?? 150, target_s: script?.target_seconds ?? null })
   return db.scriptVersion.create({
     data: {
@@ -64,13 +64,17 @@ export async function maybeAutosave(l: Live) {
 
 /**
  * Restore version n: the live document becomes what it said then, as ONE change by `personId`, through a minimal diff;
- * then a "restore" version records it. Call inside withLive.
+ * then a "restore" version records it. FIRST, if anything happened since the last version, that state is saved as
+ * "Before restoring version n", so a restore never takes words out of reach (built review #1). Call inside withLive.
  */
 export async function restoreVersion(l: Live, n: number, personId: string) {
   const v = await db.scriptVersion.findUnique({ where: { script_id_n: { script_id: l.id, n } }, select: { state: true, n: true } })
   if (!v) return null
+  const last = await db.scriptVersion.findFirst({ where: { script_id: l.id }, orderBy: { n: "desc" }, select: { upto_id: true } })
+  if (!last || last.upto_id < l.upto) await saveVersion(l, "auto", `Before restoring version ${v.n}`, personId)
   // the server's own Yjs session makes the change; the update row records who asked for it
   const { update, clientId } = restoreUpdate(l.doc, new Uint8Array(v.state))
-  await commit(l, update, personId, clientId)
+  const done = await commit(l, update, personId, clientId)
+  if ("refused" in done) return null
   return saveVersion(l, "restore", `Restored version ${v.n}`, personId)
 }

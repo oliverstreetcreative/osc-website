@@ -18,7 +18,10 @@ export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 
 export type SessionFacts = {
   person: { id: string; name: string; email: string; code: string }
+  /** OSC staff acting as staff (not viewing the site as a client). */
   staff: boolean
+  /** OSC staff, in whatever mode (viewing as a client they still READ every script: v4 #12). */
+  realStaff: boolean
   /** Why this session may only read, whatever its role: a staging preview sign-in, or staff viewing as a client. */
   readOnly: string | null
 }
@@ -33,6 +36,7 @@ export async function sessionFacts(): Promise<SessionFacts | null> {
   return {
     person: { id: user.id, name: user.name, email: user.email, code: personCode(user.id) },
     staff: user.is_staff && !viewingAs,
+    realStaff: user.is_staff,
     readOnly: preview ? "This is a preview sign-in: it can read scripts, not change them." : viewingAs ? "You're viewing the site as a client: read-only." : null,
   }
 }
@@ -50,6 +54,8 @@ export async function roleOf(scriptId: string, facts: SessionFacts): Promise<Scr
       ? "The client's own document is the source for now, so this copy is read-only."
       : null
   if (facts.staff) return { role: "editor", readOnly: facts.readOnly ?? scriptReadOnly }
+  // Staff viewing the site as a client open the editor read-only (v4 #12), never a 404.
+  if (facts.realStaff) return { role: "viewer", readOnly: facts.readOnly ?? "You're viewing the site as a client: read-only." }
   if (script.audience === "office") return null // until Sam shares it, nobody but OSC staff sees it
   const orgIds = (
     await db.membership.findMany({ where: { person_id: facts.person.id, hidden: false }, select: { organization_id: true } })

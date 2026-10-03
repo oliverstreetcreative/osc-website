@@ -8,7 +8,7 @@ import type { Node as PMNode } from "@tiptap/pm/model"
 import { Transform } from "@tiptap/pm/transform"
 import * as Y from "yjs"
 import { updateYFragment } from "@tiptap/y-tiptap"
-import { checkSuggester, checkSuggesterUpdate, type Suggester } from "./guard"
+import { MAX_SUGGESTER_UPDATE, checkSuggester, checkSuggesterUpdate, checkUpdate, type Suggester } from "./guard"
 import { suggestEdit, type Author } from "./normalize"
 import { resolveSuggestions } from "./resolve"
 import { mirrorNodeMarks } from "./marks"
@@ -182,6 +182,42 @@ test("tampering is refused, honest edge cases pass", () => {
   allow(suggested(doc, (tr) => tr.split(at(tr.doc, "I’m") + 1), mike.who, mike.ids), "Mike starts a new line inside Sam's suggestion")
   allow(suggested(doc, (tr) => tr.insert(tr.doc.content.size, row(["Wide"], ["New line."])), mike.who, mike.ids), "Mike suggests a new last row")
   allow(suggested(doc, (tr) => tr.delete(at(tr.doc, "Paid"), at(tr.doc, "Paid") + 5), mike.who, mike.ids), "Mike suggests removing words")
+})
+
+test("built review #4/#5: side channels, bad structure, unattributed or formatting suggestions, floods are refused", () => {
+  const [sam, mike] = twoPeople()
+  const M = asSuggester(mike.who)
+  const server = yDocFromJSON(base().toJSON())
+  const edited = (change: (d: Y.Doc) => void) => {
+    const local = new Y.Doc()
+    local.clientID = 9
+    Y.applyUpdate(local, Y.encodeStateAsUpdate(server))
+    const sv = Y.encodeStateVector(local)
+    change(local)
+    return Y.encodeStateAsUpdate(local, sv)
+  }
+  // a top-level map riding along to every phone forever: refused for everyone, editors included
+  const sideChannel = edited((d) => d.getMap("x").set("junk", "z".repeat(1000)))
+  assert.equal(checkUpdate(server, sideChannel, new Set([9]), null).ok, false)
+  // a VIDEO box at the top level: a document the schema can't hold
+  const badShape = edited((d) => d.getXmlFragment(YFRAGMENT).insert(0, [new Y.XmlElement("avVideo")]))
+  assert.equal(checkUpdate(server, badShape, new Set([9]), null).ok, false)
+  // too much at once for a suggestion
+  assert.equal(checkUpdate(server, new Uint8Array(MAX_SUGGESTER_UPDATE + 1), new Set([9]), M).ok, false)
+
+  const doc = suggested(base(), (tr) => tr.insertText("I’m", at(tr.doc, "Im"), at(tr.doc, "Im") + 2), sam.who, sam.ids)!
+  // a deletion mark with no id on base words ("Someone" would have suggested it)
+  const noId = direct(doc, (tr) => tr.addMark(at(tr.doc, "Paid"), at(tr.doc, "Paid") + 4, schema.marks.deletion.create({ id: null })))
+  assert.equal(checkSuggester(doc, noId, M).ok, false)
+  // a formatting/attribute suggestion (suggest mode never makes one in v1), even under Mike's own id
+  const mod = direct(doc, (tr) =>
+    tr.addNodeMark(tr.doc.content.size - tr.doc.lastChild!.nodeSize, schema.marks.modification.create({ id: `${mike.who.code}.9.77`, type: "attr", attrName: "sb", previousValue: null, newValue: "{}" })),
+  )
+  assert.equal(checkSuggester(doc, mod, M).ok, false)
+  // and an honest update still passes the new structure checks
+  const honest = suggested(pmFromYDoc(server), (tr) => tr.insertText("really ", at(tr.doc, "running")), mike.who, mike.ids)!
+  const ok = edited((d) => d.transact(() => updateYFragment(d, d.getXmlFragment(YFRAGMENT), mirrorNodeMarks(honest), { mapping: new Map(), isOMark: new Map() })))
+  assert.ok(checkUpdate(server, ok, new Set([9]), M).ok)
 })
 
 test("Yjs tricks are refused: another session's changes, and changes that depend on missing ones", () => {

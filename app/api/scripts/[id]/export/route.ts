@@ -7,7 +7,7 @@ import { AlignmentType, Document, Packer, Paragraph, Table, TableCell, TableRow,
 import { db } from "@/lib/db"
 import { roleOf, sessionFacts } from "@/lib/scripts/server/access"
 import { catchUp, withLive } from "@/lib/scripts/server/registry"
-import { pmFromYDoc, renderScript } from "@/lib/scripts/doc"
+import { pmSnapshot, renderScript } from "@/lib/scripts/doc"
 import { clock } from "@/lib/scripts/timing"
 
 export const runtime = "nodejs"
@@ -24,7 +24,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   if (!script) return NextResponse.json({ error: "Not found" }, { status: 404 })
   const doc = await withLive(params.id, async (l) => {
     await catchUp(l)
-    return pmFromYDoc(l.doc)
+    return pmSnapshot(l.doc)
   })
   const r = renderScript(doc, { wpm: script.pace_wpm, target_s: script.target_seconds })
   const stamp = new Date().toISOString().slice(0, 10)

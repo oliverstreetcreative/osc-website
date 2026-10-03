@@ -34,7 +34,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
   if (typeof body.update !== "string" || body.update.length > 20_000) return NextResponse.json({ error: "Bad request" }, { status: 400 })
   const entries = decodeAwareness(fromB64(body.update))
-  if (!entries?.length) return NextResponse.json({ error: "Bad request" }, { status: 400 })
+  // a browser speaks for its own session only (one entry; two while a tab hands over)
+  if (!entries?.length || entries.length > 2) return NextResponse.json({ error: "Bad request" }, { status: 400 })
   const own = await bindClients(id, facts.person.id, entries.map((e) => e.client))
   if (!own) return NextResponse.json({ error: "Not your session" }, { status: 403 })
 

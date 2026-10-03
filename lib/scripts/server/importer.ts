@@ -121,10 +121,10 @@ async function applyShares(scriptId: string, share: NonNullable<ImportRequest["s
       (await db.person.findUnique({ where: { email } })) ??
       (await db.person.create({ data: { email, name: s.name?.trim() || email.split("@")[0], role: "CLIENT", is_staff: false } }))
     if (person.is_staff) continue // staff edit everything already
-    const has = await db.scriptAccess.findFirst({ where: { script_id: scriptId, person_id: person.id, revoked_at: null } })
-    if (!has) {
-      await db.scriptAccess.create({ data: { script_id: scriptId, person_id: person.id, email, role: s.role, invited_by: invitedBy, accepted_at: new Date() } })
-    }
+    // Once only, EVER: a share that was revoked stays revoked (the pickup runs every 5 minutes; built review #10).
+    const had = await db.scriptAccess.findFirst({ where: { script_id: scriptId, person_id: person.id } })
+    if (had) continue
+    await db.scriptAccess.create({ data: { script_id: scriptId, person_id: person.id, email, role: s.role, invited_by: invitedBy, accepted_at: new Date() } })
     any = true
   }
   if (any) await db.script.update({ where: { id: scriptId }, data: { audience: "client" } })

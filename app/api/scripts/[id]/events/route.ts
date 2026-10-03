@@ -28,6 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 
   const live = await openLive(id)
+  if (req.signal.aborted) return new Response(null, { status: 499 })
   const subId = crypto.randomUUID()
   const enc = new TextEncoder()
   let ping: ReturnType<typeof setInterval> | undefined
@@ -38,6 +39,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     start(controller) {
       const write = (s: string) => {
         if (closed) return
+        // nobody reading (the connection went away without telling us): stop, don't queue forever
+        if (controller.desiredSize !== null && controller.desiredSize < -200) return close()
         try {
           controller.enqueue(enc.encode(s))
         } catch {
@@ -85,6 +88,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           .catch(() => undefined)
       }, 60_000)
       req.signal.addEventListener("abort", close)
+      // The browser may have gone while we were still awaiting the session and the database above: an abort listener
+      // added to an already-aborted signal never fires, and Next 14 doesn't cancel the body (built review #3).
+      if (req.signal.aborted) close()
     },
     cancel() {
       closed = true

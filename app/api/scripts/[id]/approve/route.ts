@@ -9,7 +9,7 @@ import { db } from "@/lib/db"
 import { roleOf, sessionFacts } from "@/lib/scripts/server/access"
 import { catchUp, withLive } from "@/lib/scripts/server/registry"
 import { saveVersion } from "@/lib/scripts/server/versions"
-import { pendingSuggestions, pmFromYDoc } from "@/lib/scripts/doc"
+import { pendingSuggestions, pmSnapshot } from "@/lib/scripts/doc"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -48,7 +48,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   const result = await withLive(params.id, async (l) => {
     await catchUp(l)
-    const pending = pendingSuggestions(pmFromYDoc(l.doc))
+    const pending = pendingSuggestions(pmSnapshot(l.doc))
     if (pending) return { error: `There ${pending === 1 ? "is 1 suggestion" : `are ${pending} suggestions`} still waiting. Accept or reject them first.` }
     const v = await saveVersion(l, "approved", "Approved", facts.person.id)
     const version = await db.scriptVersion.findUnique({ where: { script_id_n: { script_id: params.id, n: v.n } }, select: { text: true } })

@@ -262,7 +262,19 @@ export function yDocFromJSON(json: JSONContent): Y.Doc {
   return prosemirrorJSONToYDoc(scriptSchema(), mirrorNodeMarks(pmFromJSON(json)).toJSON(), YFRAGMENT)
 }
 
-/** The ProseMirror document a Yjs document holds, node-level suggestion marks restored from `sm`. */
+/** The ProseMirror document a Yjs document holds, node-level suggestion marks restored from `sm`.
+ *  NOTE: y-tiptap DELETES (in that Y.Doc) any element the schema rejects while converting; use pmSnapshot() on a
+ *  document that must only change through committed updates (the server's live copy). */
 export function pmFromYDoc(doc: Y.Doc): PMNode {
   return restoreNodeMarks(yXmlFragmentToProseMirrorRootNode(doc.getXmlFragment(YFRAGMENT), scriptSchema()))
 }
+
+/** A copy of a Yjs document (same content; changing it never touches the original). */
+export function cloneYDoc(doc: Y.Doc): Y.Doc {
+  const copy = new Y.Doc({ gc: true })
+  Y.applyUpdate(copy, Y.encodeStateAsUpdate(doc))
+  return copy
+}
+
+/** pmFromYDoc on a copy: reading never changes the document read. */
+export const pmSnapshot = (doc: Y.Doc): PMNode => pmFromYDoc(cloneYDoc(doc))

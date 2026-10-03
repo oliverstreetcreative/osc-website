@@ -5,7 +5,7 @@ import { notFound, redirect } from "next/navigation"
 import { db } from "@/lib/db"
 import { roleOf, sessionFacts, UUID } from "@/lib/scripts/server/access"
 import { catchUp, withLive } from "@/lib/scripts/server/registry"
-import { pmFromYDoc, renderScript } from "@/lib/scripts/doc"
+import { pmSnapshot, renderScript } from "@/lib/scripts/doc"
 import { clock } from "@/lib/scripts/timing"
 import { Wordmark } from "@/app/client/ui"
 import { PrintButton } from "./print-button"
@@ -26,7 +26,7 @@ export default async function PrintScript({ params }: { params: { id: string } }
   if (!script) notFound()
   const doc = await withLive(params.id, async (l) => {
     await catchUp(l)
-    return pmFromYDoc(l.doc)
+    return pmSnapshot(l.doc)
   })
   const r = renderScript(doc, { wpm: script.pace_wpm, target_s: script.target_seconds })
   const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })

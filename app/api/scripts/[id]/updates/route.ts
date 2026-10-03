@@ -7,7 +7,7 @@
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 import { atLeast, bindClients, roleOf, sessionFacts } from "@/lib/scripts/server/access"
-import { catchUp, commit, fromB64, withLive } from "@/lib/scripts/server/registry"
+import { commit, fromB64, withLive } from "@/lib/scripts/server/registry"
 import { checkUpdate, updateClients } from "@/lib/scripts/guard"
 import { maybeAutosave } from "@/lib/scripts/server/versions"
 import { notify } from "@/lib/scripts/server/notices"
@@ -46,13 +46,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!own) return NextResponse.json({ refused: true, why: "an update with another person's changes in it" }, { status: 409 })
 
   const suggester = access.role === "suggester" ? { code: facts.person.code, clientIds: new Set([...own].map(String)) } : null
+  // The check runs INSIDE the commit's lock, against every row committed so far (another container's included).
   const result = await withLive(id, async (l) => {
-    await catchUp(l)
-    const verdict = checkUpdate(l.doc, update, own, suggester)
-    if (!verdict.ok) return { refused: verdict.why }
-    const seq = await commit(l, update, facts.person.id, clientId, sub)
+    const r = await commit(l, update, facts.person.id, clientId, { sub, check: (doc) => checkUpdate(doc, update, own, suggester) })
+    if ("refused" in r) return r
     await maybeAutosave(l).catch((err) => console.error("scripts: autosave failed", err))
-    return { seq: String(seq) }
+    return { seq: String(r.seq) }
   })
   if ("refused" in result) {
     console.warn(`scripts: refused an update on ${id} from ${facts.person.code}: ${result.refused}`)

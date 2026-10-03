@@ -96,32 +96,56 @@ export function broadcast(l: Live, event: string, data: unknown, exceptSub?: str
   for (const s of l.subs.values()) if (s.id !== exceptSub) s.send(event, data)
 }
 
-/** Apply rows committed since we last looked (another container's, or our own just now), in seq order. Call inside
- *  withLive. `own` = the sub that sent the row with that seq (it already has it). */
-export async function catchUp(l: Live, own?: { seq: bigint; sub?: string }) {
-  const rows = await db.scriptUpdate.findMany({ where: { script_id: l.id, id: { gt: l.upto } }, orderBy: { id: "asc" } })
+type Row = { id: bigint; update: Uint8Array | Buffer }
+
+/** Apply committed rows in seq order and pass each on (`exceptSub` already has the row with seq `exceptSeq`). */
+function applyRows(l: Live, rows: Row[], except?: { seq: bigint; sub?: string }) {
   for (const r of rows) {
+    if (r.id <= l.upto) continue
     const update = new Uint8Array(r.update)
     Y.applyUpdate(l.doc, update, "db")
     l.upto = r.id
     l.sinceSnapshot++
-    broadcast(l, "update", { seq: String(r.id), update: b64(update) }, own && own.seq === r.id ? own.sub : undefined)
+    broadcast(l, "update", { seq: String(r.id), update: b64(update) }, except && except.seq === r.id ? except.sub : undefined)
   }
+}
+
+/** Apply rows committed since we last looked (another container's), in seq order. Call inside withLive. */
+export async function catchUp(l: Live) {
+  const rows = await db.scriptUpdate.findMany({ where: { script_id: l.id, id: { gt: l.upto } }, orderBy: { id: "asc" } })
+  applyRows(l, rows)
   return rows.length
 }
 
-/** Commit one update (already checked), then apply it here and pass it on. Call inside withLive. Returns its seq. */
-export async function commit(l: Live, update: Uint8Array, personId: string, clientId: number, sub?: string): Promise<bigint> {
-  const row = await db.$transaction(async (tx) => {
+/**
+ * Commit one update. Inside the script's advisory lock (no other container can commit a row for this script until
+ * we're done): catch up with every committed row, run `check` against exactly that state, then insert; the database
+ * assigns the seq. Only then is it applied here and passed on. Call inside withLive.
+ */
+export async function commit(
+  l: Live,
+  update: Uint8Array,
+  personId: string,
+  clientId: number,
+  opts: { sub?: string; check?: (doc: Y.Doc) => { ok: true } | { ok: false; why: string } } = {},
+): Promise<{ seq: bigint } | { refused: string }> {
+  const result = await db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${l.id}))`
-    return tx.scriptUpdate.create({
+    applyRows(l, await tx.scriptUpdate.findMany({ where: { script_id: l.id, id: { gt: l.upto } }, orderBy: { id: "asc" } }))
+    if (opts.check) {
+      const v = opts.check(l.doc)
+      if (!v.ok) return { refused: v.why }
+    }
+    const row = await tx.scriptUpdate.create({
       data: { script_id: l.id, update: Buffer.from(update), person_id: personId, client_id: BigInt(clientId) },
       select: { id: true },
     })
+    return { seq: row.id }
   })
-  await catchUp(l, { seq: row.id, sub })
-  if (l.sinceSnapshot >= SNAPSHOT_EVERY) await snapshot(l)
-  return row.id
+  if ("refused" in result) return result
+  applyRows(l, [{ id: result.seq, update }], { seq: result.seq, sub: opts.sub })
+  if (l.sinceSnapshot >= SNAPSHOT_EVERY) await snapshot(l).catch(() => undefined)
+  return result
 }
 
 /** A cache of the state up to `upto` (the memory document holds exactly the committed rows up to there). */
