@@ -15,7 +15,11 @@ export default async function ClientShell({ children }: { children: React.ReactN
       {ctx.viewing ? (
         <div className="cs-viewing" role="status">
           <span>
-            Viewing as <b>{ctx.viewing.orgName}</b> · read-only
+            {ctx.viewing.preview ? (
+              <>Preview of <b>{ctx.viewing.orgName}</b> · not live yet</>
+            ) : (
+              <>Viewing as <b>{ctx.viewing.orgName}</b> · read-only</>
+            )}
           </span>
           <span className="cs-viewing-act">
             <a href="/client/view-as">Switch</a>

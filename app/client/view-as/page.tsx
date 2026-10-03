@@ -28,6 +28,8 @@ export default async function ViewAsPicker() {
       invoices: { where: { hidden: false, status: "open" }, select: { id: true } },
     },
   })
+  const live = orgs.filter((o) => !o.slug.endsWith("--preview"))
+  const previews = orgs.filter((o) => o.slug.endsWith("--preview"))
   const recent = await db.portalEvent.findMany({
     where: { event_type: { in: ["view_as_start", "view_as_exit"] } },
     orderBy: { occurred_at: "desc" },
@@ -55,9 +57,9 @@ export default async function ViewAsPicker() {
 
         <section className="cs-section" style={{ marginTop: 22 }}>
           <h2 className="cs-h2"><span>View as client</span></h2>
-          {orgs.length ? (
+          {live.length ? (
             <div className="cs-rows">
-              {orgs.map((o) => (
+              {live.map((o) => (
                 <form key={o.slug} action="/client/view-as/start" method="post" style={{ display: "block" }}>
                   <input type="hidden" name="slug" value={o.slug} />
                   <button className="cs-row cs-pick" aria-label={`View as ${o.name}`}>
@@ -81,6 +83,27 @@ export default async function ViewAsPicker() {
             <div className="cs-card cs-empty"><b>No clients yet.</b></div>
           )}
         </section>
+
+        {previews.length ? (
+          <section className="cs-section">
+            <h2 className="cs-h2"><span>Previews · not live yet</span></h2>
+            <div className="cs-rows">
+              {previews.map((o) => (
+                <form key={o.slug} action="/client/view-as/start" method="post" style={{ display: "block" }}>
+                  <input type="hidden" name="slug" value={o.slug} />
+                  <button className="cs-row cs-pick" aria-label={`Preview ${o.name}`}>
+                    <span className="cs-ico"><Eye /></span>
+                    <span className="cs-row-main">
+                      <strong>{o.name}</strong>
+                      <small>What goes live if you tap Publish{current === o.slug ? " · viewing now" : ""}</small>
+                    </span>
+                    <ChevronRight size={18} color="var(--muted)" />
+                  </button>
+                </form>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         {recent.length ? (
           <section className="cs-section">

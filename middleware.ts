@@ -353,6 +353,15 @@ async function route(req: NextRequest): Promise<NextResponse> {
     return new NextResponse(null, { status: 404 })
   }
 
+  // Legacy portal APIs (Bible era) aren't part of the client site; clients get 404
+  // until they're rebuilt behind the publish gate. Crew/staff keep their uses.
+  if (
+    user.role === 'CLIENT' &&
+    (pathMatches(pathname, '/api/portal') || pathname.startsWith('/api/upload') || pathMatches(pathname, '/api/events'))
+  ) {
+    return new NextResponse(null, { status: 404 })
+  }
+
   const res = setUserHeaders(NextResponse.next(), user)
   return applyImpersonation(req, res, user, pathname)
 }

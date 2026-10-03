@@ -23,7 +23,7 @@ export type ClientContext = {
   orgs: OrgSummary[]
   role: "OWNER" | "APPROVER" | "BILLING" | "VIEWER" | "STAFF"
   /** Set when OSC staff are viewing a client's site (read-only). */
-  viewing: { orgName: string } | null
+  viewing: { orgName: string; preview: boolean } | null
 }
 
 const orgSelect = { id: true, slug: true, name: true, short_name: true, logo_path: true } as const
@@ -53,7 +53,13 @@ export async function getClientContext(): Promise<ClientContext | null> {
     if (!slug) return null
     const org = await db.organization.findFirst({ where: { slug, hidden: false }, select: orgSelect })
     if (!org) return null
-    return { user: me, org, orgs: [org], role: "STAFF", viewing: { orgName: org.short_name ?? org.name } }
+    return {
+      user: me,
+      org,
+      orgs: [org],
+      role: "STAFF",
+      viewing: { orgName: org.short_name ?? org.name, preview: org.slug.endsWith("--preview") },
+    }
   }
 
   const ms = await db.membership.findMany({

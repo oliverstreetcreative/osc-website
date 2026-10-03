@@ -1,11 +1,56 @@
-// Book → Postgres. Reads every client book from Dropbox and upserts it by
-// stable keys. Anything that disappears from a book is HIDDEN, never deleted,
-// so a mistaken edit can be undone by putting the entry back.
+// Book → Postgres. Reads every PUBLISHED client book from Dropbox and upserts it
+// by stable keys. Anything that disappears from a book is HIDDEN, never deleted.
+//
+// THE PUBLISH GATE (Sam 10/3 00:55; spine 01:20): workers write drafts in
+// books/, which this site NEVER reads. Only scripts/client_gate.py writes
+// published/, and only on Sam's approval. preview/ holds "<org>--preview"
+// books (published + pending items) that only OSC staff can open, via View as
+// client; they never carry people, so no client can sign in to one.
+// On top of that, failClosed() drops any item whose text carries an internal
+// marker, so a bad edit renders as nothing rather than as a leak.
 import { db } from "@/lib/db"
 import { Book } from "./book"
 import { listJson, readText } from "./dropbox"
 
-export const BOOKS_FOLDER = "/_admin/client-site/books"
+export const PUBLISHED_FOLDER = "/_admin/client-site/published"
+export const PREVIEW_FOLDER = "/_admin/client-site/preview"
+/** @deprecated drafts; the site never reads them */
+export const BOOKS_FOLDER = PUBLISHED_FOLDER
+
+// A stricter subset of the gate's lint (scripts/client_gate.py), checked again at render time. Only markers
+// that never belong in client copy, so a legit title like "Internal Comms Video" is never hidden.
+const INTERNAL = [
+  /🤖/u,
+  /\bPRELIM\d*\b/,
+  /\bDO NOT (SEND|SHARE)\b/i,
+  /\b(HANDOFF|Majordomo|project\.json|PENDING-RULINGS)\b/,
+  /\b(day rate|rate card|crew pay|our cost|net profit)\b/i,
+  /\brouting number\b/i,
+]
+const isInternal = (x: unknown): boolean => {
+  const s = JSON.stringify(x ?? "")
+  return INTERNAL.some((r) => r.test(s))
+}
+
+/** Fail closed: drop (and report) any item whose text carries an internal marker. */
+export function failClosed(book: Book, dropped: string[]): Book {
+  const keep = <T,>(label: string, items: T[], strip: (t: T) => unknown = (t) => t) =>
+    items.filter((t) => {
+      const bad = isInternal(strip(t))
+      if (bad) dropped.push(label)
+      return !bad
+    })
+  return {
+    ...book,
+    projects: keep("project", book.projects, (p) => ({ ...p, films: [], shoots: [] })).map((p) => ({
+      ...p,
+      films: keep(`film in ${p.key}`, p.films),
+      shoots: keep(`shoot in ${p.key}`, p.shoots),
+    })),
+    invoices: keep("invoice", book.invoices, (i) => ({ ...i, memo: undefined })),
+    documents: keep("document", book.documents),
+  }
+}
 // OSC staff who may sign in and use "View as client". Same allowlist idea as the
 // books: a staff identity exists on the site only because it's in this file.
 export const STAFF_FILE = "/_admin/client-site/staff.json"
@@ -52,7 +97,9 @@ async function doSync(): Promise<SyncReport> {
   } catch (err) {
     report.failed.push({ file: STAFF_FILE, error: String((err as Error)?.message ?? err).slice(0, 300) })
   }
-  const files = await listJson(BOOKS_FOLDER)
+  const published = await listJson(PUBLISHED_FOLDER)
+  const previews = await listJson(PREVIEW_FOLDER).catch(() => [] as string[])
+  const files = [...published, ...previews]
   const seen = new Set<string>()
   for (const file of files) {
     try {
@@ -60,11 +107,18 @@ async function doSync(): Promise<SyncReport> {
       if (!parsed.success) {
         throw new Error(parsed.error.issues.slice(0, 5).map((i) => `${i.path.join(".")}: ${i.message}`).join("; "))
       }
-      const slug = parsed.data.org.slug
+      let book = parsed.data
+      const slug = book.org.slug
+      const isPreview = previews.includes(file)
       if (file.split("/").pop() !== `${slug}.json`) throw new Error(`file name must be ${slug}.json`)
+      if (isPreview !== slug.endsWith("--preview")) throw new Error("preview books (and only they) end in --preview")
+      if (isPreview) book = { ...book, people: [] } // nobody signs in to a preview; staff open it via View as client
       if (seen.has(slug)) throw new Error(`duplicate org slug ${slug}`)
       seen.add(slug)
-      await applyBook(parsed.data)
+      const dropped: string[] = []
+      book = failClosed(book, dropped)
+      if (dropped.length) report.failed.push({ file, error: `held back (internal marker): ${dropped.join(", ")}` })
+      await applyBook(book)
       report.ok.push(slug)
     } catch (err) {
       report.failed.push({ file, error: String((err as Error)?.message ?? err).slice(0, 500) })
@@ -215,7 +269,8 @@ export async function applyBook(book: Book) {
       status: inv.status,
       pay_url: inv.pay_url ?? null,
       pdf_path: inv.pdf ?? null,
-      memo: inv.memo ?? null,
+      memo: null, // never shown to clients; not stored until it's gated, rendered text
+
       hidden: false,
     }
     const existing = await db.invoice.findUnique({ where: { number: inv.number }, select: { organization_id: true } })
