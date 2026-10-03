@@ -26,16 +26,50 @@ export function publicOrigin(req: NextRequest | Request): string {
   return originFrom(h.get("x-forwarded-host"), h.get("host"), h.get("x-forwarded-proto"))
 }
 
+const LEGACY_DOMAIN = ".oliverstreetcreative.com"
+const hostOf = (req: NextRequest | Request) =>
+  (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "").split(",")[0].split(":")[0].trim().toLowerCase()
+
 /**
- * Session cookies are shared across *.oliverstreetcreative.com in production.
- * Anywhere else (the staging service domain, localhost) the browser would
- * reject that domain attribute, so the cookie is host-only there.
+ * Session cookies are HOST-ONLY (10/3 design review): a cookie scoped to all of
+ * .oliverstreetcreative.com would also be sent to review., hub., blog. and every
+ * other subdomain's server. Set SESSION_COOKIE_DOMAIN only if a legacy flow
+ * (the crew portal on crew.*) really needs one session across subdomains.
  */
 export function cookieDomainFor(req: NextRequest | Request): string | undefined {
-  const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "").split(":")[0].toLowerCase()
-  return host === "oliverstreetcreative.com" || host.endsWith(".oliverstreetcreative.com")
-    ? ".oliverstreetcreative.com"
-    : undefined
+  const forced = process.env.SESSION_COOKIE_DOMAIN?.trim()
+  if (!forced) return undefined
+  const host = hostOf(req)
+  return host === forced.replace(/^\./, "") || host.endsWith(forced.startsWith(".") ? forced : `.${forced}`) ? forced : undefined
+}
+
+/**
+ * Domains to clear a cookie on at sign-out: host-only, plus the old
+ * domain-wide cookie that sessions issued before 10/3 may still carry.
+ */
+export function cookieDomainsToClear(req: NextRequest | Request): (string | undefined)[] {
+  const host = hostOf(req)
+  const out: (string | undefined)[] = [undefined]
+  if (host === "oliverstreetcreative.com" || host.endsWith(LEGACY_DOMAIN)) out.push(LEGACY_DOMAIN)
+  const forced = cookieDomainFor(req)
+  if (forced && !out.includes(forced)) out.push(forced)
+  return out
+}
+
+/**
+ * Expire cookies on every domain they may live on. Raw Set-Cookie headers,
+ * because Next's cookie API keeps only one entry per name.
+ */
+export function clearCookies(res: Response, req: NextRequest | Request, names: string[]) {
+  const secure = isSecure(req) ? "; Secure" : ""
+  for (const name of names) {
+    for (const domain of cookieDomainsToClear(req)) {
+      res.headers.append(
+        "Set-Cookie",
+        `${name}=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax${secure}${domain ? `; Domain=${domain}` : ""}`,
+      )
+    }
+  }
 }
 
 export function isSecure(req: NextRequest | Request) {

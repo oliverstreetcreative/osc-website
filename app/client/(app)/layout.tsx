@@ -22,10 +22,19 @@ export default async function ClientShell({ children }: { children: React.ReactN
             )}
           </span>
           <span className="cs-viewing-act">
-            <a href="/client/view-as">Switch</a>
-            <form action="/client/view-as/exit" method="post">
-              <button>Exit</button>
-            </form>
+            {ctx.viewing.legacy ? (
+              // The older admin impersonation ends at its own route.
+              <form action="/api/admin/impersonate/stop" method="post">
+                <button>Exit</button>
+              </form>
+            ) : (
+              <>
+                <a href="/client/view-as">Switch</a>
+                <form action="/client/view-as/exit" method="post">
+                  <button>Exit</button>
+                </form>
+              </>
+            )}
           </span>
         </div>
       ) : null}
@@ -54,7 +63,9 @@ export default async function ClientShell({ children }: { children: React.ReactN
                   <strong>{ctx.user.name}</strong>
                   <small>{ctx.viewing ? `OSC staff · viewing ${ctx.viewing.orgName}` : ctx.user.email}</small>
                 </div>
-                {ctx.viewing ? (
+                {ctx.viewing?.legacy ? (
+                  <form action="/api/admin/impersonate/stop" method="post"><button>Stop viewing</button></form>
+                ) : ctx.viewing ? (
                   <>
                     <a href="/client/view-as">View another client</a>
                     <form action="/client/view-as/exit" method="post"><button>Stop viewing</button></form>

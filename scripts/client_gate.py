@@ -42,6 +42,15 @@ SITE = os.path.join(ROOT, "_admin", "client-site")
 DRAFTS, PUBLISHED, PREVIEW = (os.path.join(SITE, d) for d in ("books", "published", "preview"))
 LOG = os.path.join(PUBLISHED, "_log")
 
+LEDGER = os.path.join(SITE, "ledger", "approvals")  # one JSON per client approval, written by the portal
+
+STAGES = ("rough", "fine", "for_approval", "final")
+STAGE_WORDS = {"rough": "rough cut", "fine": "fine cut", "for_approval": "for approval", "final": "final"}
+# A version's link must be a Review share pinned to it (or a legacy Frame.io client link).
+REVIEW_SHARE = re.compile(r"^https://review\.oliverstreetcreative\.com/share/[A-Za-z0-9_-]{8,}$")
+LEGACY_FRAMEIO = re.compile(r"^https://f\.io/[A-Za-z0-9_-]+$")
+UUIDISH = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
+
 # Files every client may receive (OSC vendor paperwork).
 SHARED_FILES = {"/_admin/Corporate Docs/W9 Oliver Street Creative_2026.pdf"}
 SHARED_PREFIXES = ("/_admin/client-site/",)
@@ -68,6 +77,10 @@ def proposed(book):
     b["projects"] = [p for p in b.get("projects", []) if keep(p)]
     for p in b["projects"]:
         p["films"] = [f for f in p.get("films", []) if keep(f)]
+        for f in p["films"]:
+            # Each version is its own fact (10/3 design review): an office-only version
+            # never rides out with its film.
+            f["versions"] = [v for v in f.get("versions", []) if keep(v)]
         p["shoots"] = [s for s in p.get("shoots", []) if keep(s)]
     b["invoices"] = [i for i in b.get("invoices", []) if keep(i)]
     b["documents"] = [d for d in b.get("documents", []) if keep(d)]
@@ -86,7 +99,14 @@ def flatten(book):
         own = {k: v for k, v in p.items() if k not in ("films", "shoots")}
         out[f"project:{p['key']}"] = (f"Project page: {p['title']}", own)
         for f in p.get("films", []):
-            out[f"film:{p['key']}/{f['key']}"] = (f"Film: {f['title']}" + (f" ({f['version']})" if f.get("version") else ""), f)
+            own_f = {k: v for k, v in f.items() if k != "versions"}
+            out[f"film:{p['key']}/{f['key']}"] = (f"Film: {f['title']}" + (f" ({f['version']})" if f.get("version") else ""), own_f)
+            for v in f.get("versions", []):
+                stage = STAGE_WORDS.get(v.get("stage"), v.get("stage") or "")
+                out[f"version:{p['key']}/{f['key']}/{v['n']}"] = (
+                    f"Version {v['n']} of {f['title']}" + (f" ({v.get('label') or stage})" if (v.get('label') or stage) else ""),
+                    v,
+                )
         for s in p.get("shoots", []):
             out[f"shoot:{p['key']}/{s['key']}"] = (f"Filming day: {s.get('label') or s['start']} ({p['title']})", s)
     for i in book.get("invoices", []):
@@ -99,7 +119,7 @@ def flatten(book):
 def assemble(meta, items, order):
     """Items -> book, in the draft's order. meta = {'version':1}."""
     book = {"version": meta.get("version", 1), "org": None, "people": [], "projects": [], "invoices": [], "documents": []}
-    projects = {}
+    projects, films = {}, {}
     for key in order:
         if key not in items:
             continue
@@ -113,10 +133,20 @@ def assemble(meta, items, order):
             content["films"], content["shoots"] = [], []
             projects[content["key"]] = content
             book["projects"].append(content)
-        elif kind in ("film", "shoot"):
+        elif kind == "film":
+            pkey, fkey = rest.split("/")[0], rest.split("/")[1]
+            if pkey in projects:  # a film only shows under a published project
+                content["versions"] = []
+                films[(pkey, fkey)] = content
+                projects[pkey]["films"].append(content)
+        elif kind == "version":
+            pkey, fkey = rest.split("/")[0], rest.split("/")[1]
+            if (pkey, fkey) in films:  # a version only shows under a published film
+                films[(pkey, fkey)]["versions"].append(content)
+        elif kind == "shoot":
             pkey = rest.split("/")[0]
-            if pkey in projects:  # a film/shoot only shows under a published project
-                projects[pkey]["films" if kind == "film" else "shoots"].append(content)
+            if pkey in projects:  # a shoot only shows under a published project
+                projects[pkey]["shoots"].append(content)
         elif kind == "invoice":
             book["invoices"].append(content)
         elif kind == "document":
@@ -159,7 +189,8 @@ def strings(obj):
         yield obj
     elif isinstance(obj, dict):
         for k, v in obj.items():
-            if k in ("path", "url", "watch_url", "review_url", "pay_url", "logo", "poster", "file", "email", "key", "slug", "project_key"):
+            if k in ("path", "url", "watch_url", "review_url", "pay_url", "logo", "poster", "file", "email", "key", "slug",
+                     "project_key", "share_url", "asset_id", "version_id", "master_sha256", "approvers"):
                 continue
             yield from strings(v)
     elif isinstance(obj, list):
@@ -184,7 +215,7 @@ def paths(obj):
 def urls(obj):
     if isinstance(obj, dict):
         for k, v in obj.items():
-            if k in ("url", "watch_url", "review_url", "pay_url") and isinstance(v, str):
+            if k in ("url", "watch_url", "review_url", "pay_url", "share_url") and isinstance(v, str):
                 yield v
             else:
                 yield from urls(v)
@@ -219,7 +250,7 @@ def text_problems(text, client_domains):
     return out
 
 
-def lint_item(key, content, org):
+def lint_item(key, content, org, items=None):
     problems = []
     folder = (org or {}).get("folder")
     domains = {x.lower() for x in (org or {}).get("domains", [])}
@@ -245,7 +276,55 @@ def lint_item(key, content, org):
             problems.append(f"Frame.io team link, not a client share: {u}")
     if key.startswith("person:") and content.get("email", "").lower().endswith("@oliverstreetcreative.com"):
         problems.append("an OSC address in a client's people list")
+    if key.startswith("film:"):
+        problems += film_problems(content, items or {})
+    if key.startswith("version:"):
+        problems += version_problems(key, content, items or {})
     return sorted(set(problems))
+
+
+def film_problems(film, items):
+    """Who may approve a film is said by the book (gated), never inferred from a role."""
+    out = []
+    people = {k.split(":", 1)[1] for k in items if k.startswith("person:")}
+    for e in film.get("approvers", []) or []:
+        if e.lower() not in people:
+            out.append(f"approver {e} isn't one of this client's people in the book")
+    if film.get("approval") not in (None, "any", "all"):
+        out.append('approval must be "any" or "all"')
+    return out
+
+
+def version_problems(key, v, items):
+    out = []
+    n = v.get("n")
+    if not isinstance(n, int) or n < 1 or key.rsplit("/", 1)[-1] != str(n):
+        out.append("version number n must be a whole number matching its key")
+    if v.get("stage") not in STAGES:
+        out.append(f"stage must be one of {', '.join(STAGES)}")
+    if v.get("posted_on") and not re.match(r"^\d{4}-\d{2}-\d{2}$", str(v["posted_on"])):
+        out.append("posted_on must be YYYY-MM-DD")
+    review = v.get("review") or {}
+    url = review.get("share_url", "")
+    if REVIEW_SHARE.match(url or ""):
+        # A Review link must be pinned to THIS version (10/3 design review); the ids prove which picture it is.
+        if not UUIDISH.match(str(review.get("asset_id", ""))) or not UUIDISH.match(str(review.get("version_id", ""))):
+            out.append("a Review link needs the asset_id and version_id it is pinned to")
+        if not isinstance(review.get("version_number"), int):
+            out.append("a Review link needs Review's version_number")
+    elif LEGACY_FRAMEIO.match(url or ""):
+        if v.get("stage") == "for_approval":
+            out.append("approval needs a version-pinned Review link, not a Frame.io link")
+    elif url:
+        out.append(f"not a client Review/Frame.io share link: {url}")
+    else:
+        out.append("no review.share_url")
+    if v.get("stage") == "for_approval":
+        film_key = "film:" + key.split(":", 1)[1].rsplit("/", 1)[0]
+        film = items.get(film_key, (None, {}))[1] or {}
+        if not film.get("approvers"):
+            out.append("a version for approval needs the film's approvers list")
+    return out
 
 
 def lint(slug, keys=None):
@@ -254,7 +333,7 @@ def lint(slug, keys=None):
     org = d.get("org", (None, None))[1]
     if org and not org.get("folder"):
         return {"org": ["the book's org needs a 'folder' (its /Clients/... folder) so files can be checked"]}
-    return {k: probs for k in keys if k in d for probs in [lint_item(k, d[k][1], org)] if probs}
+    return {k: probs for k in keys if k in d for probs in [lint_item(k, d[k][1], org, d)] if probs}
 
 # ---------------------------------------------------------------- write
 
@@ -274,6 +353,36 @@ def log(slug, entry):
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
+def approved_job_versions():
+    """Job-version keys ("<job>/<film-key>/<n>") a client has approved, from the portal's ledger files."""
+    out = set()
+    if not os.path.isdir(LEDGER):
+        return out
+    for name in os.listdir(LEDGER):
+        if name.endswith(".json") and not name.startswith((".", "_")):
+            try:
+                rec = load(os.path.join(LEDGER, name)) or {}
+            except Exception:
+                continue
+            if rec.get("job") and rec.get("film") and rec.get("n") is not None and not rec.get("withdrawn"):
+                out.add(f"{rec['job']}/{rec['film']}/{rec['n']}")
+    return out
+
+
+def protected_items(items):
+    """Version item keys in `items` that a client has approved: they may not change or disappear."""
+    approved = approved_job_versions()
+    out = {}
+    for key, (_, content) in items.items():
+        if not key.startswith("version:"):
+            continue
+        pkey, fkey, n = key.split(":", 1)[1].split("/")
+        job = (items.get(f"project:{pkey}", (None, {}))[1] or {}).get("job_number")
+        if job and f"{job}/{fkey}/{n}" in approved:
+            out[key] = digest(content)
+    return out
+
+
 def publish(slug, keys, by, ticket, removing=()):
     draft, live, d, l, *_ = diff(slug)
     items = dict(l)
@@ -285,6 +394,13 @@ def publish(slug, keys, by, ticket, removing=()):
     if "org" not in items:
         raise SystemExit("can't publish anything before the client details (key 'org') are approved")
     book = assemble(draft or live, items, order)
+    # An approved version is a record: it can't change, and nothing may make it disappear
+    # (removing its film or project included). Withdrawing an approval is Sam's explicit act.
+    after = flatten(book)
+    broken = [k for k, h in protected_items(l).items() if k not in after or digest(after[k][1]) != h]
+    if broken:
+        raise SystemExit("refused: these versions were approved by the client and can't change or disappear: "
+                         + ", ".join(broken))
     write_json(os.path.join(PUBLISHED, f"{slug}.json"), book)
     log(slug, {"by": by, "ticket": ticket, "published": list(keys), "removed": list(removing)})
     write_preview(slug)

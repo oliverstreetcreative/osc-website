@@ -9,7 +9,25 @@ const VIEW_AS_ALLOWED_WRITES = new Set([
   '/client/view-as/exit',
   '/client/signout',
   '/api/auth/logout',
+  '/api/admin/impersonate/stop',
 ])
+
+/** The host this request was made to (Railway's proxy sets x-forwarded-host). */
+function requestHost(req: NextRequest): string {
+  return (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? '').split(',')[0].trim().toLowerCase()
+}
+
+/** True when the request's Origin (or, failing that, Referer) is this same host. */
+function sameOrigin(req: NextRequest): boolean {
+  const host = requestHost(req)
+  const from = req.headers.get('origin') ?? req.headers.get('referer')
+  if (!from || from === 'null' || !host) return false
+  try {
+    return new URL(from).host.toLowerCase() === host
+  } catch {
+    return false
+  }
+}
 const IDENTITY_HEADERS = [
   'x-user-id',
   'x-user-email',
@@ -189,14 +207,31 @@ export async function middleware(req: NextRequest) {
       },
     })
   }
-  // View as client (OSC staff) is READ-ONLY: while the cs_view cookie exists,
-  // refuse every write except the few that end the view or sign out.
+  const isWrite = !['GET', 'HEAD', 'OPTIONS'].includes(req.method)
+
+  // Staff looking at a client's site is READ-ONLY, in BOTH staff modes: the
+  // client site's "View as client" (cs_view) and the older admin impersonation
+  // (osc_impersonating, which swaps the identity to the client). While either
+  // cookie exists, refuse every write except the few that end the view or sign out.
   if (
-    req.cookies.get('cs_view')?.value &&
-    !['GET', 'HEAD', 'OPTIONS'].includes(req.method) &&
+    isWrite &&
+    (req.cookies.get('cs_view')?.value || req.cookies.get(IMPERSONATION_COOKIE_NAME)?.value) &&
     !VIEW_AS_ALLOWED_WRITES.has(req.nextUrl.pathname)
   ) {
     return new NextResponse('Read-only: you are viewing the site as a client. Exit the view to make changes.', {
+      status: 403,
+      headers: { 'content-type': 'text/plain; charset=utf-8' },
+    })
+  }
+
+  // CSRF guard: a write that rides on a session cookie must come from a page on
+  // this same host. Browsers send Origin on form posts and fetches; another
+  // oliverstreetcreative.com subdomain (Review, the hub, the blog) counts as
+  // same-SITE for cookies, so SameSite alone can't stop it, but it is never the
+  // same ORIGIN. Writes without a session cookie (public intake forms, the
+  // sign-in request) aren't affected.
+  if (isWrite && req.cookies.get(SESSION_COOKIE_NAME)?.value && !sameOrigin(req)) {
+    return new NextResponse('This request came from another site and was refused.', {
       status: 403,
       headers: { 'content-type': 'text/plain; charset=utf-8' },
     })

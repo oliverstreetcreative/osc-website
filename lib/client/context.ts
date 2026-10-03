@@ -6,7 +6,7 @@
 // cs_view cookie. While it's set the staff member sees exactly that client's
 // site, read-only: middleware refuses every non-GET request (lib/client/view-as
 // + middleware.ts), and a banner says who they're viewing.
-import { cookies } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { jwtVerify } from "jose"
 import { getPortalUser, type PortalUser } from "@/lib/portal-auth"
@@ -23,7 +23,7 @@ export type ClientContext = {
   orgs: OrgSummary[]
   role: "OWNER" | "APPROVER" | "BILLING" | "VIEWER" | "STAFF"
   /** Set when OSC staff are viewing a client's site (read-only). */
-  viewing: { orgName: string; preview: boolean } | null
+  viewing: { orgName: string; preview: boolean; legacy?: boolean } | null
 }
 
 const orgSelect = { id: true, slug: true, name: true, short_name: true, logo_path: true } as const
@@ -72,7 +72,21 @@ export async function getClientContext(): Promise<ClientContext | null> {
   const roles = new Map(ms.map((m) => [m.organization.id, m.role]))
   const wanted = (await cookies()).get(ORG_COOKIE)?.value
   const org = orgs.find((o) => o.slug === wanted) ?? orgs[0]
-  return { user: me, org, orgs, role: roles.get(org.id)!, viewing: null }
+  // The older admin impersonation swaps the identity to this client. Inside the
+  // client site it is treated exactly like View as client: read-only, with the bar.
+  const impersonated = (await headers()).get("x-impersonating") === "true"
+  return {
+    user: me,
+    org,
+    orgs,
+    role: roles.get(org.id)!,
+    viewing: impersonated ? { orgName: org.short_name ?? org.name, preview: false, legacy: true } : null,
+  }
+}
+
+/** For write handlers: true when this request may change anything (no staff view of any kind). */
+export function canWrite(ctx: ClientContext | null): ctx is ClientContext {
+  return !!ctx && !ctx.viewing
 }
 
 export async function requireClientContext(): Promise<ClientContext> {

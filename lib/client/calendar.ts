@@ -82,7 +82,13 @@ const projectInclude = {
 export async function eventsForPerson(personId: string, isStaff = false): Promise<CalEvent[]> {
   const orgIds = isStaff
     ? (await db.organization.findMany({ where: { hidden: false }, select: { id: true } })).map((o) => o.id)
-    : (await db.membership.findMany({ where: { person_id: personId, hidden: false }, select: { organization_id: true } })).map((m) => m.organization_id)
+    : (
+        await db.membership.findMany({
+          // A revoked client (hidden org) drops out of every feed on the next refresh.
+          where: { person_id: personId, hidden: false, organization: { hidden: false } },
+          select: { organization_id: true },
+        })
+      ).map((m) => m.organization_id)
   if (!orgIds.length) return []
   const projects = await db.project.findMany({ where: { organization_id: { in: orgIds }, hidden: false }, include: projectInclude })
   const invoices = await db.invoice.findMany({ where: { organization_id: { in: orgIds }, hidden: false, status: "open" } })

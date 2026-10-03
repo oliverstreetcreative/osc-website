@@ -17,7 +17,8 @@ const Person = z.object({
   name: z.string(),
   first_name: z.string().optional(),
   title: z.string().optional(),
-  role: z.enum(["OWNER", "APPROVER", "BILLING", "VIEWER"]).default("OWNER"),
+  // Default VIEWER (10/3 design review): a person a book doesn't give a role gets nothing extra.
+  role: z.enum(["OWNER", "APPROVER", "BILLING", "VIEWER"]).default("VIEWER"),
 })
 
 // A download is either a link we already sent (url) or a file in Dropbox
