@@ -49,16 +49,17 @@ export async function POST(
     if (!upload) {
       return NextResponse.json({ error: 'Upload not found' }, { status: 404 })
     }
-
-    const updated = await db.portalUpload.update({
-      where: { id },
-      data: { review_status: body.review_status },
-    })
-
-    return NextResponse.json({ upload: updated }, { status: 200 })
+    // portal_uploads has no review_status column, so the old update here could never succeed
+    // (a Prisma error on every call; nothing in the UI calls this route). Uploads in are being
+    // redesigned (client-site SPEC §0.4: untrusted, pulled and sealed on the Mac); until then this
+    // says so plainly instead of throwing.
+    return NextResponse.json(
+      { error: 'Upload review is not available yet.' },
+      { status: 410 },
+    )
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[admin/uploads/review] Error:', message)
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: 'Upload review failed.' }, { status: 500 })
   }
 }

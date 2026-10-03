@@ -68,6 +68,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
       summary: `Payment link requested by ${person.name} for obligation ${obligationId}`,
       details: { obligation_id: obligationId },
       occurred_at: new Date(),
+      source: 'portal_client', // required column; was missing, so this insert always failed
       // Publication metadata (required by schema)
       source_bible_id: 0,
       source_bible_table: 'portal',

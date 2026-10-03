@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
+import type { Prisma } from '@/generated/prisma'
 import { db } from '@/lib/db'
 import { isImpersonating } from '@/lib/auth/impersonation'
 
@@ -119,7 +120,8 @@ export async function POST(req: NextRequest) {
       project_id: project_id ?? null,
       event_type,
       summary,
-      details: payload ?? null,
+      // Prisma takes a JSON object or nothing here; plain null is a type error.
+      details: payload ? (payload as Prisma.InputJsonObject) : undefined,
       source,
       processed_at: null,
       // Publication fields intentionally null for portal-originated events

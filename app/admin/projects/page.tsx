@@ -20,7 +20,7 @@ export default async function AdminProjectsPage() {
       _count: {
         select: {
           deliverables: true,
-          participants: true,
+          project_participants: true,
         },
       },
     },
@@ -160,7 +160,7 @@ export default async function AdminProjectsPage() {
                         textAlign: 'right',
                       }}
                     >
-                      {p._count.participants}
+                      {p._count.project_participants}
                     </span>
                   </div>
                 </CardContent>
