@@ -31,7 +31,7 @@ export default async function Home() {
 
       <section className="cs-section" aria-labelledby="needs">
         <SectionTitle>
-          <span id="needs">{needs.length ? "Needs you" : "Where things stand"}</span>
+          <span id="needs">Needs you</span>
         </SectionTitle>
         {needs.length ? (
           <div className="cs-list">
@@ -41,8 +41,7 @@ export default async function Home() {
           <div className="cs-card cs-calm">
             <span className="cs-calm-dot"><Check size={22} /></span>
             <div>
-              <h3>You&rsquo;re all caught up.</h3>
-              <p>Nothing needs you right now. We&rsquo;ll email you when something does.</p>
+              <h3>You&rsquo;re all set.</h3>
             </div>
           </div>
         )}
@@ -86,8 +85,7 @@ export default async function Home() {
       {!projects.length ? (
         <section className="cs-section">
           <div className="cs-card cs-empty">
-            <b>Your projects will show up here.</b>
-            As soon as we start working together, this is where you&rsquo;ll find dates, cuts to review, finished films and bills.
+            <b>No projects yet.</b>
           </div>
         </section>
       ) : null}
@@ -96,8 +94,8 @@ export default async function Home() {
         <Link href="/client/calendar" className="cs-card cs-row" style={{ borderRadius: 16 }}>
           <span className="cs-ico"><CalendarDays /></span>
           <span className="cs-row-main">
-            <strong>Put every project date in your calendar</strong>
-            <small>Filming days and due dates, kept up to date for you</small>
+            <strong>Add your dates to your calendar</strong>
+            <small>Filming days and due dates</small>
           </span>
           <ArrowRight size={18} color="var(--muted)" />
         </Link>

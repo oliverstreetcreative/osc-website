@@ -30,7 +30,7 @@ export default async function Documents({ searchParams }: { searchParams: { q?: 
     <main className="cs-main">
       <p className="cs-eyebrow">{ctx.org.name}</p>
       <h1 className="cs-title" style={{ marginTop: 6 }}>Documents</h1>
-      <p className="cs-lede">Everything you&rsquo;ve signed or received from us, in one place.</p>
+      <p className="cs-lede">Everything you&rsquo;ve signed or received from us.</p>
 
       <form className="cs-search" action="/client/documents" style={{ marginTop: 20 }} role="search">
         <input type="search" name="q" defaultValue={searchParams.q ?? ""} placeholder="Search documents" aria-label="Search documents" />
@@ -51,8 +51,8 @@ export default async function Documents({ searchParams }: { searchParams: { q?: 
           <div className="cs-rows">{docs.map((d) => <DocRow key={d.id} doc={d} />)}</div>
         ) : (
           <div className="cs-card cs-empty">
-            <b>{all.length ? "Nothing matches that." : "No documents yet."}</b>
-            {all.length ? <Link className="cs-link" href="/client/documents">Show everything</Link> : "Agreements, releases and files from your shoots will appear here."}
+            <b>{all.length ? "No matches." : "No documents yet."}</b>
+            {all.length ? <Link className="cs-link" href="/client/documents">Show everything</Link> : null}
           </div>
         )}
       </section>

@@ -38,8 +38,8 @@ export default async function Billing() {
           <div className="cs-card cs-calm">
             <span className="cs-calm-dot"><Check size={22} /></span>
             <div>
-              <h3>You&rsquo;re paid up.</h3>
-              <p>{paid.length ? `Thank you. ${money(paidTotal)} paid across ${paid.length} invoice${paid.length === 1 ? "" : "s"}.` : "Nothing to pay right now."}</p>
+              <h3>You&rsquo;re all paid up.</h3>
+              <p>{paid.length ? `${money(paidTotal)} paid. Thank you.` : "Nothing to pay."}</p>
             </div>
           </div>
         )}

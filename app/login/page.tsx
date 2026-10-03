@@ -37,7 +37,7 @@ export default function LoginPage() {
         {status === 'sent' ? (
           <>
             <h1>Check your email.</h1>
-            <p>We sent a sign-in link to {email}. It works once and expires in 15 minutes.</p>
+            <p>We sent a link to {email}. It works once, for 15 minutes.</p>
             <p className="cs-login-foot">
               Nothing arrived? Check spam, or{' '}
               <button onClick={() => setStatus('idle')} style={{ background: 'none', border: 0, color: 'inherit', textDecoration: 'underline', cursor: 'pointer', padding: 0 }}>
@@ -50,7 +50,7 @@ export default function LoginPage() {
           <>
             <h1>Welcome back.</h1>
             {note ? <p style={{ color: '#f7f6f3' }}>{note}</p> : null}
-            <p>Your projects, films, bills and documents, in one place. Enter your email and we&rsquo;ll send you a link to sign in.</p>
+            <p>Enter your email and we&rsquo;ll send you a sign-in link.</p>
             <form onSubmit={handleSubmit}>
               <input
                 type="email"

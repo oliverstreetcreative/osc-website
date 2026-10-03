@@ -18,8 +18,7 @@ export default async function CalendarPage() {
         <p className="cs-eyebrow">Your calendar</p>
         <h1 className="cs-title" style={{ marginTop: 6 }}>Every date, in your calendar</h1>
         <div className="cs-card cs-empty" style={{ marginTop: 22 }}>
-          <b>Each client gets a private feed link here.</b>
-          It&rsquo;s personal to them, so it isn&rsquo;t shown while you&rsquo;re viewing as a client.
+          <b>Clients see their private calendar link here.</b>
         </div>
       </main>
     )
@@ -40,7 +39,7 @@ export default async function CalendarPage() {
     <main className="cs-main">
       <p className="cs-eyebrow">Your calendar</p>
       <h1 className="cs-title" style={{ marginTop: 6 }}>Every date, in your calendar</h1>
-      <p className="cs-lede" style={{ marginTop: 12 }}>Subscribe once. Filming days, call times and due dates show up in your own calendar, and change there when they change here. Each one links back to this site.</p>
+      <p className="cs-lede" style={{ marginTop: 12 }}>Filming days and due dates, in your own calendar. Subscribe once and they stay current.</p>
 
       <section className="cs-section" style={{ marginTop: 22 }}>
         <div className="cs-card cs-pad" style={{ display: "grid", gap: 10 }}>
@@ -64,7 +63,7 @@ export default async function CalendarPage() {
             ))}
           </div>
         ) : (
-          <div className="cs-card cs-empty"><b>Nothing on the calendar yet.</b>New dates appear here, and in your subscribed calendar, as soon as they&rsquo;re set.</div>
+          <div className="cs-card cs-empty"><b>No dates coming up.</b></div>
         )}
       </section>
 

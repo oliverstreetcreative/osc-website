@@ -51,7 +51,7 @@ export default async function ViewAsPicker() {
       <main className="cs-main">
         <p className="cs-eyebrow">OSC staff</p>
         <h1 className="cs-hello">Hi, {first}.</h1>
-        <p className="cs-lede">Pick a client to see their site exactly as they do. You can look at everything and change nothing.</p>
+        <p className="cs-lede">See any client&rsquo;s site exactly as they do. Read-only.</p>
 
         <section className="cs-section" style={{ marginTop: 22 }}>
           <h2 className="cs-h2"><span>View as client</span></h2>
@@ -78,7 +78,7 @@ export default async function ViewAsPicker() {
               ))}
             </div>
           ) : (
-            <div className="cs-card cs-empty"><b>No clients yet.</b>Clients appear here once their book is in Dropbox.</div>
+            <div className="cs-card cs-empty"><b>No clients yet.</b></div>
           )}
         </section>
 
