@@ -10,6 +10,7 @@ import { getDropboxAccessToken } from "@/lib/dropbox-auth"
 import { KINDS } from "@/lib/estimator/constants"
 import type { ClientContext } from "./context"
 import { todayUTC } from "./format"
+import { IS_STAGING } from "@/lib/site-env"
 
 export const KIND_CHOICES = Object.entries(KINDS).map(([id, k]) => ({ id, label: k.label as string, note: k.note as string }))
 
@@ -24,7 +25,9 @@ const TIMINGS: string[] = TIMING_CHOICES.map((t) => t.id)
 export const MAX_ABOUT = 1000
 const PER_PERSON_PER_DAY = 5
 const PER_ORG_PER_DAY = 10
-const QUEUE_NEW = "/_admin/intake-queue/_new"
+// Staging and production share one Dropbox. A request made on STAGING (tests, screenshots, previews signed
+// in as a real client) must never reach Sam's real intake queue, so staging writes to its own folder.
+const QUEUE_NEW = IS_STAGING ? "/_admin/intake-queue/_staging-new" : "/_admin/intake-queue/_new"
 
 /** Only OWNERs and APPROVERs send requests; never while staff are viewing. */
 export const canRequest = (ctx: ClientContext) => !ctx.viewing && (ctx.role === "OWNER" || ctx.role === "APPROVER")
