@@ -268,6 +268,50 @@ class GateTest(unittest.TestCase):
         self.team_book({"name": "Sam Patton", "role": "Director", "address": "12 Main St"})
         self.assertIn("no personal addresses", self.gate("lint", "acme").stdout)
 
+    # --- built review 10/3: phone pattern, clearance per person, formats, withdraw ---
+    def test_po_numbers_are_not_phones_but_dashes_and_slashes_are(self):
+        self.team_book({"name": "Sam Patton", "role": "Director"}, status="PO 4500123456 is approved.")
+        self.assertEqual(self.gate("lint", "acme").returncode, 0)  # exchange 012 can't be a phone number
+        for written in ("513–555–1234", "513/555-1234", "513 555 1234"):
+            self.team_book({"name": "Sam Patton", "role": "Director"}, status=f"Call {written}.")
+            r = self.gate("lint", "acme")
+            self.assertEqual(r.returncode, 1, written)
+
+    def test_a_clearance_is_for_one_person(self):
+        self.team_book({"name": "Pat Gaffer", "role": "Gaffer", "phone": "513-555-1234"})
+        self.gate("clear-contact", "--person", "Chris Grip", "--value", "513-555-1234", "--by", "Sam", "--ticket", "T1")
+        r = self.gate("lint", "acme")
+        self.assertEqual(r.returncode, 1)  # cleared for Chris, not for Pat
+        self.assertIn("isn't cleared for Pat Gaffer", r.stdout)
+        self.gate("clear-contact", "--person", "pat gaffer", "--value", "5135551234", "--by", "Sam", "--ticket", "T2",
+                  "--org", "someone-else")
+        self.assertEqual(self.gate("lint", "acme").returncode, 1)  # cleared for Pat, but only for another client
+        self.gate("clear-contact", "--person", "Pat Gaffer", "--value", "513 555 1234", "--by", "Sam", "--ticket", "T3")
+        self.assertEqual(self.gate("lint", "acme").returncode, 0)
+
+    def test_team_formats_and_duplicate_ids(self):
+        self.team_book({"name": "Sam Patton", "role": "Director", "email": "", "id": "Sam", "mobile": "yes"})
+        out = self.gate("lint", "acme").stdout
+        self.assertIn("isn't an email address", out)
+        self.assertIn("lowercase-kebab", out)
+        self.assertIn("mobile must be true or false", out)
+        b = book([version(1)])
+        b["projects"][0]["team"] = [{"name": "Sam Patton", "role": "A"}, {"name": "Sam Patton", "role": "B"}]
+        self.write_draft(b)
+        self.assertIn("share the id", self.gate("lint", "acme").stdout)
+
+    def test_withdraw_contact_lists_live_books(self):
+        b = self.team_book({"name": "Pat Gaffer", "role": "Gaffer", "phone": "513-555-1234"})
+        self.gate("clear-contact", "--person", "Pat Gaffer", "--value", "513-555-1234", "--by", "Sam", "--ticket", "T1")
+        self.assertEqual(self.approve_all().returncode, 0)
+        r = self.gate("withdraw-contact", "--value", "(513) 555-1234", "--by", "Sam")
+        self.assertIn("withdrew 1", r.stdout)
+        self.assertIn("still live in: acme", r.stdout)
+        self.assertEqual(self.gate("lint", "acme").returncode, 0)  # nothing pending: the draft equals live
+        b["projects"][0]["status_line"] = "Changed."
+        self.write_draft(b)
+        self.assertEqual(self.gate("lint", "acme").returncode, 1)  # any re-publish of that card now stops
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)

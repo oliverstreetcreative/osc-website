@@ -26,9 +26,11 @@ Usage (stdlib only; DROPBOX_LOCAL_ROOT overrides the Dropbox path):
                                           need Sam (SPEC §11 kinds v2); everything else stays waiting
   client_gate.py undo    <org> --at <log time> --by <who>
                                           put back what one auto-publish changed (if nothing changed since)
-  client_gate.py clear-contact --person "<name>" --value "<phone or email>" --by Sam --ticket <id>
-                                          Sam clears one contact detail that isn't OSC's to show to clients
-                                          (a freelancer's number on a team card); the list is gate-owned
+  client_gate.py clear-contact --person "<name>" --value "<phone or email>" --by Sam --ticket <id> [--org <slug>]
+                                          Sam clears one contact detail that isn't OSC's, for THAT person's team card
+                                          (and only that client, with --org); the list is gate-owned
+  client_gate.py withdraw-contact --value "<phone or email>" --by Sam
+                                          take a clearance back; lists the live books still showing the value
 Item keys: org · person:<email> · project:<key> · film:<project>/<film> · shoot:<project>/<shoot>
            · invoice:<number> · document:<key>
 """
@@ -194,21 +196,40 @@ OSC_E164 = "+18595121419"
 PHONE = re.compile(r"\(?\b\d{3}\)?[-. ]\d{3}[-. ]\d{4}\b")
 # Any North American number, however it's written: "513-555-1234", "(513) 555 1234", "+15135551234", "5135551234"
 # (SPEC §21 v2: the old pattern missed the +1 form a tel: link needs).
-PHONE_ANY = re.compile(r"(?<!\d)(?:\+?1[-. ]?)?\(?\d{3}\)?[-. ]?\d{3}[-. ]?\d{4}(?!\d)")
+_SEP = r"[\s.\-\u2013\u2014/\u00a0]{0,3}"
+PHONE_ANY = re.compile(r"(?<!\d)(?:\+?1" + _SEP + r")?\(?[2-9]\d{2}\)?" + _SEP + r"[2-9]\d{2}" + _SEP + r"\d{4}(?!\d)")
+EMAIL_ONE = re.compile(r"^[\w.+-]+@([\w-]+\.)+[\w-]{2,}$")
+KEY_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
 def e164(text):
-    """'+1' + ten digits, or None when it isn't a North American number."""
+    """'+1' + ten digits for a real North American number (area code and exchange start 2-9), else None."""
     digits = re.sub(r"\D", "", text)
     if len(digits) == 11 and digits.startswith("1"):
         digits = digits[1:]
-    return "+1" + digits if len(digits) == 10 else None
+    return "+1" + digits if re.fullmatch(r"[2-9]\d{2}[2-9]\d{6}", digits) else None
+
+
+def _norm_person(name):
+    return re.sub(r"\s+", " ", (name or "").strip().lower())
+
+
+def clearances():
+    """Live clearances: [{value, person, org?}] (phones +1..., emails lower-case, names normalised)."""
+    data = load(CLEARED) or {}
+    return [c for c in data.get("cleared", []) if c.get("value") and not c.get("withdrawn")]
 
 
 def cleared_contacts():
-    """{normalised value} Sam cleared for client pages: phones as +1..., emails lower-case."""
-    data = load(CLEARED) or {}
-    return {c["value"] for c in data.get("cleared", []) if c.get("value") and not c.get("withdrawn")}
+    """Values cleared for ANY person (free text has no person to match; team cards check person too)."""
+    return {c["value"] for c in clearances()}
+
+
+def cleared_for(value, person, org_slug):
+    """True when Sam cleared this value for this person (and, if he scoped it, for this client)."""
+    who = _norm_person(person)
+    return any(c["value"] == value and _norm_person(c.get("person")) == who and c.get("org") in (None, org_slug)
+               for c in clearances())
 EMAIL = re.compile(r"[\w.+-]+@([\w-]+\.)+[\w-]+")
 BAD_FILENAME = re.compile(r"prelim|internal|\bbid\b|_bid|bid_|packet|editor-brief|action-document|budget|crew|rates?\b|deal-memo|transcript", re.I)
 TEAM_FRAMEIO = re.compile(r"app\.frame\.io/(projects|player)/", re.I)
@@ -282,23 +303,36 @@ def text_problems(text, client_domains):
     return out
 
 
-def team_problems(project):
-    """A project's team card (SPEC §21 v2): contact details are OSC's or cleared by Sam; never a personal address.
-    Needed because the general text lint skips every key named "email"."""
+def team_problems(project, org_slug=None):
+    """A project's team card (SPEC §21 v2): contact details are OSC's or cleared by Sam FOR THAT PERSON (and client);
+    never a personal address. Formats are checked here too: the site drops a malformed field rather than failing the
+    book, so the gate is where Sam hears about it. Needed because the general text lint skips every key named "email"."""
     out = []
-    cleared = cleared_contacts()
+    ids = set()
     for member in project.get("team") or []:
         who = member.get("name", "someone")
-        email = (member.get("email") or "").strip().lower()
-        if email and not email.endswith("@oliverstreetcreative.com") and email not in cleared:
-            out.append(f"{who}'s email isn't an OSC address and isn't cleared: {email}")
+        mid = member.get("id")
+        if mid is not None and (not isinstance(mid, str) or not KEY_RE.match(mid)):
+            out.append(f"{who}'s id must be lowercase-kebab (like sam-patton): {mid!r}")
+        key = mid if isinstance(mid, str) and mid else re.sub(r"[^a-z0-9]+", "-", who.lower()).strip("-")
+        if key in ids:
+            out.append(f"two people on this team share the id {key!r}; give one an id")
+        ids.add(key)
+        if "mobile" in member and not isinstance(member["mobile"], bool):
+            out.append(f"{who}'s mobile must be true or false")
+        raw_email = member.get("email")
+        email = (raw_email or "").strip().lower() if isinstance(raw_email, str) else ""
+        if raw_email is not None and not EMAIL_ONE.match(email):
+            out.append(f"{who}'s email isn't an email address: {raw_email!r}")
+        elif email and not email.endswith("@oliverstreetcreative.com") and not cleared_for(email, who, org_slug):
+            out.append(f"{who}'s email isn't an OSC address and isn't cleared for {who}: {email}")
         phone = member.get("phone")
         if phone:
             n = e164(phone)
             if not n:
                 out.append(f"{who}'s phone isn't a number we can dial: {phone}")
-            elif n != OSC_E164 and n not in cleared:
-                out.append(f"{who}'s phone isn't OSC's and isn't cleared: {phone}")
+            elif n != OSC_E164 and not cleared_for(n, who, org_slug):
+                out.append(f"{who}'s phone isn't OSC's and isn't cleared for {who}: {phone}")
         for k in ("address", "home", "location"):
             if member.get(k):
                 out.append(f"{who}: no personal addresses on a team card (the map pin is the shoot's address)")
@@ -332,7 +366,7 @@ def lint_item(key, content, org, items=None):
     if key.startswith("person:") and content.get("email", "").lower().endswith("@oliverstreetcreative.com"):
         problems.append("an OSC address in a client's people list")
     if key.startswith("project:"):
-        problems += team_problems(content)
+        problems += team_problems(content, (org or {}).get("slug"))
     if key.startswith("film:"):
         problems += film_problems(content, items or {})
     if key.startswith("version:"):
@@ -555,18 +589,51 @@ def cmd_undo(a):
     print(f"{a.org}: put back {len(put_back)} item(s){note}")
     return 0
 
+def _contact_value(raw):
+    return e164(raw) if "@" not in raw else raw.strip().lower()
+
+
 def cmd_clear_contact(a):
-    value = e164(a.value) if not "@" in a.value else a.value.strip().lower()
+    value = _contact_value(a.value)
     if not value:
         raise SystemExit(f"not a phone number or an email: {a.value}")
     data = load(CLEARED) or {"version": 1, "cleared": []}
-    if any(c.get("value") == value and not c.get("withdrawn") for c in data["cleared"]):
-        print(f"already cleared: {value}")
+    if any(c.get("value") == value and _norm_person(c.get("person")) == _norm_person(a.person)
+           and c.get("org") == a.org and not c.get("withdrawn") for c in data["cleared"]):
+        print(f"already cleared: {a.person} · {value}")
         return 0
-    data["cleared"].append({"person": a.person, "value": value, "cleared_by": a.by, "ticket": a.ticket,
-                            "date": dt.date.today().isoformat()})
+    entry = {"person": a.person, "value": value, "cleared_by": a.by, "ticket": a.ticket, "date": dt.date.today().isoformat()}
+    if a.org:
+        entry["org"] = a.org
+    data["cleared"].append(entry)
     write_json(CLEARED, data)
-    print(f"cleared for client pages: {a.person} · {value}")
+    print(f"cleared for client pages: {a.person} · {value}" + (f" (only {a.org})" if a.org else ""))
+    return 0
+
+
+def cmd_withdraw_contact(a):
+    value = _contact_value(a.value)
+    if not value:
+        raise SystemExit(f"not a phone number or an email: {a.value}")
+    data = load(CLEARED) or {"version": 1, "cleared": []}
+    hit = 0
+    for c in data["cleared"]:
+        if c.get("value") == value and not c.get("withdrawn"):
+            c["withdrawn"] = {"by": a.by, "date": dt.date.today().isoformat()}
+            hit += 1
+    write_json(CLEARED, data)
+    # Withdrawing doesn't change pages already live: list the live books still showing it, to take it down.
+    showing = []
+    if os.path.isdir(PUBLISHED):
+        for name in sorted(os.listdir(PUBLISHED)):
+            if name.endswith(".json"):
+                text = open(os.path.join(PUBLISHED, name), encoding="utf-8").read()
+                digits = value[2:] if value.startswith("+1") else None
+                if (digits and digits in re.sub(r"\D", "", text)) or (not digits and value in text.lower()):
+                    showing.append(name[:-5])
+    print(f"withdrew {hit} clearance(s) for {value}")
+    if showing:
+        print("still live in: " + ", ".join(showing) + " (edit the draft, then publish or remove the item)")
     return 0
 
 # ---------------------------------------------------------------- commands
@@ -657,10 +724,14 @@ def main():
     s.add_argument("--value", required=True)
     s.add_argument("--by", required=True)
     s.add_argument("--ticket", required=True)
+    s.add_argument("--org")
+    s = sub.add_parser("withdraw-contact")
+    s.add_argument("--value", required=True)
+    s.add_argument("--by", required=True)
     a = ap.parse_args()
     rc = {"status": cmd_status, "lint": cmd_lint, "preview": cmd_preview, "ticket": cmd_ticket,
           "approve": cmd_approve, "remove": cmd_remove, "auto": cmd_auto, "undo": cmd_undo,
-          "clear-contact": cmd_clear_contact}[a.cmd](a)
+          "clear-contact": cmd_clear_contact, "withdraw-contact": cmd_withdraw_contact}[a.cmd](a)
     sys.exit(rc or 0)
 
 

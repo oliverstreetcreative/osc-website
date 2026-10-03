@@ -258,16 +258,17 @@ a.cs-row:hover { background: var(--hover); }
 .cs-dl .is-off-row small { color: var(--text); font-weight: 600; }
 /* Team cards (SPEC §21 v2): round 44 px icon links that wrap; call/text only where a phone can dial. */
 .cs-member { flex-wrap: wrap; }
+.cs-member .cs-row-main { flex: 1 1 160px; } /* a real basis, so the icons drop to their own line on a phone */
 .cs-member-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
 .cs .cs-round {
   width: 44px; height: 44px; border-radius: 999px; display: inline-grid; place-items: center;
   border: 1px solid var(--line-strong); color: var(--text); background: var(--card);
 }
 .cs .cs-round svg { width: 19px; height: 19px; stroke-width: 1.75; }
-.cs-member-num { display: none; }
+.cs-row-main .cs-member-num { display: none; }
 @media (pointer: fine) {
   .cs .cs-round.touch-only { display: none; }
-  .cs-member-num { display: block; }
+  .cs-row-main .cs-member-num { display: block; }
 }
 /* The demo's bar: calmer than staff orange (it's a guest's sample, not a staff warning). */
 .cs-viewing.demo { background: var(--ink); color: var(--on-ink); justify-content: center; }
@@ -459,9 +460,17 @@ a.cs-row:hover { background: var(--hover); }
       0 8px 24px -12px light-dark(rgba(20, 20, 18, 0.12), transparent);
   }
 }
-@media screen {
-  .cs[data-theme="auto"] { color-scheme: light dark; }
-  .cs[data-theme="dark"] { color-scheme: dark; }
+@supports (color: light-dark(#000, #fff)) {
+  @media screen {
+    .cs[data-theme="auto"] { color-scheme: light dark; }
+    .cs[data-theme="dark"] { color-scheme: dark; }
+    /* The page's own scrollbar and overscroll follow too (desktop browsers draw them from <html>). */
+    :root:has(.cs[data-theme="auto"]) { color-scheme: light dark; }
+    :root:has(.cs[data-theme="dark"]) { color-scheme: dark; }
+  }
+}
+@supports not (color: light-dark(#000, #fff)) {
+  .cs-theme { display: none; } /* no dark palette on this browser: don't offer a switch that can't work */
 }
 @media print {
   .cs { color-scheme: light !important; }
@@ -471,8 +480,14 @@ a.cs-row:hover { background: var(--hover); }
 .cs-pick-logo { background: light-dark(transparent, #f7f6f3); border-radius: 6px; padding: 2px; }
 /* The Appearance switch in the account menu. */
 .cs-theme { display: flex; gap: 6px; padding: 8px 12px 4px; }
-.cs .cs-theme button {
-  flex: 1; height: 34px; border-radius: 999px; border: 1px solid var(--line-strong); background: transparent;
-  color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer;
+.cs .cs-pop .cs-theme button {
+  flex: 1; height: 34px; padding: 0; justify-content: center; text-align: center; border-radius: 999px;
+  border: 1px solid var(--line-strong); background: transparent; color: var(--text); font-size: 13px; font-weight: 600;
+  cursor: pointer;
 }
-.cs .cs-theme button[aria-pressed="true"] { background: var(--strong); color: var(--on-strong); border-color: var(--strong); }
+.cs .cs-pop .cs-theme button:hover { background: var(--hover); }
+.cs .cs-pop .cs-theme button[aria-pressed="true"] { background: var(--strong); color: var(--on-strong); border-color: var(--strong); }
+/* Dark-mode edges (built review 10/3): the always-dark help card needs a line on a dark page. */
+.cs-help { border: 1px solid var(--line); }
+/* The Directions link is a 44 px tap target (the site's global minimum is undone for inline links in .cs). */
+.cs .cs-directions { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; }

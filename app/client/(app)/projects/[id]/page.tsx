@@ -10,7 +10,7 @@ import { eventForOrgs, googleLink } from "@/lib/client/calendar"
 import { pageOrigin } from "@/lib/client/host"
 import { PosterImage, PhaseTracker, DocRow, HelpFooter, AddToCalendar, SectionTitle, DemoOff } from "@/app/client/ui"
 import { isDemoSlug } from "@/lib/client/demo"
-import { e164, memberId, prettyPhone, teamOf } from "@/lib/client/team"
+import { e164, isOscMember, prettyPhone, teamOf } from "@/lib/client/team"
 
 type Dl = { label: string; url?: string; path?: string; size?: string; note?: string }
 
@@ -150,7 +150,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
                           {s?.address && !past ? (
                             // SPEC §21 v2: the map pin is the SHOOT's address (never a person's), as one https link.
                             <a
-                              className="cs-link"
+                              className="cs-link cs-directions"
                               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([s.location, s.address].filter(Boolean).join(", "))}`}
                               target="_blank"
                               rel="noopener"
@@ -242,7 +242,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
                   {team.map((t) => {
                     // SPEC §21 v2: an icon only for a detail that exists; call/text on phones, the number as text on
                     // desktops (no dead tel: links); "text" only for a mobile; Save contact = a vCard.
-                    const id = memberId(t)
+                    const id = t.uid // unique on this card
                     const tel = e164(t.phone)
                     const shown = prettyPhone(t.phone)
                     return (
@@ -264,7 +264,9 @@ export default async function ProjectPage({ params }: { params: { id: string } }
                             {t.email ? (
                               <a className="cs-round" href={`mailto:${t.email}`} aria-label={`Email ${t.name}`}><Mail /></a>
                             ) : null}
-                            <a className="cs-round" href={`/client/team/${p.slug}/${id}`} aria-label={`Save ${t.name}'s contact`}><UserPlus /></a>
+                            {isOscMember(t) ? (
+                              <a className="cs-round" href={`/client/team/${p.slug}/${id}`} aria-label={`Save ${t.name}'s contact`}><UserPlus /></a>
+                            ) : null}
                           </span>
                         ) : null}
                       </div>

@@ -64,13 +64,15 @@ const Shoot = z.object({
 
 // A person on a project's team card (SPEC §21 v2). Contact details are client-facing facts: the publish gate passes
 // only OSC's line and @oliverstreetcreative.com addresses, or values Sam cleared (client_gate.py clear-contact).
+// The contact fields are forgiving on purpose (built review 10/3): a malformed one is dropped (no icon), never a
+// failed parse, because a book that fails to parse hides that whole client. The gate checks the formats.
 const TeamMember = z.object({
-  id: key.optional(), // stable id for links (the vCard); defaults to the name, slugified
+  id: key.optional().catch(undefined), // stable id for links (the vCard); defaults to the name, slugified
   name: z.string(),
   role: z.string(),
-  phone: z.string().optional(), // any format; shown and dialled as +1XXXXXXXXXX
-  mobile: z.boolean().optional(), // the "text" icon only for a mobile
-  email: z.string().email().optional(),
+  phone: z.string().optional().catch(undefined), // any format; shown and dialled as +1XXXXXXXXXX
+  mobile: z.boolean().optional().catch(undefined), // the "text" icon only for a mobile
+  email: z.string().email().optional().catch(undefined),
 })
 
 const Project = z.object({
