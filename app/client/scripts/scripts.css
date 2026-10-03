@@ -1,0 +1,98 @@
+/* The script editor (SPEC §14): AV rows as two columns on a desktop, stacked on a phone (VIDEO in grey above the
+   words). Uses the portal's tokens, so dark mode follows (§20). */
+.cs .sc-main { max-width: 980px; }
+.cs .sc-title { margin-top: 4px; }
+.cs .sc-loading { color: var(--mut); margin-top: 24px; }
+
+.cs .sc-note {
+  margin: 12px 0; padding: 10px 12px; border-radius: 10px; font-size: 14px;
+  background: var(--accent-bg); border: 1px solid var(--accent-bd); color: var(--ink);
+}
+.cs .sc-note.bad { background: var(--red-bg); border-color: var(--red-bd); }
+.cs .sc-note p + * { margin-top: 8px; }
+.cs .sc-words {
+  width: 100%; font: inherit; font-size: 15px; padding: 8px 10px; border-radius: 8px;
+  border: 1px solid var(--rule-strong); background: var(--zone); color: var(--ink);
+}
+
+/* toolbar */
+.cs .sc-bar {
+  position: sticky; top: 56px; z-index: 30; margin-top: 16px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 10px 0;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+}
+.cs .sc-bar-left, .cs .sc-bar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cs .sc-bar-right { margin-left: auto; font-size: 13px; color: var(--mut); }
+.cs .sc-seg { display: inline-flex; border: 1px solid var(--rule-strong); border-radius: 999px; padding: 2px; }
+.cs .sc-seg button {
+  height: 36px; padding: 0 14px; border-radius: 999px; border: 0; background: transparent;
+  font-size: 14px; font-weight: 600; color: var(--mut); cursor: pointer;
+}
+.cs .sc-seg button.on { background: var(--ink); color: var(--on-strong); }
+.cs .sc-clock { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 15px; color: var(--green-ink); }
+.cs .sc-clock.over { color: var(--red-ink); }
+.cs .sc-clock small { font-weight: 500; color: var(--mut); font-size: 13px; }
+.cs .sc-here { display: inline-flex; align-items: center; gap: 4px; }
+.cs .sc-dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
+.cs .sc-save.offline { color: var(--accent); }
+
+/* the document */
+.cs .sc-cols { display: none; }
+.cs .sc-doc { outline: none; font-size: 17px; line-height: 1.55; padding: 8px 0 40px; min-height: 40vh; }
+.cs .sc-doc p { margin: 0; min-height: 1.55em; }
+.cs .sc-doc p + p { margin-top: 6px; }
+.cs .sc-doc h1, .cs .sc-doc h2, .cs .sc-doc h3 { margin: 18px 0 6px; font-weight: 800; }
+.cs .sc-doc h2 { font-size: 20px; }
+.cs .sc-doc .av-row { border-top: 1px solid var(--line); padding: 12px 0; }
+.cs .sc-doc .av-video { color: var(--mut); font-size: 15px; }
+.cs .sc-doc .av-video::before, .cs .sc-doc .av-audio::before {
+  content: attr(data-label); display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+  color: var(--mut); margin-bottom: 2px; user-select: none;
+}
+.cs .sc-doc .av-audio { margin-top: 8px; }
+.cs .sc-doc .s-speaker { font-weight: 700; letter-spacing: 0.02em; }
+@media (min-width: 720px) {
+  .cs .sc-cols {
+    display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 24px; padding: 10px 0 0;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mut);
+  }
+  .cs .sc-doc .av-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 24px; }
+  .cs .sc-doc .av-audio { margin-top: 0; }
+  .cs .sc-doc .av-video::before, .cs .sc-doc .av-audio::before { display: none; }
+}
+
+/* suggestions */
+.cs .sc-doc ins.s-ins {
+  text-decoration: none; background: var(--green-bg); color: var(--green-ink);
+  box-shadow: inset 0 -2px 0 var(--green-fill);
+}
+.cs .sc-doc del.s-del { text-decoration: line-through; color: var(--red-ink); background: var(--red-bg); }
+.cs .sc-doc ins.s-ins:has(> div, > p), .cs .sc-doc del.s-del:has(> div, > p) {
+  display: block; background: transparent; box-shadow: none; padding-left: 8px;
+}
+.cs .sc-doc ins.s-ins:has(> div, > p) { border-left: 3px solid var(--green-fill); }
+.cs .sc-doc del.s-del:has(> div, > p) { border-left: 3px solid var(--red-fill); text-decoration: line-through; }
+.cs .sc-doc [data-node-insertion="true"] { background: var(--green-bg); }
+.cs .sc-doc [data-node-deletion="true"] { background: var(--red-bg); }
+
+.cs .sc-sugs { margin-top: 28px; }
+.cs .sc-sugs-all { display: inline-flex; gap: 8px; }
+.cs .sc-sug-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.cs .sc-sug {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px;
+  background: var(--zone); border: 1px solid var(--line);
+}
+.cs .sc-sug-who { font-weight: 700; font-size: 14px; white-space: nowrap; }
+.cs .sc-sug-what { flex: 1; min-width: 0; font-size: 15px; overflow-wrap: anywhere; }
+.cs .sc-sug-acts { display: inline-flex; gap: 8px; }
+.cs .cs-round.ok { background: var(--green-bg); border-color: var(--green-bd); color: var(--green-ink); }
+
+/* other people's cursors (TipTap's CollaborationCaret) */
+.cs .collaboration-carets__caret {
+  border-left: 2px solid; border-right: 0; margin-left: -1px; margin-right: -1px;
+  position: relative; word-break: normal; pointer-events: none;
+}
+.cs .collaboration-carets__label {
+  position: absolute; top: -1.35em; left: -1px; font-size: 12px; font-weight: 600; line-height: normal;
+  padding: 1px 5px; border-radius: 4px 4px 4px 0; color: #fff; white-space: nowrap; user-select: none;
+}

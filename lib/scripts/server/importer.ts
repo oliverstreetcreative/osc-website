@@ -40,7 +40,10 @@ export async function importScript(req: ImportRequest, opts: { allowShare: boole
   if (!creator) throw new Error("created_by must be an OSC staff member")
 
   const existing = await db.script.findFirst({ where: { title, source: { path: ["sha256"], equals: imp.source.sha256 } }, select: { id: true } })
-  if (existing) return { id: existing.id, created: false }
+  if (existing) {
+    if (opts.allowShare && req.share?.length) await applyShares(existing.id, req.share, creator.id)
+    return { id: existing.id, created: false }
+  }
 
   let organization_id: string | null = null
   if (req.script?.organization) {
@@ -104,18 +107,27 @@ export async function importScript(req: ImportRequest, opts: { allowShare: boole
     return script.id
   })
 
-  if (opts.allowShare && req.share?.length) {
-    for (const s of req.share) {
-      const email = String(s.email ?? "").trim().toLowerCase()
-      if (!/^[^@\s]+@oliverstreetcreative\.com$/.test(email) || !ROLES.has(s.role)) continue // staging: OSC addresses only
-      const person =
-        (await db.person.findUnique({ where: { email } })) ??
-        (await db.person.create({ data: { email, name: s.name?.trim() || email.split("@")[0], role: "CLIENT", is_staff: false } }))
-      await db.scriptAccess.create({ data: { script_id: id, person_id: person.id, email, role: s.role, invited_by: creator.id, accepted_at: new Date() } })
-    }
-    await db.script.update({ where: { id }, data: { audience: "client" } })
-  }
+  if (opts.allowShare && req.share?.length) await applyShares(id, req.share, creator.id)
   return { id, created: true }
+}
+
+/** STAGING (the proof): give each listed OSC-address person access, once; the script becomes client-visible. */
+async function applyShares(scriptId: string, share: NonNullable<ImportRequest["share"]>, invitedBy: string) {
+  let any = false
+  for (const s of share) {
+    const email = String(s.email ?? "").trim().toLowerCase()
+    if (!/^[^@\s]+@oliverstreetcreative\.com$/.test(email) || !ROLES.has(s.role)) continue // staging: OSC addresses only
+    const person =
+      (await db.person.findUnique({ where: { email } })) ??
+      (await db.person.create({ data: { email, name: s.name?.trim() || email.split("@")[0], role: "CLIENT", is_staff: false } }))
+    if (person.is_staff) continue // staff edit everything already
+    const has = await db.scriptAccess.findFirst({ where: { script_id: scriptId, person_id: person.id, revoked_at: null } })
+    if (!has) {
+      await db.scriptAccess.create({ data: { script_id: scriptId, person_id: person.id, email, role: s.role, invited_by: invitedBy, accepted_at: new Date() } })
+    }
+    any = true
+  }
+  if (any) await db.script.update({ where: { id: scriptId }, data: { audience: "client" } })
 }
 
 export const IMPORT_FOLDER = "/_admin/client-site/scripts-import"

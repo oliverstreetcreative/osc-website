@@ -12,8 +12,8 @@ export const dynamic = "force-dynamic"
 const last = new Map<string, number[]>() // person+script → recent send times
 const COLORS = ["#d9480f", "#1971c2", "#2f9e44", "#ae3ec9", "#e8590c", "#0c8599", "#c2255c", "#5f3dc4"]
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = params
   const facts = await sessionFacts()
   if (!facts) return NextResponse.json({ error: "Sign in" }, { status: 401 })
   const access = await roleOf(id, facts)

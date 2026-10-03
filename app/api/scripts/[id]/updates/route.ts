@@ -15,8 +15,8 @@ export const dynamic = "force-dynamic"
 
 const MAX_UPDATE_BYTES = 2_000_000
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = params
   const facts = await sessionFacts()
   if (!facts) return NextResponse.json({ error: "Sign in to edit this script." }, { status: 401 })
   const access = await roleOf(id, facts)

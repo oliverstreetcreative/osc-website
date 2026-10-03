@@ -10,8 +10,8 @@ import { b64, catchUp, fromB64, openLive, presenceNow, subscribe, unsubscribe, w
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = params
   const facts = await sessionFacts()
   if (!facts) return new Response("Sign in to open this script.", { status: 401 })
   const access = await roleOf(id, facts)
