@@ -6,6 +6,7 @@
 import { z } from "zod"
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD")
+const https = z.string().url().refine((u) => u.startsWith("https://"), "must be an https:// link")
 const key = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "lowercase-kebab key")
 
 export const PHASES = ["quote", "agreement", "prep", "shoot", "review", "delivered", "paid"] as const
@@ -25,7 +26,7 @@ const Person = z.object({
 const Download = z
   .object({
     label: z.string(), // "Web (H.264, 1080p)"
-    url: z.string().url().optional(),
+    url: https.optional(),
     path: z.string().optional(),
     size: z.string().optional(), // "563 MB"
     note: z.string().optional(),
@@ -43,8 +44,8 @@ const Film = z.object({
   file: z.string().optional(), // Dropbox path to a browser-playable MP4 (plays in place)
   poster: z.string().optional(), // Dropbox path or /public path to a still
   aspect: z.string().optional(), // "16/9" (default), "1820/580"
-  watch_url: z.string().url().optional(),
-  review_url: z.string().url().optional(),
+  watch_url: https.optional(),
+  review_url: https.optional(),
   downloads: z.array(Download).default([]),
   description: z.string().optional(),
 })
@@ -89,7 +90,7 @@ const Invoice = z.object({
   due_on: date.optional(),
   paid_on: date.optional(),
   status: z.enum(["open", "paid", "void"]),
-  pay_url: z.string().url().optional(),
+  pay_url: https.optional(),
   pdf: z.string().optional(), // Dropbox path, root-relative ("/Clients/...")
   memo: z.string().optional(),
 })
@@ -104,7 +105,7 @@ const Document = z.object({
   description: z.string().optional(),
   dated_on: date.optional(),
   path: z.string().optional(), // Dropbox path, root-relative
-  url: z.string().url().optional(),
+  url: https.optional(),
   signed_by: z.string().optional(),
   signed_on: date.optional(),
 })

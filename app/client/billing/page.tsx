@@ -87,7 +87,7 @@ export default async function Billing() {
                 </span>
                 <span className="cs-row-end">
                   <strong>{money(inv.amount)}</strong>
-                  <span className="cs-status paid">Paid {day(inv.paid_on)}</span>
+                  <span className="cs-status paid">{inv.paid_on ? `Paid ${day(inv.paid_on)}` : "Paid"}</span>
                 </span>
               </div>
             ))}
@@ -105,9 +105,9 @@ export default async function Billing() {
         </section>
       ) : null}
 
-      <p className="cs-lede" style={{ marginTop: 18, fontSize: 13 }}>
+      {open.length ? <p className="cs-lede" style={{ marginTop: 18, fontSize: 13 }}>
         Invoices are paid through Mercury, our bank, by bank transfer or card. Checks are welcome too: Oliver Street Creative, 521 Oliver St, Covington, KY 41014.
-      </p>
+      </p> : null}
 
       <HelpFooter />
     </main>

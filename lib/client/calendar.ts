@@ -12,6 +12,7 @@ export type CalEvent = {
   id: string
   title: string
   date: Date // all-day, calendar date at noon UTC
+  end?: Date // last day (inclusive) for multi-day events
   description: string
   location?: string
   path: string // site path to act on it
@@ -20,7 +21,7 @@ export type CalEvent = {
 type ProjectLite = { id: string; name: string; slug: string | null; dates: unknown; organization: { name: string; short_name: string | null } | null }
 
 function projectEvents(p: ProjectLite & {
-  shoot_periods: { id: string; description: string | null; start_date: Date; call_time: string | null; location: string | null; address: string | null; bring: string | null }[]
+  shoot_periods: { id: string; description: string | null; start_date: Date; end_date: Date; call_time: string | null; location: string | null; address: string | null; bring: string | null }[]
 }): CalEvent[] {
   const org = p.organization?.short_name ?? p.organization?.name ?? ""
   const path = `/client/projects/${p.slug}`
@@ -32,6 +33,7 @@ function projectEvents(p: ProjectLite & {
       uid: `shoot-${s.id}@oliverstreetcreative.com`,
       title: `${label}: ${p.name}${s.call_time ? ` (call ${s.call_time})` : ""}`,
       date: s.start_date,
+      end: s.end_date > s.start_date ? s.end_date : undefined,
       location: [s.location, s.address].filter(Boolean).join(", ") || undefined,
       description: [
         `${org} · ${p.name}`,
@@ -43,7 +45,9 @@ function projectEvents(p: ProjectLite & {
     })
   }
   const dates = Array.isArray(p.dates) ? (p.dates as { label: string; date: string; note?: string }[]) : []
+  const cutoff = Date.now() - 14 * 86_400_000 // history stays out of their calendar
   dates.forEach((d, i) => {
+    if (new Date(`${d.date}T12:00:00Z`).getTime() < cutoff) return
     out.push({
       id: `date-${p.id}-${i}`,
       uid: `date-${p.id}-${i}@oliverstreetcreative.com`,
@@ -145,7 +149,7 @@ export function toICS(events: CalEvent[], origin: string, name = "Oliver Street 
       `UID:${e.uid}`,
       `DTSTAMP:${stamp()}`,
       `DTSTART;VALUE=DATE:${ymd(e.date)}`,
-      `DTEND;VALUE=DATE:${ymd(nextDay(e.date))}`,
+      `DTEND;VALUE=DATE:${ymd(nextDay(e.end ?? e.date))}`,
       `SUMMARY:${esc(e.title)}`,
       `DESCRIPTION:${esc(`${e.description}\n\nOpen in your Oliver Street Creative account: ${url}`)}`,
       ...(e.location ? [`LOCATION:${esc(e.location)}`] : []),
@@ -162,7 +166,7 @@ export function googleLink(e: CalEvent, origin: string) {
   const p = new URLSearchParams({
     action: "TEMPLATE",
     text: e.title,
-    dates: `${ymd(e.date)}/${ymd(nextDay(e.date))}`,
+    dates: `${ymd(e.date)}/${ymd(nextDay(e.end ?? e.date))}`,
     details: `${e.description}\n\n${origin}${e.path}`,
   })
   if (e.location) p.set("location", e.location)

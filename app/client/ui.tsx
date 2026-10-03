@@ -26,13 +26,14 @@ type PosterProject = {
 }
 
 /** A project's poster frame: Mux still → Dropbox still → typographic poster. */
-export function PosterImage({ project, orgName, width = 960 }: { project: PosterProject; orgName?: string; width?: number }) {
+export function PosterImage({ project, orgName, logo, width = 960 }: { project: PosterProject; orgName?: string; logo?: string | null; width?: number }) {
   if (project.poster_mux_id) return <img src={muxThumb(project.poster_mux_id, project.poster_time, width)} alt="" loading="lazy" />
   if (project.poster_path) return <img src={`/client/poster/project/${project.id}`} alt="" loading="lazy" />
   return (
     <div className="cs-typo" aria-hidden>
+      {logo?.startsWith("/client-logos/") ? <img className="cs-typo-logo" src={logo} alt="" /> : null}
       <b>{project.name}</b>
-      {orgName ? <i>{orgName}</i> : null}
+      {orgName && !logo ? <i>{orgName}</i> : null}
     </div>
   )
 }

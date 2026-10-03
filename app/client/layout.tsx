@@ -50,7 +50,7 @@ export default async function ClientLayout({ children }: { children: React.React
                   <small>{ctx.user.email}</small>
                 </div>
                 <a href="/client/calendar">Calendar feed</a>
-                <a href="/client/signout">Sign out</a>
+                <form action="/client/signout" method="post"><button>Sign out</button></form>
               </div>
             </details>
           </div>

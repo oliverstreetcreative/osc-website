@@ -3,12 +3,12 @@ import type { ProjectWithAll } from "@/lib/client/data"
 import { day } from "@/lib/client/format"
 import { PosterImage, PhasePill } from "./ui"
 
-export function ProjectCard({ p, orgName }: { p: ProjectWithAll; orgName: string }) {
+export function ProjectCard({ p, orgName, logo }: { p: ProjectWithAll; orgName: string; logo?: string | null }) {
   const line = p.next_step ?? p.status_line ?? p.summary
   return (
     <Link href={`/client/projects/${p.slug}`} className="cs-card cs-pcard">
       <div className="cs-poster">
-        <PosterImage project={p} orgName={orgName} />
+        <PosterImage project={p} orgName={orgName} logo={logo} />
         {p.kind ? <span className="cs-poster-tag">{p.kind}</span> : null}
       </div>
       <div className="cs-pcard-body">

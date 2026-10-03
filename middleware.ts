@@ -4,6 +4,15 @@ import { VILLAGE_COOKIE_NAME, verifyVillageCookie } from '@/app/village/lib'
 import { IS_STAGING } from '@/lib/site-env'
 
 const SESSION_COOKIE_NAME = 'osc_session'
+const IDENTITY_HEADERS = [
+  'x-user-id',
+  'x-user-email',
+  'x-user-role',
+  'x-user-is-staff',
+  'x-impersonating',
+  'x-impersonator-id',
+  'x-impersonation-target-name',
+]
 const IMPERSONATION_COOKIE_NAME = 'osc_impersonating'
 const LOGIN_HOST = process.env.LOGIN_HOST ?? 'login.oliverstreetcreative.com'
 
@@ -175,6 +184,20 @@ export async function middleware(req: NextRequest) {
     })
   }
   const res = await route(req)
+  // Identity headers are ONLY ever set by this middleware. A browser could
+  // send its own x-user-* headers, so for every request that continues to a
+  // page or handler, forward a copy of the request headers with those removed
+  // (Next's request-header override). Values set via setUserHeaders() are
+  // applied on top of this by Next, so real sessions still work.
+  if (res.headers.get('x-middleware-next') || res.headers.get('x-middleware-rewrite')) {
+    const keys: string[] = []
+    req.headers.forEach((value, key) => {
+      if (IDENTITY_HEADERS.includes(key.toLowerCase())) return
+      keys.push(key)
+      res.headers.set(`x-middleware-request-${key}`, value)
+    })
+    res.headers.set('x-middleware-override-headers', keys.join(','))
+  }
   if (IS_STAGING) res.headers.set('X-Robots-Tag', 'noindex, nofollow')
   return res
 }
@@ -297,7 +320,11 @@ async function route(req: NextRequest): Promise<NextResponse> {
     pathMatches(pathname, '/client') ||
     pathMatches(pathname, '/crew') ||
     pathMatches(pathname, '/admin') ||
-    pathname.startsWith('/api/upload')
+    pathname.startsWith('/api/upload') ||
+    pathMatches(pathname, '/api/admin') ||
+    pathMatches(pathname, '/api/portal') ||
+    pathMatches(pathname, '/api/crew') ||
+    pathMatches(pathname, '/api/events')
 
   if (!isProtected) return NextResponse.next()
 

@@ -10,18 +10,29 @@ import { PosterImage, PhaseTracker, DocRow, HelpFooter, AddToCalendar, SectionTi
 
 type Dl = { label: string; url?: string; path?: string; size?: string; note?: string }
 
+// Look in the selected org first, then the person's other orgs (calendar links
+// and emails don't know which org is selected).
+async function findProject(ctx: Awaited<ReturnType<typeof requireClientContext>>, slug: string) {
+  for (const o of [ctx.org, ...ctx.orgs.filter((x) => x.id !== ctx.org.id)]) {
+    const p = await orgProject(o.id, slug)
+    if (p) return { p, org: o }
+  }
+  return null
+}
+
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const ctx = await requireClientContext()
-  const p = await orgProject(ctx.org.id, params.id)
-  return { title: p?.name ?? "Project" }
+  const found = await findProject(ctx, params.id)
+  return { title: found?.p.name ?? "Project" }
 }
 
 export default async function ProjectPage({ params }: { params: { id: string } }) {
   const ctx = await requireClientContext()
-  const p = await orgProject(ctx.org.id, params.id)
-  if (!p) notFound()
+  const found = await findProject(ctx, params.id)
+  if (!found) notFound()
+  const { p, org } = found
   const origin = await pageOrigin()
-  const orgName = ctx.org.short_name ?? ctx.org.name
+  const orgName = org.short_name ?? org.name
   const dates = (Array.isArray(p.dates) ? p.dates : []) as { label: string; date: string; note?: string }[]
   const team = (Array.isArray(p.team) ? p.team : []) as { name: string; role: string }[]
   const today = todayUTC()
@@ -34,7 +45,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
   ].sort((a, b) => a.when.getTime() - b.when.getTime())
   const calLinks = new Map<string, string>()
   for (const it of items.filter((i) => (i.shoot ? i.when >= today : i.when > today))) {
-    const e = await eventForOrgs(it.calId, [ctx.org.id])
+    const e = await eventForOrgs(it.calId, [org.id])
     if (e) calLinks.set(it.calId, googleLink(e, origin))
   }
 
@@ -66,7 +77,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
                     const downloads = (Array.isArray(f.downloads) ? f.downloads : []) as Dl[]
                     return (
                       <article key={f.id} className="cs-card cs-film">
-                        <FilmPlayer f={f} project={p} orgName={orgName} />
+                        <FilmPlayer f={f} project={p} orgName={orgName} logo={org.logo_path} />
                         <div className="cs-film-body">
                           <h3>{f.name}</h3>
                           <p className="cs-film-meta">
@@ -145,7 +156,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
                       <span className="cs-row-end">
                         <strong>{money(inv.amount)}</strong>
                         {inv.status === "paid" ? (
-                          <span className="cs-status paid">Paid {day(inv.paid_on, { month: "short", day: "numeric" })}</span>
+                          <span className="cs-status paid">{inv.paid_on ? `Paid ${day(inv.paid_on, { month: "short", day: "numeric" })}` : "Paid"}</span>
                         ) : (
                           <span className={`cs-status ${inv.due_on && daysFromToday(inv.due_on) < 0 ? "late" : "due"}`}>{relativeDue(inv.due_on)}</span>
                         )}
@@ -184,10 +195,11 @@ export default async function ProjectPage({ params }: { params: { id: string } }
   )
 }
 
-function FilmPlayer({ f, project, orgName }: {
+function FilmPlayer({ f, project, orgName, logo }: {
   f: { id: string; name: string; mux_playback_id: string | null; poster_time: number | null; file_path: string | null; poster_path: string | null; aspect: string | null; watch_url: string | null; review_url: string | null }
   project: Parameters<typeof PosterImage>[0]["project"]
   orgName: string
+  logo: string | null
 }) {
   const aspect = f.aspect ?? "16/9"
   if (f.mux_playback_id) {
@@ -216,7 +228,7 @@ function FilmPlayer({ f, project, orgName }: {
   const link = f.watch_url ?? f.review_url
   return (
     <a className="cs-poster" href={link ?? undefined} target="_blank" rel="noopener" style={{ display: "block" }}>
-      <PosterImage project={{ ...project, name: f.name }} orgName={orgName} />
+      <PosterImage project={{ ...project, name: f.name }} orgName={orgName} logo={logo} />
       {link ? <span className="cs-poster-tag">{f.watch_url ? "Watch on Frame.io" : "Review on Frame.io"}</span> : null}
       {link ? <span className="cs-play" aria-hidden><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></span> : null}
     </a>

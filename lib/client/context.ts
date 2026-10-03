@@ -47,6 +47,6 @@ export async function getClientContext(): Promise<ClientContext | null> {
 
 export async function requireClientContext(): Promise<ClientContext> {
   const ctx = await getClientContext()
-  if (!ctx) redirect("/login")
+  if (!ctx) redirect((await getPortalUser()) ? "/login?no_account=1" : "/login")
   return ctx
 }

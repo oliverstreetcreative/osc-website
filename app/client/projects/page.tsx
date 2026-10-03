@@ -16,7 +16,7 @@ export default async function Projects() {
       <p className="cs-lede">Every film we&rsquo;ve made together, newest first.</p>
       <section className="cs-section" style={{ marginTop: 24 }}>
         {projects.length ? (
-          <div className="cs-grid">{projects.map((p) => <ProjectCard key={p.id} p={p} orgName={orgName} />)}</div>
+          <div className="cs-grid">{projects.map((p) => <ProjectCard key={p.id} p={p} orgName={orgName} logo={ctx.org.logo_path} />)}</div>
         ) : (
           <div className="cs-card cs-empty"><b>No projects yet.</b>When we start one, it shows up here.</div>
         )}

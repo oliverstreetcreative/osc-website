@@ -53,9 +53,9 @@ export default async function Home() {
           <SectionTitle>Your latest film</SectionTitle>
           <Link href={`/client/projects/${latest.p.slug}`} className="cs-card cs-pcard">
             <div className="cs-poster">
-              <PosterImage project={latest.p} orgName={orgName} width={1280} />
+              <PosterImage project={latest.p} orgName={orgName} logo={ctx.org.logo_path} width={1280} />
               <span className="cs-poster-tag">{latest.p.kind}</span>
-              <PlayBadge />
+              {latest.f.mux_playback_id || latest.f.file_path ? <PlayBadge /> : null}
             </div>
             <div className="cs-pcard-body">
               <h3>{latest.f.name}</h3>
@@ -72,14 +72,14 @@ export default async function Home() {
       {active.length ? (
         <section className="cs-section">
           <SectionTitle href="/client/projects">In progress</SectionTitle>
-          <div className="cs-grid">{active.map((p) => <ProjectCard key={p.id} p={p} orgName={orgName} />)}</div>
+          <div className="cs-grid">{active.map((p) => <ProjectCard key={p.id} p={p} orgName={orgName} logo={ctx.org.logo_path} />)}</div>
         </section>
       ) : null}
 
       {finished.length ? (
         <section className="cs-section">
           <SectionTitle href="/client/projects">{active.length || latest ? "Earlier work" : "Your projects"}</SectionTitle>
-          <div className="cs-grid">{finished.map((p) => <ProjectCard key={p.id} p={p} orgName={orgName} />)}</div>
+          <div className="cs-grid">{finished.map((p) => <ProjectCard key={p.id} p={p} orgName={orgName} logo={ctx.org.logo_path} />)}</div>
         </section>
       ) : null}
 
@@ -138,7 +138,7 @@ function NeedCard({ n }: { n: NeedsItem }) {
       <div className="cs-card cs-need">
         <div className="cs-need-top">
           <span className="cs-eyebrow"><CalendarDays size={13} style={{ verticalAlign: -2, marginRight: 6 }} />{s.description ?? "Filming day"}</span>
-          <span className="cs-status soon">{inDays === 0 ? "Today" : inDays === 1 ? "Tomorrow" : `In ${inDays} days`}</span>
+          <span className="cs-status soon">{inDays < 0 ? "Happening now" : inDays === 0 ? "Today" : inDays === 1 ? "Tomorrow" : `In ${inDays} days`}</span>
         </div>
         <h3>{day(s.start_date, { weekday: "long", month: "long", day: "numeric" })}{s.call_time ? `, ${s.call_time}` : ""}</h3>
         <p>{[n.project.name, s.location].filter(Boolean).join(" · ")}</p>

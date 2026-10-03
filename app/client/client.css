@@ -41,6 +41,7 @@
 }
 .cs *, .cs *::before, .cs *::after { box-sizing: border-box; }
 .cs a { color: inherit; text-decoration: none; }
+.cs a, .cs button { min-height: 0; min-width: 0; } /* undo the marketing site's global 44px on inline links; controls size themselves */
 .cs h1, .cs h2, .cs h3 { font-family: var(--sans); letter-spacing: -0.02em; line-height: 1.1; margin: 0; }
 .cs p { margin: 0; }
 .cs button { font: inherit; }
@@ -80,7 +81,7 @@
 }
 .cs-chip-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cs-avatar {
-  width: 36px; height: 36px; border-radius: 999px; display: grid; place-items: center;
+  width: 40px; height: 40px; border-radius: 999px; display: grid; place-items: center;
   background: var(--orange); color: var(--ink); font-weight: 700; font-size: 14px;
 }
 .cs-pop {
@@ -178,7 +179,7 @@ a.cs-row:hover { background: #fbfaf8; }
 .cs .cs-btn svg { width: 17px; height: 17px; }
 .cs .cs-btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line-strong); }
 .cs .cs-btn.light { background: var(--on-ink); color: var(--ink); }
-.cs .cs-btn.sm { height: 36px; padding: 0 14px; font-size: 14px; }
+.cs .cs-btn.sm { height: 40px; padding: 0 14px; font-size: 14px; }
 .cs .cs-link { color: var(--orange-ink); font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; }
 
 /* ---------- needs you ---------- */
@@ -214,6 +215,7 @@ a.cs-row:hover { background: #fbfaf8; }
     radial-gradient(120% 90% at 100% 0%, rgba(224, 120, 48, 0.22), transparent 55%),
     radial-gradient(90% 80% at 0% 100%, rgba(242, 193, 78, 0.10), transparent 60%),
     var(--ink); }
+.cs-poster .cs-typo-logo, .cs-typo .cs-typo-logo { position: static; inset: auto; height: 30px; width: auto; max-width: 70%; object-fit: contain; object-position: left; filter: brightness(0) invert(1); opacity: 0.92; margin-bottom: 14px; }
 .cs-typo b { font-size: clamp(22px, 6vw, 30px); font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; max-width: 15ch; }
 .cs-typo i { font-family: var(--serif); font-size: 17px; color: var(--on-ink-muted); margin-top: 6px; }
 .cs-typo::before { content: ""; width: 28px; height: 3px; background: var(--orange); margin-bottom: 14px; border-radius: 2px; }
@@ -235,7 +237,7 @@ a.cs-row:hover { background: #fbfaf8; }
 
 /* phase tracker */
 .cs-track { list-style: none; margin: 26px 0 0; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); }
-.cs-track li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em; color: rgba(247,246,243,0.45); text-align: center; }
+.cs-track li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 10px; font-weight: 600; letter-spacing: -0.01em; color: rgba(247,246,243,0.45); text-align: center; }
 .cs-track li::before { content: ""; position: absolute; top: 5px; left: -50%; right: 50%; height: 2px; background: rgba(247,246,243,0.18); }
 .cs-track li:first-child::before { display: none; }
 .cs-track li i { position: relative; width: 12px; height: 12px; border-radius: 99px; background: var(--ink-2); border: 2px solid rgba(247,246,243,0.28); }
@@ -287,7 +289,7 @@ a.cs-row:hover { background: #fbfaf8; }
 }
 .cs-filters { display: flex; gap: 8px; overflow-x: auto; margin: 12px -16px 0; padding: 0 16px 4px; scrollbar-width: none; }
 .cs-filters::-webkit-scrollbar { display: none; }
-.cs-filters a { flex-shrink: 0; height: 34px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 999px; font-size: 14px; font-weight: 500; border: 1px solid var(--line-strong); background: var(--card); }
+.cs-filters a { flex-shrink: 0; height: 40px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 999px; font-size: 14px; font-weight: 500; border: 1px solid var(--line-strong); background: var(--card); }
 .cs-filters a[aria-current="true"] { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
 .cs-empty { padding: 28px 20px; text-align: center; color: var(--muted); font-size: 14px; }
 .cs-empty b { display: block; font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 22px; color: var(--text); margin-bottom: 4px; }

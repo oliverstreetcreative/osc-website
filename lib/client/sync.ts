@@ -26,17 +26,27 @@ export function syncBooks(): Promise<SyncReport> {
 async function doSync(): Promise<SyncReport> {
   const report: SyncReport = { ok: [], failed: [], at: new Date().toISOString() }
   const files = await listJson(BOOKS_FOLDER)
+  const seen = new Set<string>()
   for (const file of files) {
     try {
       const parsed = Book.safeParse(JSON.parse(await readText(file)))
       if (!parsed.success) {
         throw new Error(parsed.error.issues.slice(0, 5).map((i) => `${i.path.join(".")}: ${i.message}`).join("; "))
       }
+      const slug = parsed.data.org.slug
+      if (file.split("/").pop() !== `${slug}.json`) throw new Error(`file name must be ${slug}.json`)
+      if (seen.has(slug)) throw new Error(`duplicate org slug ${slug}`)
+      seen.add(slug)
       await applyBook(parsed.data)
-      report.ok.push(parsed.data.org.slug)
+      report.ok.push(slug)
     } catch (err) {
       report.failed.push({ file, error: String((err as Error)?.message ?? err).slice(0, 500) })
     }
+  }
+  // A book that disappeared revokes its org (hidden, never deleted). Only when
+  // the listing itself worked and found at least one book.
+  if (files.length && seen.size) {
+    await db.organization.updateMany({ where: { slug: { notIn: [...seen] }, hidden: false }, data: { hidden: true } })
   }
   lastSync = report
   console.log("client-site sync:", JSON.stringify(report))
@@ -180,6 +190,10 @@ export async function applyBook(book: Book) {
       pdf_path: inv.pdf ?? null,
       memo: inv.memo ?? null,
       hidden: false,
+    }
+    const existing = await db.invoice.findUnique({ where: { number: inv.number }, select: { organization_id: true } })
+    if (existing && existing.organization_id !== org.id) {
+      throw new Error(`invoice ${inv.number} already belongs to another client; fix the book`)
     }
     await db.invoice.upsert({ where: { number: inv.number }, create: { number: inv.number, ...data }, update: data })
     keepInvoices.push(inv.number)

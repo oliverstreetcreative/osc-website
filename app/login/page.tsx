@@ -1,10 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle')
+  const [note, setNote] = useState('')
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search)
+    if (q.get('no_account')) setNote('You’re signed in, but no client account is linked to this email yet. Text Sam and he’ll set it up.')
+    else if (q.get('signed_out')) setNote('You’re signed out.')
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -43,6 +49,7 @@ export default function LoginPage() {
         ) : (
           <>
             <h1>Welcome back.</h1>
+            {note ? <p style={{ color: '#f7f6f3' }}>{note}</p> : null}
             <p>Your projects, films, bills and documents, in one place. Enter your email and we&rsquo;ll send you a link to sign in.</p>
             <form onSubmit={handleSubmit}>
               <input
