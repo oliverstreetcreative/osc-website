@@ -119,6 +119,9 @@
 .cs .sc-reply { padding-left: 12px; border-left: 2px solid var(--line); }
 .cs .sc-doc .sc-commented { background: rgba(255, 196, 0, 0.28); border-bottom: 2px solid rgba(214, 160, 0, 0.9); }
 
+.cs .sc-ver-text ins.s-ins { text-decoration: none; background: var(--green-bg); color: var(--green-ink); }
+.cs .sc-ver-text del.s-del { text-decoration: line-through; background: var(--red-bg); color: var(--red-ink); }
+
 /* the scripts list */
 .cs .sc-list a { display: flex; align-items: center; gap: 12px; }
 .cs .sc-list .sc-list-meta { color: var(--mut); font-size: 13px; }

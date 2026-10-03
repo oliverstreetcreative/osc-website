@@ -4,7 +4,8 @@
 import { useCallback, useEffect, useState } from "react"
 
 type Version = { n: number; name: string | null; kind: string; at: string; by: string | null; authors: string[]; total_seconds: number | null }
-type Shown = { n: number; text: string }
+type Part = { op: "=" | "+" | "-"; text: string }
+type Shown = { n: number; text: string; diff: Part[] | null; comparedTo: number | null }
 
 const KIND: Record<string, string> = { auto: "Autosaved", named: "Named", restore: "Restored", approved: "Approved", import: "Imported" }
 
@@ -36,7 +37,10 @@ export function History({ scriptId, canManage, onClose }: { scriptId: string; ca
   const view = async (n: number) => {
     if (shown?.n === n) return setShown(null)
     const res = await fetch(`/api/scripts/${scriptId}/versions/${n}`, { cache: "no-store" }).catch(() => null)
-    if (res?.ok) setShown({ n, text: (await res.json()).text })
+    if (res?.ok) {
+      const v = await res.json()
+      setShown({ n, text: v.text, diff: v.diff, comparedTo: v.compared_to })
+    }
   }
   const name = async () => {
     const label = window.prompt("Name this version (for example: Mike's edits)")
@@ -102,7 +106,23 @@ export function History({ scriptId, canManage, onClose }: { scriptId: string; ca
                   ) : null}
                 </span>
               </div>
-              {shown?.n === v.n ? <pre className="sc-ver-text">{shown.text}</pre> : null}
+              {shown?.n === v.n ? (
+                shown.diff && shown.diff.some((p) => p.op !== "=") ? (
+                  <>
+                    <p className="sc-loading">What changed since version {shown.comparedTo}:</p>
+                    <pre className="sc-ver-text">
+                      {shown.diff.map((p, i) =>
+                        p.op === "=" ? <span key={i}>{p.text}</span> : p.op === "+" ? <ins key={i} className="s-ins">{p.text}</ins> : <del key={i} className="s-del">{p.text}</del>,
+                      )}
+                    </pre>
+                  </>
+                ) : (
+                  <>
+                    {shown.diff ? <p className="sc-loading">No change in the words since version {shown.comparedTo}.</p> : null}
+                    <pre className="sc-ver-text">{shown.text}</pre>
+                  </>
+                )
+              ) : null}
             </li>
           ))}
         </ul>
