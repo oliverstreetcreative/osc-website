@@ -95,7 +95,13 @@ function joinableAcross(doc: PMNode, endA: number, startB: number) {
  *   made(posOfB)    — the edit inserted the break before the textblock at posOfB (final coordinates)
  *   removed(posOfB) — the edit's deleted range covered that break
  */
-export function recordBoundaries(tr: Transform, made: (posOfB: number, endA: number) => boolean, removed: (posOfB: number) => boolean, fallbackId: () => string) {
+export function recordBoundaries(
+  tr: Transform,
+  made: (posOfB: number, endA: number) => boolean,
+  removed: (posOfB: number) => boolean,
+  isMine: (id: string) => boolean,
+  fallbackId: () => string,
+) {
   const doc = tr.doc
   const blocks: { pos: number; node: PMNode }[] = []
   doc.descendants((node, pos) => {
@@ -123,9 +129,12 @@ export function recordBoundaries(tr: Transform, made: (posOfB: number, endA: num
         sb = {}
       }
     }
+    // the author's own mark at either edge (the break is theirs, whatever suggestion sits next to it)
     const idOf = (type: string) => {
-      const m = edgeMark(doc, b, "first", type) ?? edgeMark(doc, a, "last", type)
-      return m ? String(m.attrs.id) : fallbackId()
+      for (const m of [edgeMark(doc, b, "first", type), edgeMark(doc, a, "last", type)]) {
+        if (m && isMine(String(m.attrs.id))) return String(m.attrs.id)
+      }
+      return fallbackId()
     }
     if (isMade) sb.ins = idOf("insertion")
     if (isRemoved && !sb.del) sb.del = idOf("deletion")
@@ -266,6 +275,7 @@ export function suggestEdit(state: EditorState, tr: Transaction, me: Author, nex
     ttr,
     (posOfB, endA) => isNew(posOfB, posOfB + 1) || isNew(endA, endA + 1),
     (posOfB) => removedAt.has(posOfB),
+    (id) => ownerOf(id) === me.code,
     nextId,
   )
   return { ok: true, tr: ttr }

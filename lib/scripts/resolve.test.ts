@@ -7,26 +7,11 @@ import assert from "node:assert/strict"
 import { EditorState, type Transaction } from "@tiptap/pm/state"
 import { Fragment, Slice, type Node as PMNode } from "@tiptap/pm/model"
 import { Transform } from "@tiptap/pm/transform"
-import { scriptSchema } from "./schema"
 import { idGenerator, suggestEdit } from "./normalize"
 import { resolveSuggestions, suggestionIds } from "./resolve"
 import { pmFromYDoc, yDocFromJSON } from "./doc"
 import { mirrorNodeMarks } from "./marks"
-
-const schema = scriptSchema()
-const p = (text?: string) => schema.nodes.paragraph.create(null, text ? schema.text(text) : null)
-const cell = (texts: string[]) => (texts.length ? texts : [""]).map((t) => p(t))
-const row = (video: string[], audio: string[]) =>
-  schema.nodes.avRow.create({ rowId: null }, [schema.nodes.avVideo.create(null, cell(video)), schema.nodes.avAudio.create(null, cell(audio))])
-
-function base(): PMNode {
-  return schema.nodes.doc.create(null, [
-    schema.nodes.heading.create({ level: 2 }, schema.text("Harmon :30")),
-    row(["Close up"], ["Hi. Im Mike Harmon and I am running.", "It is a big  job."]),
-    row([], ["Second row words here.", "(beat)"]),
-    row(["Logo"], ["Paid for by Mike Harmon."]),
-  ])
-}
+import { at, base, p, randomEdit, rng, row, schema } from "./fuzzkit"
 
 const me = { code: "abc12345", clientId: 42 }
 const gen = idGenerator(me)
@@ -53,29 +38,6 @@ const accept = (d: PMNode) => resolveSuggestions(new Transform(d), "accept").doc
 
 function same(a: PMNode, b: PMNode, what: string) {
   if (!a.eq(b)) assert.fail(`${what}\n got: ${JSON.stringify(a.toJSON())}\nwant: ${JSON.stringify(b.toJSON())}`)
-}
-
-/** Text positions inside textblocks (where a cursor can be), with the textblock's start and end. */
-function cursors(doc: PMNode) {
-  const out: { pos: number; start: number; end: number }[] = []
-  doc.descendants((node, pos) => {
-    if (!node.isTextblock) return true
-    for (let i = 0; i <= node.content.size; i++) out.push({ pos: pos + 1 + i, start: pos + 1, end: pos + 1 + node.content.size })
-    return false
-  })
-  return out
-}
-
-/** The position of the start of the text `s` in the document (first match). */
-function at(doc: PMNode, s: string): number {
-  let found = -1
-  doc.descendants((node, pos) => {
-    if (found >= 0) return false
-    if (node.isText && node.text!.includes(s)) found = pos + node.text!.indexOf(s)
-    return true
-  })
-  if (found < 0) throw new Error(`no "${s}"`)
-  return found
 }
 
 function check(name: string, edit: (tr: Transaction) => void, doc = base()) {
@@ -181,40 +143,7 @@ test("accept or reject ONE suggestion leaves the others pending", () => {
   same(reject(first), suggest(base(), (tr) => tr.insertText("really ", at(tr.doc, "running"))).direct, "accept one, reject the rest")
 })
 
-// ------------------------------------------------------------------------------------------------- random
-
-function rng(seed: number) {
-  return () => {
-    seed = (seed * 1103515245 + 12345) & 0x7fffffff
-    return seed / 0x7fffffff
-  }
-}
-
-const WORDS = ["vote", "Harmon", "the ", " and", "I’m", "$___ million", "Kentucky", "!", " ", "re-election"]
-
-/** One random edit that stays inside one cell (the editor never lets a single edit span VIDEO and AUDIO). */
-function randomEdit(r: () => number, doc: PMNode): (tr: Transaction) => void {
-  const cs = cursors(doc)
-  const c = cs[Math.floor(r() * cs.length)]
-  const kind = Math.floor(r() * 6)
-  const word = WORDS[Math.floor(r() * WORDS.length)]
-  if (kind === 0) return (tr) => tr.insertText(word, c.pos)
-  if (kind === 1) {
-    const to = Math.min(c.end, c.pos + 1 + Math.floor(r() * 6))
-    return (tr) => (to > c.pos ? tr.delete(c.pos, to) : tr.insertText(word, c.pos))
-  }
-  if (kind === 2) {
-    const to = Math.min(c.end, c.pos + 1 + Math.floor(r() * 4))
-    return (tr) => tr.insertText(word, c.pos, to)
-  }
-  if (kind === 3) return (tr) => tr.split(c.pos)
-  // a join with the next paragraph in the same cell, when there is one
-  const $c = doc.resolve(c.pos)
-  const cell = $c.node($c.depth - 1)
-  const idx = $c.index($c.depth - 1)
-  if (kind === 4 && cell.type.name !== "doc" && idx + 1 < cell.childCount) return (tr) => tr.delete(c.end, c.end + 2)
-  return (tr) => tr.insertText(word, c.pos)
-}
+// ------------------------------------------------------------------------------------------------- random (fuzzkit.ts)
 
 test("random single edits: reject all = before, accept all = the direct edit (500 seeds)", () => {
   for (let seed = 1; seed <= 500; seed++) {
