@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
-import { SignJWT } from 'jose'
 import { db } from '@/lib/db'
-import { cookieDomainFor, isSecure } from '@/lib/client/host'
-
-const SESSION_TTL_DAYS = 30
+import { clientHome, startSession } from '@/lib/auth/session'
 
 function redirectForRole(role: string, isStaff: boolean, host: string): string {
   // Staff: the admin on the login host; anywhere else, the client site's
@@ -64,42 +61,14 @@ export async function POST(req: NextRequest) {
     data: { accepted_at: new Date() },
   })
 
-  const sessionExpiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000)
-
-  const jwt = await new SignJWT({
-    id: person.id,
-    email: person.email,
-    role: person.role,
-    is_staff: person.is_staff,
-  })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime(Math.floor(sessionExpiresAt.getTime() / 1000))
-    .sign(new TextEncoder().encode(secret))
-
-  const sessionHash = createHash('sha256').update(jwt).digest('hex')
-  await db.portalSession.create({
-    data: {
-      person_id: person.id,
-      token_hash: sessionHash,
-      expires_at: sessionExpiresAt,
-      last_active_at: new Date(),
-    },
-  })
-
-  const redirectTo = redirectForRole(
+  let redirectTo = redirectForRole(
     person.role,
     person.is_staff,
     (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? '').toLowerCase(),
   )
+  // A client whose only business with us is a script lands on their scripts, not an empty portal (SPEC §14).
+  if (redirectTo === '/client') redirectTo = await clientHome(person.id)
   const res = NextResponse.json({ redirectTo })
-  res.cookies.set('osc_session', jwt, {
-    domain: cookieDomainFor(req),
-    path: '/',
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: isSecure(req),
-    expires: sessionExpiresAt,
-  })
+  await startSession(req, res, person)
   return res
 }
