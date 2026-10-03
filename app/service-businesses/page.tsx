@@ -3,6 +3,7 @@ import { WORK_VIDEOS, type WorkVideo } from "@/lib/work-videos"
 import { FROM_PRICE, FROM_PRICE_LINE } from "@/lib/silo-offer"
 import { SiteFrame } from "@/components/site/SiteFrame"
 import { HeroReel } from "@/components/site/HeroReel"
+import { HLS_TYPE } from "@/lib/hero-reel"
 import { SiteMotion } from "@/components/site/SiteMotion"
 import { MuxFacade } from "@/components/site/MuxFacade"
 import { PlayBadge } from "@/app/client/ui"
@@ -108,12 +109,16 @@ export default function ServiceBusinessesPage() {
       <SiteMotion />
 
       {/* 1 · THE HOOK - opens on real OSC footage: our own clients on camera.
-          Muted loop; Safari plays the HLS natively, everywhere else shows the
-          poster frame. Starts at the reel's poster moment. */}
+          Muted loop; browsers that play HLS natively play it, everywhere else
+          shows the poster frame. Starts at the reel's poster moment.
+          Deliberately NOT the homepage's phone sizing (website-redesign SPEC,
+          Feature 1b step 3): this hero fills the whole phone screen at every
+          width, so a 720p cap or a 640 px poster would upscale ~3x. Same bytes
+          as before: a 1280 poster and the uncapped HLS. */}
       <section id="hook" className="site-hero screen">
         <HeroReel
-          poster={thumb(REEL.playbackId, REEL.thumbTime, 1280)}
-          hls={`https://stream.mux.com/${REEL.playbackId}.m3u8`}
+          poster={{ src: thumb(REEL.playbackId, REEL.thumbTime, 1280) }}
+          sources={[{ src: `https://stream.mux.com/${REEL.playbackId}.m3u8`, type: HLS_TYPE }]}
           startAt={REEL.thumbTime}
         />
         <div className="site-hero-in r">

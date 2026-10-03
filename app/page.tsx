@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { WORK_VIDEOS, type WorkVideo } from "@/lib/work-videos"
-import { HERO_REEL, heroReelSources } from "@/lib/hero-reel"
+import { HERO_REEL, heroReelSources, posterSet } from "@/lib/hero-reel"
 import { creditsFrom, fetchTmdbBundle, type Credit } from "@/lib/tmdb"
 import { SiteFrame, SectionHead } from "@/components/site/SiteFrame"
 import { HeroReel } from "@/components/site/HeroReel"
@@ -114,7 +114,6 @@ async function loadCredits(): Promise<Credit[]> {
 
 export default async function HomePage() {
   const credits = await loadCredits()
-  const reel = heroReelSources(HERO_REEL)
   const work = (slugs: string[]) =>
     slugs.map((s) => WORK_VIDEOS.find((v) => v.slug === s)).filter((v): v is WorkVideo => Boolean(v))
 
@@ -122,7 +121,7 @@ export default async function HomePage() {
     <SiteFrame>
       {/* 1 · HERO: the reel, and the tagline over it */}
       <section className="site-hero" aria-labelledby="hero-title">
-        <HeroReel poster={HERO_REEL.poster} mp4={reel.mp4} hls={reel.hls} />
+        <HeroReel poster={posterSet(HERO_REEL.poster)} sources={heroReelSources(HERO_REEL)} />
         <div className="site-hero-in">
           {/* "Video production" added 10/3: with only a still on screen, the visible first
               screen never said what OSC makes (adversarial review finding 11). */}

@@ -4,41 +4,42 @@
 // (homepage, silo pages): the same idea as the /service-businesses hook, plus the
 // manners a phone deserves.
 //
-//   poster first   the still paints with the HTML (no JS needed); the video fades
-//                  in only once it is actually playing
+//   poster first   the still paints with the HTML (no JS needed), sized by srcset so a
+//                  phone never fetches the 1920 one; the video fades in only once it
+//                  is actually playing (it carries no poster of its own: no 2nd fetch)
 //   muted, loop, playsinline, no controls, no sound ever
-//   stays a still  for prefers-reduced-motion, Save-Data and 2G connections: no
-//                  video bytes are fetched until the viewer taps play
+//   stays a still  for prefers-reduced-motion, Save-Data, 2G and 3G: no video bytes
+//                  are fetched until the viewer taps play
 //   pauses         when scrolled out of view, and on the viewer's tap (WCAG 2.2.2)
-//   sources        HLS first (Safari plays it natively), then a static MP4 (plays
-//                  everywhere). If the browser can play neither, it stays a still.
+//   sources        an ordered list with media queries (lib/hero-reel.ts): HLS capped
+//                  at 720p on a phone, HLS, then 720p / 1080p MP4. The browser picks;
+//                  a missing file falls through. If it can play none, it stays a still.
 
 import { useEffect, useRef, useState } from "react"
+import type { ReelSource } from "@/lib/hero-reel"
 
 type Props = {
-  poster: string
-  mp4?: string | null
-  hls?: string | null
+  poster: { src: string; srcSet?: string }
+  sources: ReelSource[]
   /** start this many seconds in (media fragment) */
   startAt?: number
 }
 
-const HLS_TYPE = "application/vnd.apple.mpegurl"
-
-function playable(mp4?: string | null, hls?: string | null): boolean {
-  if (typeof document === "undefined") return false
+function playable(sources: ReelSource[]): boolean {
+  if (typeof document === "undefined" || sources.length === 0) return false
   const probe = document.createElement("video")
-  return Boolean((hls && probe.canPlayType(HLS_TYPE)) || (mp4 && probe.canPlayType("video/mp4")))
+  return sources.some((s) => probe.canPlayType(s.type) !== "")
 }
 
 function quietByChoice(): boolean {
   const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false
   const c = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection
-  const slow = Boolean(c?.saveData) || c?.effectiveType === "slow-2g" || c?.effectiveType === "2g"
+  const slow =
+    Boolean(c?.saveData) || c?.effectiveType === "slow-2g" || c?.effectiveType === "2g" || c?.effectiveType === "3g"
   return reduce || slow
 }
 
-export function HeroReel({ poster, mp4, hls, startAt }: Props) {
+export function HeroReel({ poster, sources, startAt }: Props) {
   const box = useRef<HTMLDivElement>(null)
   const video = useRef<HTMLVideoElement | null>(null)
   const heldByViewer = useRef(false)
@@ -46,16 +47,19 @@ export function HeroReel({ poster, mp4, hls, startAt }: Props) {
   const [mounted, setMounted] = useState(false) // the <video> is in the page
   const [shown, setShown] = useState(false) // a frame is actually playing
   const [paused, setPaused] = useState(true)
+  const key = sources.map((s) => s.src).join("|")
 
   useEffect(() => {
-    if (!playable(mp4, hls)) return
+    if (!playable(sources)) return
     setCanPlay(true)
     if (quietByChoice()) {
       heldByViewer.current = true
       return
     }
     setMounted(true)
-  }, [mp4, hls])
+    // `key` stands for `sources` (a fresh array each render)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key])
 
   useEffect(() => {
     const el = box.current
@@ -94,7 +98,15 @@ export function HeroReel({ poster, mp4, hls, startAt }: Props) {
 
   return (
     <div ref={box} className="site-reel">
-      <img className="site-reel-poster" src={poster} alt="" decoding="async" fetchPriority="high" />
+      <img
+        className="site-reel-poster"
+        src={poster.src}
+        srcSet={poster.srcSet}
+        sizes={poster.srcSet ? "100vw" : undefined}
+        alt=""
+        decoding="async"
+        fetchPriority="high"
+      />
       {mounted ? (
         <video
           ref={(v) => {
@@ -110,7 +122,6 @@ export function HeroReel({ poster, mp4, hls, startAt }: Props) {
           playsInline
           autoPlay
           preload="metadata"
-          poster={poster}
           aria-hidden="true"
           tabIndex={-1}
           onPlaying={() => {
@@ -119,8 +130,9 @@ export function HeroReel({ poster, mp4, hls, startAt }: Props) {
           }}
           onPause={() => setPaused(true)}
         >
-          {hls ? <source src={hls + frag} type={HLS_TYPE} /> : null}
-          {mp4 ? <source src={mp4 + frag} type="video/mp4" /> : null}
+          {sources.map((s) => (
+            <source key={s.src + (s.media ?? "")} src={s.src + frag} type={s.type} media={s.media} />
+          ))}
         </video>
       ) : null}
       {canPlay ? (
