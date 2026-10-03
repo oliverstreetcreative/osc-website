@@ -60,6 +60,9 @@ function isPublicPath(pathname: string): boolean {
   if (pathname === '/api/estimate') return true
   // Client site: private calendar feeds authenticate by their own token.
   if (pathname.startsWith('/calendar/')) return true
+  // Script invites (client-website SPEC §14 v4 #10): the link's page and its tap work signed out; the token is the key.
+  if (pathname.startsWith('/client/scripts/invite/')) return true
+  if (pathname === '/api/scripts/invite/accept' || pathname === '/api/scripts/invite/renew') return true
   if (pathname.startsWith('/f/')) return true
   if (pathname.startsWith('/_next/') || pathname.startsWith('/favicon')) return true
   return false
