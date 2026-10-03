@@ -102,7 +102,10 @@ export function demoBook(today = new Date()): Book {
   }
   const report = film("boone-county-2025")
   const gala = film("phoenixs-story")
-  const team = [{ name: "Sam Patton", role: "Producer and director" }]
+  // Sam's own OSC line and address (public, OSC's): the demo shows the team card's icons.
+  const team = [
+    { id: "sam", name: "Sam Patton", role: "Producer and director", phone: "+18595121419", mobile: true, email: "sam@oliverstreetcreative.com" },
+  ]
   const book = Book.parse({
     version: 1,
     org: { slug: DEMO_ORG_SLUG, name: "Fernwood Community Foundation", short_name: "Fernwood" },

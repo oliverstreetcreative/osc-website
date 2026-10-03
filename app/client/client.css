@@ -239,6 +239,19 @@ a.cs-row:hover { background: #fbfaf8; }
 .cs .cs-btn.is-off small { font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: 0.01em; }
 .cs .cs-btn.is-off:active { transform: none; }
 .cs-dl .is-off-row { opacity: 0.62; cursor: not-allowed; }
+/* Team cards (SPEC §21 v2): round 44 px icon links that wrap; call/text only where a phone can dial. */
+.cs-member { flex-wrap: wrap; }
+.cs-member-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.cs .cs-round {
+  width: 44px; height: 44px; border-radius: 999px; display: inline-grid; place-items: center;
+  border: 1px solid var(--line-strong); color: var(--text); background: var(--card);
+}
+.cs .cs-round svg { width: 19px; height: 19px; stroke-width: 1.75; }
+.cs-member-num { display: none; }
+@media (pointer: fine) {
+  .cs .cs-round.touch-only { display: none; }
+  .cs-member-num { display: block; }
+}
 /* The demo's bar: calmer than staff orange (it's a guest's sample, not a staff warning). */
 .cs-viewing.demo { background: var(--ink); color: var(--on-ink); justify-content: center; }
 .cs .cs-link { color: var(--orange-ink); font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; }

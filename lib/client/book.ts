@@ -62,6 +62,17 @@ const Shoot = z.object({
   bring: z.string().optional(),
 })
 
+// A person on a project's team card (SPEC §21 v2). Contact details are client-facing facts: the publish gate passes
+// only OSC's line and @oliverstreetcreative.com addresses, or values Sam cleared (client_gate.py clear-contact).
+const TeamMember = z.object({
+  id: key.optional(), // stable id for links (the vCard); defaults to the name, slugified
+  name: z.string(),
+  role: z.string(),
+  phone: z.string().optional(), // any format; shown and dialled as +1XXXXXXXXXX
+  mobile: z.boolean().optional(), // the "text" icon only for a mobile
+  email: z.string().email().optional(),
+})
+
 const Project = z.object({
   key,
   slug: key,
@@ -76,7 +87,7 @@ const Project = z.object({
     .object({ mux_playback_id: z.string().optional(), time: z.number().optional(), path: z.string().optional() })
     .optional(),
   dates: z.array(z.object({ label: z.string(), date, note: z.string().optional() })).default([]),
-  team: z.array(z.object({ name: z.string(), role: z.string() })).default([]),
+  team: z.array(TeamMember).default([]),
   sort_date: date.optional(),
   /** The client's "Start a new project" request this project answers; its card leaves when this publishes. */
   from_request: z.string().uuid().optional(),
@@ -133,3 +144,4 @@ export type Book = z.infer<typeof Book>
 export type BookProject = z.infer<typeof Project>
 export type BookFilm = z.infer<typeof Film>
 export type BookDownload = z.infer<typeof Download>
+export type BookTeamMember = z.infer<typeof TeamMember>

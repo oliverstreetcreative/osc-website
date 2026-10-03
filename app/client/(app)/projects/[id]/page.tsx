@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ChevronLeft, Download, ExternalLink, MapPin, Clock } from "lucide-react"
+import { ChevronLeft, Download, ExternalLink, MapPin, Clock, Phone, MessageSquare, Mail, UserPlus } from "lucide-react"
 import { requireClientContext } from "@/lib/client/context"
 import { orgProject, clientSignatures } from "@/lib/client/data"
 import { KIND_LABEL } from "@/lib/client/sign"
@@ -10,6 +10,7 @@ import { eventForOrgs, googleLink } from "@/lib/client/calendar"
 import { pageOrigin } from "@/lib/client/host"
 import { PosterImage, PhaseTracker, DocRow, HelpFooter, AddToCalendar, SectionTitle, DemoOff } from "@/app/client/ui"
 import { isDemoSlug } from "@/lib/client/demo"
+import { e164, memberId, prettyPhone, teamOf } from "@/lib/client/team"
 
 type Dl = { label: string; url?: string; path?: string; size?: string; note?: string }
 
@@ -40,7 +41,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
   const origin = await pageOrigin()
   const orgName = org.short_name ?? org.name
   const dates = (Array.isArray(p.dates) ? p.dates : []) as { label: string; date: string; note?: string }[]
-  const team = (Array.isArray(p.team) ? p.team : []) as { name: string; role: string }[]
+  const team = teamOf(p.team)
   const today = todayUTC()
 
   // Timeline: shoot days + key dates, in date order.
@@ -227,12 +228,37 @@ export default async function ProjectPage({ params }: { params: { id: string } }
               <section className="cs-section">
                 <SectionTitle>Your team</SectionTitle>
                 <div className="cs-rows">
-                  {team.map((t) => (
-                    <div key={t.name} className="cs-row">
-                      <span className="cs-avatar" style={{ width: 40, height: 40 }}>{t.name.slice(0, 1)}</span>
-                      <span className="cs-row-main"><strong>{t.name}</strong><small>{t.role}</small></span>
-                    </div>
-                  ))}
+                  {team.map((t) => {
+                    // SPEC §21 v2: an icon only for a detail that exists; call/text on phones, the number as text on
+                    // desktops (no dead tel: links); "text" only for a mobile; Save contact = a vCard.
+                    const id = memberId(t)
+                    const tel = e164(t.phone)
+                    const shown = prettyPhone(t.phone)
+                    return (
+                      <div key={id} className="cs-row cs-member">
+                        <span className="cs-avatar" style={{ width: 40, height: 40 }}>{t.name.slice(0, 1)}</span>
+                        <span className="cs-row-main">
+                          <strong>{t.name}</strong>
+                          <small>{t.role}</small>
+                          {shown ? <small className="cs-member-num">{shown}</small> : null}
+                        </span>
+                        {tel || t.email ? (
+                          <span className="cs-member-acts">
+                            {tel ? (
+                              <a className="cs-round touch-only" href={`tel:${tel}`} aria-label={`Call ${t.name}`}><Phone /></a>
+                            ) : null}
+                            {tel && t.mobile ? (
+                              <a className="cs-round touch-only" href={`sms:${tel}`} aria-label={`Text ${t.name}`}><MessageSquare /></a>
+                            ) : null}
+                            {t.email ? (
+                              <a className="cs-round" href={`mailto:${t.email}`} aria-label={`Email ${t.name}`}><Mail /></a>
+                            ) : null}
+                            <a className="cs-round" href={`/client/team/${p.slug}/${id}`} aria-label={`Save ${t.name}'s contact`}><UserPlus /></a>
+                          </span>
+                        ) : null}
+                      </div>
+                    )
+                  })}
                 </div>
               </section>
             ) : null}
