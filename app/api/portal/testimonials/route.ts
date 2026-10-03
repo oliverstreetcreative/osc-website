@@ -66,15 +66,14 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const testimonial = await db.testimonial.create({
-    data: {
-      project_id: projectId,
-      person_id: userId,
-      quote_text: (quoteText as string).trim(),
-      context: typeof context === 'string' ? context.trim() : '',
-      permission_status: permissionStatus === 'denied' ? 'denied' : 'granted',
-    },
-  })
-
-  return NextResponse.json(testimonial, { status: 201 })
+  // The old create wrote quote_text/context/permission_status, none of which exist on `testimonials` (it has body,
+  // rating, approved and required Bible-era columns), so every call failed; and clients can't reach /api/portal (the
+  // middleware answers 404 for them). Testimonials get designed into the new client site properly (consent is a
+  // fact of its own there); until then this says so instead of throwing. Unused: context, permissionStatus.
+  void context
+  void permissionStatus
+  return NextResponse.json(
+    { message: 'Testimonials are moving to the new client site and are not available here yet.' },
+    { status: 410 },
+  )
 }
