@@ -78,6 +78,44 @@ function pathMatches(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`)
 }
 
+// ---------------------------------------------------------------------------
+// The staging DEMO (client-website SPEC §19 v2). A demo session carries `demo: <fingerprint>` in its signed JWT,
+// where the fingerprint is the first 16 hex of sha256(CLIENT_DEMO_TOKEN). It is honoured only on staging, only
+// while the env var holds a long random token, and only while the fingerprint matches: rotate or unset the
+// variable and every open demo session is signed out on its next request. A demo session may READ client pages
+// and public pages, and may sign out; everything else answers 404. (lib/client/demo.ts is the Node-side twin.)
+// ---------------------------------------------------------------------------
+const DEMO_TOKEN_MIN = 32
+
+async function demoFingerprintEdge(): Promise<string | null> {
+  const t = (process.env.CLIENT_DEMO_TOKEN ?? '').trim()
+  if (!IS_STAGING || t.length < DEMO_TOKEN_MIN || !/^[A-Za-z0-9_-]+$/.test(t)) return null
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t))
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('').slice(0, 16)
+}
+
+function demoMayRequest(req: NextRequest): boolean {
+  const p = req.nextUrl.pathname
+  if (req.method === 'POST' && p === '/client/signout') return true
+  if (req.method !== 'GET' && req.method !== 'HEAD') return false
+  if (pathMatches(p, '/client/view-as') || pathMatches(p, '/crew') || pathMatches(p, '/admin') || p.startsWith('/api/')) {
+    return false
+  }
+  return true
+}
+
+/** A demo session that is no longer valid: sign it out (host-only cookie, plus the shared-domain copy if any). */
+function endDemoSession(req: NextRequest): NextResponse {
+  const url = req.nextUrl.clone()
+  url.pathname = '/login'
+  url.search = ''
+  const res = NextResponse.redirect(url)
+  res.headers.append('Set-Cookie', `${SESSION_COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`)
+  const domain = process.env.SESSION_COOKIE_DOMAIN?.trim()
+  if (domain) res.headers.append('Set-Cookie', `${SESSION_COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Domain=${domain}`)
+  return res
+}
+
 function getSubdomain(host: string): 'login' | 'client' | 'crew' | 'village' | null {
   const h = host.split(':')[0].toLowerCase()
 
@@ -107,6 +145,8 @@ async function verifySession(req: NextRequest) {
       email: String(payload.email ?? ''),
       role: String(payload.role ?? ''),
       is_staff: payload.is_staff === true,
+      // The staging demo (SPEC §19): the token's fingerprint, checked against the CURRENT token on every request.
+      demo: payload.demo === undefined ? undefined : String(payload.demo),
     }
   } catch {
     return null
@@ -208,6 +248,16 @@ export async function middleware(req: NextRequest) {
     })
   }
   const isWrite = !['GET', 'HEAD', 'OPTIONS'].includes(req.method)
+
+  // The staging demo: valid only while it matches the current token; read-only everywhere (SPEC §19 v2).
+  if (req.cookies.get(SESSION_COOKIE_NAME)?.value) {
+    const session = await verifySession(req)
+    if (session?.demo !== undefined) {
+      const fingerprint = await demoFingerprintEdge()
+      if (!fingerprint || session.demo !== fingerprint) return endDemoSession(req)
+      if (!demoMayRequest(req)) return new NextResponse(null, { status: 404 })
+    }
+  }
 
   // Staff looking at a client's site is READ-ONLY, in BOTH staff modes: the
   // client site's "View as client" (cs_view) and the older admin impersonation

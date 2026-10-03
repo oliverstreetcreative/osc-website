@@ -11,6 +11,7 @@
 import { db } from "@/lib/db"
 import { Book } from "./book"
 import { listJson, readText } from "./dropbox"
+import { DEMO_ORG_SLUG, demoBook, demoOn, isDemoSlug } from "./demo"
 
 export const PUBLISHED_FOLDER = "/_admin/client-site/published"
 export const PREVIEW_FOLDER = "/_admin/client-site/preview"
@@ -112,6 +113,7 @@ async function doSync(): Promise<SyncReport> {
       const isPreview = previews.includes(file)
       if (file.split("/").pop() !== `${slug}.json`) throw new Error(`file name must be ${slug}.json`)
       if (isPreview !== slug.endsWith("--preview")) throw new Error("preview books (and only they) end in --preview")
+      if (isDemoSlug(slug)) throw new Error("demo- slugs belong to the staging demo (lib/client/demo.ts), never a Dropbox book")
       if (isPreview) book = { ...book, people: [] } // nobody signs in to a preview; staff open it via View as client
       if (seen.has(slug)) throw new Error(`duplicate org slug ${slug}`)
       seen.add(slug)
@@ -124,10 +126,26 @@ async function doSync(): Promise<SyncReport> {
       report.failed.push({ file, error: String((err as Error)?.message ?? err).slice(0, 500) })
     }
   }
+  // The staging demo (SPEC §19): applied only while demoOn() (staging + CLIENT_DEMO_TOKEN), like any book but from
+  // the repo, inside its own error handling. When the switch is off, every demo- org is hidden.
+  const demo = demoOn()
+  if (demo) {
+    try {
+      const dropped: string[] = []
+      await applyBook(failClosed(demoBook(), dropped))
+      if (dropped.length) report.failed.push({ file: "demo", error: `held back (internal marker): ${dropped.join(", ")}` })
+      report.ok.push(DEMO_ORG_SLUG)
+    } catch (err) {
+      report.failed.push({ file: "demo", error: String((err as Error)?.message ?? err).slice(0, 500) })
+    }
+  } else {
+    await db.organization.updateMany({ where: { slug: { startsWith: "demo-" }, hidden: false }, data: { hidden: true } })
+  }
   // A book that disappeared revokes its org (hidden, never deleted). Only when
-  // the listing itself worked and found at least one book.
+  // the listing itself worked and found at least one REAL book (the demo never counts).
   if (files.length && seen.size) {
-    await db.organization.updateMany({ where: { slug: { notIn: [...seen] }, hidden: false }, data: { hidden: true } })
+    const keep = demo ? [...seen, DEMO_ORG_SLUG] : [...seen]
+    await db.organization.updateMany({ where: { slug: { notIn: keep }, hidden: false }, data: { hidden: true } })
   }
   lastSync = report
   console.log("client-site sync:", JSON.stringify(report))

@@ -3,12 +3,14 @@ import { Check } from "lucide-react"
 import { requireClientContext } from "@/lib/client/context"
 import { orgInvoices, orgDocuments } from "@/lib/client/data"
 import { money, day, relativeDue, daysFromToday } from "@/lib/client/format"
-import { DocRow, HelpFooter, SectionTitle } from "@/app/client/ui"
+import { DocRow, HelpFooter, SectionTitle, DemoOff } from "@/app/client/ui"
+import { isDemoSlug } from "@/lib/client/demo"
 
 export const metadata = { title: "Billing" }
 
 export default async function Billing() {
   const ctx = await requireClientContext()
+  const demo = isDemoSlug(ctx.org.slug) // the staging demo (SPEC §19): placeholder links, buttons off
   const invoices = await orgInvoices(ctx.org.id)
   const vendorDocs = (await orgDocuments(ctx.org.id)).filter((d) => d.kind === "w9" || d.kind === "coi")
   const open = invoices.filter((i) => i.status === "open")
@@ -32,7 +34,9 @@ export default async function Billing() {
                 {open.length === 1 ? relativeDue(open[0].due_on) : `${open.length} open invoices`}
               </p>
             </div>
-            {onlyPay?.pay_url ? <a className="cs-btn" href={onlyPay.pay_url} target="_blank" rel="noopener">Pay {money(balance)}</a> : null}
+            {onlyPay?.pay_url ? (
+              demo ? <DemoOff label={`Pay ${money(balance)}`} /> : <a className="cs-btn" href={onlyPay.pay_url} target="_blank" rel="noopener">Pay {money(balance)}</a>
+            ) : null}
           </div>
         ) : (
           <div className="cs-card cs-calm">
@@ -61,7 +65,9 @@ export default async function Billing() {
                     <strong>{money(inv.amount)}</strong>
                     <span className={`cs-status ${late ? "late" : "due"}`}>{relativeDue(inv.due_on)}</span>
                   </span>
-                  {inv.pay_url && !onlyPay ? (
+                  {inv.pay_url && !onlyPay && demo ? (
+                    <DemoOff label="Pay online" className="sm" style={{ width: "100%" }} />
+                  ) : inv.pay_url && !onlyPay ? (
                     <a className="cs-btn sm" style={{ width: "100%" }} href={inv.pay_url} target="_blank" rel="noopener">Pay online (bank transfer or card)</a>
                   ) : null}
                 </div>

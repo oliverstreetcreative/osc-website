@@ -12,7 +12,11 @@ export default async function ClientShell({ children }: { children: React.ReactN
     <>
       <ImpersonationBanner />
       <div className="cs-sticky">
-      {ctx.viewing ? (
+      {ctx.viewing?.demo ? (
+        <div className="cs-viewing demo" role="status">
+          <span>Demo · sample data</span>
+        </div>
+      ) : ctx.viewing ? (
         <div className="cs-viewing" role="status">
           <span>
             {ctx.viewing.preview ? (
@@ -61,9 +65,13 @@ export default async function ClientShell({ children }: { children: React.ReactN
               <div className="cs-pop">
                 <div className="cs-pop-head">
                   <strong>{ctx.user.name}</strong>
-                  <small>{ctx.viewing ? `OSC staff · viewing ${ctx.viewing.orgName}` : ctx.user.email}</small>
+                  <small>
+                    {ctx.viewing?.demo ? "Demo account" : ctx.viewing ? `OSC staff · viewing ${ctx.viewing.orgName}` : ctx.user.email}
+                  </small>
                 </div>
-                {ctx.viewing?.legacy ? (
+                {ctx.viewing?.demo ? (
+                  <a href="/client/calendar">Calendar feed</a>
+                ) : ctx.viewing?.legacy ? (
                   <form action="/api/admin/impersonate/stop" method="post"><button>Stop viewing</button></form>
                 ) : ctx.viewing ? (
                   <>

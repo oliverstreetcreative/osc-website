@@ -3,6 +3,16 @@ import Link from "next/link"
 import { Check, Download, ExternalLink, Play, FileText, FileSignature, Receipt, Clapperboard, Shield, Map, CalendarPlus } from "lucide-react"
 import { PHASE_STEPS, phaseIndex, muxThumb, DOC_KIND_LABEL } from "@/lib/client/format"
 
+/** The staging demo (SPEC §19): any button that would DO something shows this instead, for the demo org. */
+export function DemoOff({ label, className = "", style }: { label: string; className?: string; style?: React.CSSProperties }) {
+  return (
+    <span className={`cs-btn is-off ${className}`.trim()} style={style} aria-disabled="true" role="button" title="Off in the demo">
+      <span>{label}</span>
+      <small>Off in the demo</small>
+    </span>
+  )
+}
+
 export const OSC_PHONE = "(859) 512-1419"
 export const OSC_SMS = "sms:+18595121419"
 export const OSC_EMAIL = "sam@oliverstreetcreative.com"

@@ -8,7 +8,8 @@ import { SignButton } from "@/app/client/sign-button"
 import { day, duration, money, relativeDue, muxThumb, daysFromToday, todayUTC } from "@/lib/client/format"
 import { eventForOrgs, googleLink } from "@/lib/client/calendar"
 import { pageOrigin } from "@/lib/client/host"
-import { PosterImage, PhaseTracker, DocRow, HelpFooter, AddToCalendar, SectionTitle } from "@/app/client/ui"
+import { PosterImage, PhaseTracker, DocRow, HelpFooter, AddToCalendar, SectionTitle, DemoOff } from "@/app/client/ui"
+import { isDemoSlug } from "@/lib/client/demo"
 
 type Dl = { label: string; url?: string; path?: string; size?: string; note?: string }
 
@@ -33,6 +34,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
   const found = await findProject(ctx, params.id)
   if (!found) notFound()
   const { p, org } = found
+  const demo = isDemoSlug(org.slug) // the staging demo (SPEC §19): placeholder links, buttons off
   const paper = (await clientSignatures(org.id, [p], !!ctx.viewing)).get(p.id) ?? []
   const me = ctx.viewing ? "" : ctx.user.email.toLowerCase()
   const origin = await pageOrigin()
@@ -88,7 +90,9 @@ export default async function ProjectPage({ params }: { params: { id: string } }
                             {[f.version_label, duration(f.duration_s), f.delivered_at ? `Delivered ${day(f.delivered_at)}` : null].filter(Boolean).join(" · ")}
                           </p>
                           {f.description ? <p className="cs-film-desc">{f.description}</p> : null}
-                          {f.review_url && !f.delivered_at ? (
+                          {f.review_url && !f.delivered_at && demo ? (
+                            <DemoOff label="Review this cut" style={{ marginTop: 14, width: "100%" }} />
+                          ) : f.review_url && !f.delivered_at ? (
                             <a className="cs-btn" style={{ marginTop: 14, width: "100%" }} href={f.review_url} target="_blank" rel="noopener">Review this cut</a>
                           ) : null}
                           {downloads.length || f.watch_url ? (
@@ -96,7 +100,13 @@ export default async function ProjectPage({ params }: { params: { id: string } }
                               {f.watch_url && !f.file_path && !f.mux_playback_id ? (
                                 <a href={f.watch_url} target="_blank" rel="noopener"><ExternalLink /><span>{downloads.length ? "Watch" : "Watch and download"}</span><small>Frame.io</small></a>
                               ) : null}
-                              {downloads.map((d, i) => (
+                              {downloads.map((d, i) => demo ? (
+                                <span key={i} className="is-off-row" aria-disabled="true" title="Off in the demo">
+                                  <Download />
+                                  <span>{d.label}</span>
+                                  <small>Off in the demo</small>
+                                </span>
+                              ) : (
                                 <a key={i} href={d.path ? `/client/download/${f.id}/${i}` : d.url} target={d.path ? undefined : "_blank"} rel="noopener">
                                   {d.path ? <Download /> : <ExternalLink />}
                                   <span>{d.label}</span>

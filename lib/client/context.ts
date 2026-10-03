@@ -11,6 +11,7 @@ import { redirect } from "next/navigation"
 import { jwtVerify } from "jose"
 import { getPortalUser, type PortalUser } from "@/lib/portal-auth"
 import { db } from "@/lib/db"
+import { demoOn, isDemoSlug } from "./demo"
 
 export const ORG_COOKIE = "cs_org"
 export const VIEW_COOKIE = "cs_view"
@@ -67,8 +68,12 @@ export async function getClientContext(): Promise<ClientContext | null> {
     select: { role: true, organization: { select: orgSelect } },
     orderBy: { organization: { name: "asc" } },
   })
-  const orgs = ms.map((m) => m.organization)
+  // The staging demo (SPEC §19): a demo org exists only while the switch is on, and a person who belongs ONLY to
+  // demo orgs is the demo visitor: read-only, from who they are, never from a cookie.
+  const demo = demoOn()
+  const orgs = ms.map((m) => m.organization).filter((o) => demo || !isDemoSlug(o.slug))
   if (!orgs.length) return null
+  const demoVisitor = orgs.every((o) => isDemoSlug(o.slug))
   const roles = new Map(ms.map((m) => [m.organization.id, m.role]))
   const wanted = (await cookies()).get(ORG_COOKIE)?.value
   const org = orgs.find((o) => o.slug === wanted) ?? orgs[0]
@@ -80,7 +85,11 @@ export async function getClientContext(): Promise<ClientContext | null> {
     org,
     orgs,
     role: roles.get(org.id)!,
-    viewing: impersonated ? { orgName: org.short_name ?? org.name, preview: false, legacy: true } : null,
+    viewing: impersonated
+      ? { orgName: org.short_name ?? org.name, preview: false, legacy: true }
+      : demoVisitor
+        ? { orgName: org.short_name ?? org.name, preview: false, demo: true }
+        : null,
   }
 }
 

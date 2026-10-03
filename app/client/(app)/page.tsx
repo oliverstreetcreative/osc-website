@@ -6,7 +6,8 @@ import { KIND_LABEL } from "@/lib/client/sign"
 import { SignButton } from "@/app/client/sign-button"
 import { StartCard } from "@/app/client/start-cards"
 import { greeting, money, relativeDue, day, daysFromToday, duration } from "@/lib/client/format"
-import { PosterImage, HelpFooter, PlayBadge, SectionTitle } from "@/app/client/ui"
+import { PosterImage, HelpFooter, PlayBadge, SectionTitle, DemoOff } from "@/app/client/ui"
+import { isDemoSlug } from "@/lib/client/demo"
 import { ProjectCard } from "@/app/client/project-card"
 
 export const metadata = { title: "Home" }
@@ -39,7 +40,7 @@ export default async function Home() {
         </SectionTitle>
         {needs.length ? (
           <div className="cs-list">
-            {needs.map((n) => <NeedCard key={key(n)} n={n} />)}
+            {needs.map((n) => <NeedCard key={key(n)} n={n} demo={isDemoSlug(ctx.org.slug)} />)}
           </div>
         ) : (
           <div className="cs-card cs-calm">
@@ -117,7 +118,8 @@ function key(n: NeedsItem) {
   return n.kind === "invoice" ? `i-${n.invoice.id}` : n.kind === "shoot" ? `s-${n.shoot.id}` : `r-${n.film.id}`
 }
 
-function NeedCard({ n }: { n: NeedsItem }) {
+// demo: the staging demo org (SPEC §19). Its links are placeholders, so its buttons show "Off in the demo".
+function NeedCard({ n, demo }: { n: NeedsItem; demo: boolean }) {
   if (n.kind === "sign") {
     const s = n.item
     return (
@@ -146,7 +148,9 @@ function NeedCard({ n }: { n: NeedsItem }) {
         <h3>{money(inv.amount)} · {inv.title}</h3>
         {inv.project ? <p>{inv.project.name}</p> : null}
         <div className="cs-need-act">
-          {inv.pay_url ? <a className="cs-btn" href={inv.pay_url} target="_blank" rel="noopener">Pay {money(inv.amount)}</a> : null}
+          {inv.pay_url ? (
+            demo ? <DemoOff label={`Pay ${money(inv.amount)}`} /> : <a className="cs-btn" href={inv.pay_url} target="_blank" rel="noopener">Pay {money(inv.amount)}</a>
+          ) : null}
           <Link className="cs-btn ghost" href="/client/billing">Details</Link>
         </div>
       </div>
@@ -177,7 +181,7 @@ function NeedCard({ n }: { n: NeedsItem }) {
       <h3>{n.film.name}{n.film.version_label ? ` · ${n.film.version_label}` : ""}</h3>
       <p>{n.project.name}</p>
       <div className="cs-need-act">
-        <a className="cs-btn" href={n.film.review_url!} target="_blank" rel="noopener">Review the cut</a>
+        {demo ? <DemoOff label="Review the cut" /> : <a className="cs-btn" href={n.film.review_url!} target="_blank" rel="noopener">Review the cut</a>}
       </div>
     </div>
   )

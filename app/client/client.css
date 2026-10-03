@@ -231,6 +231,16 @@ a.cs-row:hover { background: #fbfaf8; }
 .cs .cs-btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line-strong); }
 .cs .cs-btn.light { background: var(--on-ink); color: var(--ink); }
 .cs .cs-btn.sm { height: 40px; padding: 0 14px; font-size: 14px; }
+/* The demo (SPEC §19): a button that would do something, shown but off, saying so on its second line. */
+.cs .cs-btn.is-off {
+  flex-direction: column; gap: 1px; line-height: 1.15; cursor: not-allowed; opacity: 0.62;
+  background: transparent; color: var(--text); border: 1px dashed var(--line-strong);
+}
+.cs .cs-btn.is-off small { font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: 0.01em; }
+.cs .cs-btn.is-off:active { transform: none; }
+.cs-dl .is-off-row { opacity: 0.62; cursor: not-allowed; }
+/* The demo's bar: calmer than staff orange (it's a guest's sample, not a staff warning). */
+.cs-viewing.demo { background: var(--ink); color: var(--on-ink); justify-content: center; }
 .cs .cs-link { color: var(--orange-ink); font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; }
 
 /* ---------- needs you ---------- */
@@ -308,11 +318,11 @@ a.cs-row:hover { background: #fbfaf8; }
 .cs-film-meta { color: var(--muted); font-size: 14px; margin-top: 4px; }
 .cs-film-desc { font-size: 14px; color: var(--muted); margin-top: 8px; }
 .cs-dl { margin-top: 14px; border-top: 1px solid var(--line); }
-.cs-dl a { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); min-height: 52px; font-size: 14px; }
-.cs-dl a:last-child { border-bottom: 0; padding-bottom: 0; }
-.cs-dl a svg { width: 18px; height: 18px; color: var(--muted); flex-shrink: 0; }
-.cs-dl a span { flex: 1; font-weight: 600; }
-.cs-dl a small { color: var(--muted); font-size: 13px; }
+.cs-dl a, .cs-dl .is-off-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); min-height: 52px; font-size: 14px; }
+.cs-dl a:last-child, .cs-dl .is-off-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.cs-dl a svg, .cs-dl .is-off-row svg { width: 18px; height: 18px; color: var(--muted); flex-shrink: 0; }
+.cs-dl a span, .cs-dl .is-off-row span { flex: 1; font-weight: 600; }
+.cs-dl a small, .cs-dl .is-off-row small { color: var(--muted); font-size: 13px; }
 
 /* key dates */
 .cs-dates { padding: 6px 16px; }
