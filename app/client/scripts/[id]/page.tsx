@@ -70,6 +70,7 @@ export default async function ScriptPage({ params }: { params: { id: string } })
         {access.readOnly ? <p className="sc-note">{access.readOnly}</p> : null}
         <ScriptEditor
           scriptId={script.id}
+          meCode={facts.person.code}
           people={people}
           targetS={script.target_seconds}
           paceWpm={script.pace_wpm}

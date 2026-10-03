@@ -9,7 +9,7 @@ import { scriptExtensions } from "@/lib/scripts/schema"
 import { YFRAGMENT, renderScript } from "@/lib/scripts/doc"
 import { resolveSuggestions } from "@/lib/scripts/resolve"
 import { idGenerator } from "@/lib/scripts/normalize"
-import { describe, listSuggestions, type SuggestionSummary } from "@/lib/scripts/suggestions"
+import { describe, listSuggestions, wordsOf, type SuggestionSummary } from "@/lib/scripts/suggestions"
 import { AvKeys, NodeMarkSync, RESOLVE_META, SuggestMode, emptyRow } from "@/lib/scripts/client/extensions"
 import { ScriptSync } from "@/lib/scripts/client/sync"
 import { History } from "./history"
@@ -18,6 +18,8 @@ import { CommentHighlights, CommentsPanel } from "./comments"
 
 export type EditorProps = {
   scriptId: string
+  /** This person's code (keys their device copy and outbox, so another account in this browser never inherits it). */
+  meCode: string
   /** person code → first name, for "Sam suggested…" */
   people: Record<string, string>
   targetS: number | null
@@ -34,12 +36,25 @@ type PanelName = "history" | "comments" | "share" | "settings" | "approve" | "fi
 export function ScriptEditor(props: EditorProps) {
   const [generation, setGeneration] = useState(0)
   const [refused, setRefused] = useState<{ why: string; words: string } | null>(null)
+  const [removed, setRemoved] = useState<string | null>(null)
   const onRefused = useCallback((why: string, words: string) => {
     setRefused({ why, words })
     setGeneration((g) => g + 1) // start again from the server's copy
   }, [])
+  const onWordsRemoved = useCallback((words: string) => setRemoved((cur) => (cur ? `${cur}\n${words}` : words)), [])
   return (
     <>
+      {removed ? (
+        <div className="sc-note" role="alert">
+          <p>
+            <b>Someone changed that part while you were typing.</b> These words of yours went with it: copy them if you want them back.
+          </p>
+          <textarea readOnly className="sc-words" value={removed} rows={3} />
+          <button type="button" className="cs-btn sm ghost" onClick={() => setRemoved(null)}>
+            OK
+          </button>
+        </div>
+      ) : null}
       {refused ? (
         <div className="sc-note bad" role="alert">
           <p>
@@ -52,28 +67,30 @@ export function ScriptEditor(props: EditorProps) {
           </button>
         </div>
       ) : null}
-      <Session key={generation} {...props} onRefused={onRefused} />
+      <Session key={generation} {...props} onRefused={onRefused} onWordsRemoved={onWordsRemoved} />
     </>
   )
 }
 
-function Session(props: EditorProps & { onRefused: (why: string, words: string) => void }) {
+function Session(props: EditorProps & { onRefused: (why: string, words: string) => void; onWordsRemoved: (words: string) => void }) {
   const [sync, setSync] = useState<ScriptSync | null>(null)
   const editorRef = useRef<Editor | null>(null)
   const refusedRef = useRef(props.onRefused)
   refusedRef.current = props.onRefused
+  const removedRef = useRef(props.onWordsRemoved)
+  removedRef.current = props.onWordsRemoved
   useEffect(() => {
-    const s = new ScriptSync(props.scriptId, {
+    const s = new ScriptSync(props.scriptId, props.meCode, {
       onRefused: (why) => {
-        const me = s.info?.me.code
+        editorRef.current?.setEditable(false)
         const doc = editorRef.current?.state.doc
-        const words = doc && me ? listSuggestions(doc).filter((x) => x.owner === me).map((x) => x.inserted.trim()).filter(Boolean).join("\n") : ""
-        refusedRef.current(why, words)
+        refusedRef.current(why, doc ? wordsOf(doc, props.meCode) : "")
       },
+      onWordsRemoved: (words) => removedRef.current(words),
     })
     setSync(s)
     return () => s.destroy()
-  }, [props.scriptId])
+  }, [props.scriptId, props.meCode])
   if (!sync) return <p className="sc-loading">Opening the script…</p>
   return <Live sync={sync} editorRef={editorRef} {...props} />
 }
@@ -98,11 +115,11 @@ function Live({
 }: EditorProps & { sync: ScriptSync; editorRef: React.MutableRefObject<Editor | null> }) {
   const snap = useSyncExternalStore(
     useCallback((fn: () => void) => sync.subscribe(fn), [sync]),
-    () => JSON.stringify([sync.state, sync.info?.role ?? "", sync.info?.readOnly ?? "", sync.ended ?? "", sync.commentsVersion]),
-    () => JSON.stringify(["connecting", "", "", "", 0]),
+    () => JSON.stringify([sync.state, sync.info?.role ?? "", sync.info?.readOnly ?? "", sync.ended ?? "", sync.commentsVersion, sync.frozen]),
+    () => JSON.stringify(["connecting", "", "", "", 0, false]),
   )
-  const [state, role, readOnly, ended, commentsVersion] = JSON.parse(snap) as [string, string, string, string, number]
-  const canWrite = !ended && !readOnly && (role === "editor" || role === "suggester")
+  const [state, role, readOnly, ended, commentsVersion, frozen] = JSON.parse(snap) as [string, string, string, string, number, boolean]
+  const canWrite = !frozen && !ended && !readOnly && (role === "editor" || role === "suggester")
   const isEditor = role === "editor" && !readOnly && !ended
   const [mode, setMode] = useState<"editing" | "suggesting">(clientsWords ? "suggesting" : "editing")
   const suggesting = role !== "editor" || mode === "suggesting"

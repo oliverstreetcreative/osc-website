@@ -4,7 +4,7 @@ import { test } from "node:test"
 import assert from "node:assert/strict"
 import { EditorState, type Transaction } from "@tiptap/pm/state"
 import type { Node as PMNode } from "@tiptap/pm/model"
-import { describe, listSuggestions } from "./suggestions"
+import { describe, listSuggestions, wordsOf } from "./suggestions"
 import { idGenerator, suggestEdit } from "./normalize"
 import { at, base, row, schema } from "./fuzzkit"
 
@@ -28,4 +28,14 @@ test("a replacement, an addition, a removal, a new row and a new line, each one 
   const lines = listSuggestions(doc).map(describe)
   assert.deepEqual(lines, ["Im → I’m", "adds “really”", "removes “big”", "a new line", "a new row"])
   assert.ok(listSuggestions(doc).every((s) => s.owner === sam.code))
+})
+
+test("the refusal hand-back includes the words inside a whole suggested row (built review #8)", () => {
+  let doc = suggest(base(), (tr) => tr.insertText("really ", at(tr.doc, "running")))
+  doc = suggest(doc, (tr) => tr.insert(tr.doc.content.size, row(["Wide"], ["Vote November 3."])))
+  const words = wordsOf(doc, sam.code)
+  assert.ok(words.includes("really"), words)
+  assert.ok(words.includes("Vote November 3."), words)
+  assert.ok(words.includes("Wide"), words)
+  assert.equal(wordsOf(doc, "3c3c3c3c"), "")
 })

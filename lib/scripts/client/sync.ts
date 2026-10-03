@@ -1,17 +1,26 @@
 // The browser's half of the live transport (SPEC §14 Spike A; v4 #1 "no lost words"). Browser only.
 //
 // Listens on /api/scripts/<id>/events (Server-Sent Events) and POSTs local changes to /updates. A local change stays
-// in an OUTBOX (kept in this browser's storage too) until the server answers with its seq; on every reconnect the
-// outbox goes again, plus anything the server's state vector says it lacks (what this phone typed offline in an
-// earlier visit, kept by y-indexeddb). The page flushes when it's hidden. Status for the editor: Saved / Saving… /
-// Offline, saved on this phone. A refusal (409: a suggestion the server can't accept) hands the person's words back
-// and starts again from the server's copy.
+// in an OUTBOX until the server answers with its seq. The outbox is kept on the device per script, PERSON and TAB (so
+// one tab's save never erases another's, and a second account in the same browser never inherits it); a new tab takes
+// over what earlier tabs of the same person left. On every reconnect the outbox goes again, plus anything the server's
+// state vector says it lacks (an earlier visit's offline typing, kept by y-indexeddb, also per person). The page
+// flushes when hidden; a stream silent for a minute is replaced. Failures back off; a refusal (409, or a change too
+// large or unreadable) freezes editing at once, hands the person's words back and starts again from the server's copy.
+// Words this tab typed that someone else's change removes at the same moment are handed back too (v4 #13).
 import * as Y from "yjs"
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate, removeAwarenessStates } from "y-protocols/awareness"
 import { IndexeddbPersistence } from "y-indexeddb"
+import { TypingClock, wordsRemoved } from "./removed"
 
 export type SaveState = "connecting" | "saved" | "saving" | "offline" | "read-only"
 export type SyncInfo = { role: "viewer" | "commenter" | "suggester" | "editor"; readOnly: string | null; me: { code: string; name: string } }
+export type SyncHooks = {
+  /** The server refused the change: the tab is frozen; remount from the server's copy and show `why`. */
+  onRefused: (why: string) => void
+  /** Someone else's change removed words this tab typed in the last minute. */
+  onWordsRemoved: (words: string) => void
+}
 
 function b64(u: Uint8Array) {
   let s = ""
@@ -26,6 +35,16 @@ const hasStructs = (u: Uint8Array) => {
     return false
   }
 }
+const FROM_OUTBOX = Symbol("outbox") // applying a stored outbox locally: never re-queued
+const MAX_SV_CHARS = 4000 // a state vector grows by one entry per editing session; past this, ask for everything
+
+function storage(): Storage | null {
+  try {
+    return window.localStorage
+  } catch {
+    return null
+  }
+}
 
 export class ScriptSync {
   readonly doc = new Y.Doc()
@@ -34,6 +53,8 @@ export class ScriptSync {
   info: SyncInfo | null = null
   /** The server stopped us: access ended, or the script is gone. */
   ended: string | null = null
+  /** Set the moment a change is refused: nothing more is taken from this tab. */
+  frozen = false
   /** Bumps whenever the server says comments changed (the comments panel re-reads with its own filter). */
   commentsVersion = 0
 
@@ -41,36 +62,38 @@ export class ScriptSync {
   private sub: string | null = null
   private outbox: Uint8Array[] = []
   private inFlight = 0 // outbox items the current POST carries
-  private retry = 0
+  private retry = 0 // stream reconnects
+  private postRetry = 0 // failed saves in a row
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  private flushTimer: ReturnType<typeof setTimeout> | null = null
   private presenceTimer: ReturnType<typeof setInterval> | null = null
   private awarenessTimer: ReturnType<typeof setTimeout> | null = null
+  private watchdog: ReturnType<typeof setInterval> | null = null
   private local: IndexeddbPersistence | null = null
   private listeners = new Set<() => void>()
   private destroyed = false
-  private readonly outboxKey: string
   private lastHeard = 0 // when the stream last said anything (the server pings every 20 s)
-  private watchdog: ReturnType<typeof setInterval> | null = null
+  private readonly outboxPrefix: string
+  private readonly outboxKey: string
+  private readonly typing: TypingClock
 
   constructor(
     readonly scriptId: string,
-    private readonly hooks: { onRefused: (why: string) => void },
+    readonly meCode: string,
+    private readonly hooks: SyncHooks,
   ) {
     this.awareness = new Awareness(this.doc)
-    this.outboxKey = `osc-script-outbox-${scriptId}`
-    try {
-      const saved = localStorage.getItem(this.outboxKey)
-      if (saved) this.outbox = [fromB64(saved)]
-    } catch {
-      // private mode: the outbox lives in memory only
-    }
+    this.typing = new TypingClock(this.doc)
+    this.outboxPrefix = `osc-script-outbox-${scriptId}-${meCode}-`
+    this.outboxKey = `${this.outboxPrefix}${this.doc.clientID}`
     this.doc.on("update", this.onDocUpdate)
+    this.doc.on("afterTransaction", this.onAfterTransaction)
     this.awareness.on("update", this.onAwarenessUpdate)
     try {
-      this.local = new IndexeddbPersistence(`osc-script-${scriptId}`, this.doc)
-      this.local.whenSynced.then(() => this.connect()).catch(() => this.connect())
+      this.local = new IndexeddbPersistence(`osc-script-${scriptId}-${meCode}`, this.doc)
+      this.local.whenSynced.then(this.start).catch(this.start)
     } catch {
-      this.connect()
+      this.start()
     }
     window.addEventListener("online", this.reconnectNow)
     document.addEventListener("visibilitychange", this.onVisibility)
@@ -82,13 +105,44 @@ export class ScriptSync {
     }, 15_000)
   }
 
+  /** After the device copy loads: take over what earlier tabs of this person left unsaved, then connect. */
+  private start = () => {
+    const ls = storage()
+    if (ls) {
+      const taken: Uint8Array[] = []
+      for (let i = ls.length - 1; i >= 0; i--) {
+        const key = ls.key(i)
+        if (!key || !key.startsWith(this.outboxPrefix) || key === this.outboxKey) continue
+        try {
+          const saved = ls.getItem(key)
+          if (saved) taken.push(fromB64(saved))
+          ls.removeItem(key)
+        } catch {
+          // unreadable: leave it
+        }
+      }
+      if (taken.length) {
+        const merged = Y.mergeUpdates(taken)
+        Y.applyUpdate(this.doc, merged, FROM_OUTBOX) // so those words show here now, not after a reconnect
+        this.outbox.push(merged)
+        this.persistOutbox()
+      }
+    }
+    this.connect()
+  }
+
   private restart() {
     this.es?.close()
     this.es = null
     this.sub = null
-    if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
+    this.clearReconnect()
     this.retry = 0
     this.connect()
+  }
+
+  private clearReconnect() {
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
+    this.reconnectTimer = null
   }
 
   subscribe(fn: () => void) {
@@ -104,17 +158,18 @@ export class ScriptSync {
       this.emit()
     }
   }
-  private get canWrite() {
-    return !!this.info && !this.info.readOnly && (this.info.role === "suggester" || this.info.role === "editor")
+  get canWrite() {
+    return !this.frozen && !this.ended && !!this.info && !this.info.readOnly && (this.info.role === "suggester" || this.info.role === "editor")
   }
 
   // ------------------------------------------------------------------ incoming
 
   private connect = () => {
     if (this.destroyed) return
+    this.clearReconnect()
     this.es?.close()
     const sv = b64(Y.encodeStateVector(this.doc))
-    const es = new EventSource(`/api/scripts/${this.scriptId}/events?sv=${encodeURIComponent(sv)}`)
+    const es = new EventSource(`/api/scripts/${this.scriptId}/events${sv.length <= MAX_SV_CHARS ? `?sv=${encodeURIComponent(sv)}` : ""}`)
     this.es = es
     this.lastHeard = Date.now()
     const heard = () => {
@@ -129,10 +184,13 @@ export class ScriptSync {
       Y.applyUpdate(this.doc, fromB64(d.update), this)
       for (const p of d.presence ?? []) applyAwarenessUpdate(this.awareness, fromB64(p), "remote")
       if (this.canWrite) {
-        // what this phone has that the server lacks (an earlier visit's offline typing)
+        // what this device has that the server lacks (an earlier visit's offline typing)
         const missing = Y.encodeStateAsUpdate(this.doc, fromB64(d.sv))
         if (hasStructs(missing)) this.addToOutbox(missing)
-      } else this.outbox = []
+      } else if (!this.frozen) {
+        this.outbox = []
+        this.persistOutbox()
+      }
       this.setState(this.canWrite ? (this.outbox.length ? "saving" : "saved") : "read-only")
       this.sendAwareness()
       this.flush()
@@ -165,6 +223,7 @@ export class ScriptSync {
       this.sub = null
       this.setState(this.info && !this.canWrite ? "read-only" : "offline")
       const wait = [1000, 2000, 5000, 10_000, 30_000][Math.min(this.retry++, 4)]
+      this.clearReconnect()
       this.reconnectTimer = setTimeout(this.connect, wait)
     }
   }
@@ -176,10 +235,19 @@ export class ScriptSync {
     this.restart()
   }
 
+  /** v4 #13: words this tab typed in the last minute that a REMOTE change just removed (a restore, an accept). */
+  private onAfterTransaction = (tr: Y.Transaction) => {
+    if (tr.origin !== this || this.destroyed) return
+    const words = wordsRemoved(tr, this.doc.clientID, this.typing.since(60_000))
+    if (words) this.hooks.onWordsRemoved(words)
+  }
+
   // ------------------------------------------------------------------ outgoing
 
   private onDocUpdate = (update: Uint8Array, origin: unknown) => {
-    if (origin === this || origin === this.local) return // the server's, or this phone's stored copy loading
+    if (origin === this || origin === this.local || origin === FROM_OUTBOX) return // the server's, or stored copies loading
+    if (this.frozen) return
+    this.typing.note()
     if (!this.info || this.canWrite) this.addToOutbox(update)
   }
 
@@ -191,53 +259,73 @@ export class ScriptSync {
   }
 
   private persistOutbox() {
+    const ls = storage()
+    if (!ls) return
     try {
-      if (this.outbox.length) localStorage.setItem(this.outboxKey, b64(Y.mergeUpdates(this.outbox)))
-      else localStorage.removeItem(this.outboxKey)
+      if (this.outbox.length) ls.setItem(this.outboxKey, b64(Y.mergeUpdates(this.outbox)))
+      else ls.removeItem(this.outboxKey)
     } catch {
-      // storage full or private mode: the outbox still lives in memory
+      // storage full: the outbox still lives in memory (and the device copy in IndexedDB)
     }
   }
 
+  private async refuse(why: string) {
+    this.frozen = true // nothing more from this tab, from this instant
+    this.emit()
+    this.outbox = []
+    this.persistOutbox()
+    await this.local?.clearData().catch(() => undefined)
+    this.hooks.onRefused(why)
+  }
+
   private flush = async (keepalive = false) => {
-    if (this.inFlight || !this.outbox.length || !this.es || !this.sub || !this.canWrite || this.destroyed) return
+    if (this.inFlight || this.frozen || !this.outbox.length || !this.es || !this.sub || !this.canWrite || this.destroyed) return
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer)
+      this.flushTimer = null
+    }
     const count = this.outbox.length
     const update = count === 1 ? this.outbox[0] : Y.mergeUpdates(this.outbox)
     this.inFlight = count
+    let res: Response | null = null
     try {
-      const res = await fetch(`/api/scripts/${this.scriptId}/updates`, {
+      res = await fetch(`/api/scripts/${this.scriptId}/updates`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ client_id: this.doc.clientID, update: b64(update), sub: this.sub }),
         keepalive: keepalive && update.length < 48_000,
       })
-      if (res.ok) {
-        this.outbox.splice(0, count)
-        this.persistOutbox()
-      } else if (res.status === 409) {
-        const body = await res.json().catch(() => ({}))
-        this.outbox = []
-        this.persistOutbox()
-        await this.local?.clearData().catch(() => undefined)
-        this.hooks.onRefused(String(body.why ?? "the server couldn't accept that change"))
-        return
-      } else if (res.status === 401 || res.status === 403 || res.status === 404) {
-        const body = await res.json().catch(() => ({}))
-        this.ended = String(body.error ?? "You can't change this script any more.")
-        this.emit()
-        return
-      } else throw new Error(String(res.status))
     } catch {
-      this.inFlight = 0
-      this.setState("offline")
-      this.es?.close()
-      this.es = null
-      this.reconnectTimer = setTimeout(this.connect, 2000)
-      return
+      res = null // offline: back off below
     }
     this.inFlight = 0
-    if (this.outbox.length) this.flush()
-    else this.setState("saved")
+    if (res?.ok) {
+      this.outbox.splice(0, count)
+      this.persistOutbox()
+      this.postRetry = 0
+      if (this.outbox.length) this.flush()
+      else this.setState("saved")
+      return
+    }
+    if (res && (res.status === 409 || res.status === 400 || res.status === 413)) {
+      const body = await res.json().catch(() => ({}) as Record<string, unknown>)
+      const why = res.status === 409 ? String(body.why ?? "the server couldn't accept that change") : "that change was too large or couldn't be read"
+      return this.refuse(why)
+    }
+    if (res && (res.status === 401 || res.status === 403 || res.status === 404)) {
+      const body = await res.json().catch(() => ({}) as Record<string, unknown>)
+      this.ended = String(body.error ?? "You can't change this script any more.")
+      this.emit()
+      return
+    }
+    // offline or a server error: keep every word, try again with a growing wait (the stream's own health is the
+    // watchdog's business)
+    this.setState("offline")
+    const wait = Math.min(30_000, 1000 * 2 ** Math.min(this.postRetry++, 5))
+    this.flushTimer = setTimeout(() => {
+      this.flushTimer = null
+      this.flush()
+    }, wait)
   }
 
   private onVisibility = () => {
@@ -281,12 +369,14 @@ export class ScriptSync {
     this.destroyed = true
     this.es?.close()
     this.es = null
-    if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
+    this.clearReconnect()
+    if (this.flushTimer) clearTimeout(this.flushTimer)
     if (this.presenceTimer) clearInterval(this.presenceTimer)
     if (this.awarenessTimer) clearTimeout(this.awarenessTimer)
     if (this.watchdog) clearInterval(this.watchdog)
     window.removeEventListener("online", this.reconnectNow)
     document.removeEventListener("visibilitychange", this.onVisibility)
+    this.doc.off("afterTransaction", this.onAfterTransaction)
     removeAwarenessStates(this.awareness, [this.doc.clientID], "local")
     this.local?.destroy().catch(() => undefined)
     this.emit()

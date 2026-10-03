@@ -61,6 +61,20 @@ export function listSuggestions(input: PMNode): SuggestionSummary[] {
   return [...by.values()].sort((a, b) => a.firstPos - b.firstPos)
 }
 
+/** Everything `code` has suggested adding, as plain text, whole suggested rows included (the refusal hand-back). */
+export function wordsOf(input: PMNode, code: string): string {
+  const doc = restoreNodeMarks(input)
+  const parts: string[] = []
+  doc.descendants((node) => {
+    const ins = node.marks.find((m) => m.type.name === "insertion")
+    if (!ins || ownerOf(ins.attrs.id) !== code) return true
+    const text = (node.isText ? node.text ?? "" : node.isInline ? " " : node.textBetween(0, node.content.size, "\n", " ")).replace(ZW, "")
+    if (text.trim()) parts.push(text.trim())
+    return false
+  })
+  return parts.join("\n")
+}
+
 /** One line a person can read: "Im → I’m", "adds “really”", "removes “big”", "a new row". */
 export function describe(s: SuggestionSummary): string {
   const parts: string[] = []
