@@ -2,7 +2,8 @@
 // id that came from getClientContext() — never from the URL alone.
 import { db } from "@/lib/db"
 import { daysFromToday, todayUTC } from "./format"
-import { neededForJob, forClient, signingEnabled, type NeededSignature } from "./sign"
+import { neededForJob, forClient, isDone, signingEnabled, type NeededSignature, type SignViewer } from "./sign"
+import { isDemoSlug } from "./demo"
 
 const visible = { hidden: false } as const
 
@@ -53,24 +54,36 @@ export type NeedsItem =
   | { kind: "review"; urgency: number; project: ProjectWithAll; film: ProjectWithAll["deliverables"][number] }
   | { kind: "sign"; urgency: number; project: { name: string; slug: string | null; job_number: string | null }; item: NeededSignature }
 
+/** The client's paperwork, live from Sign Here (never stored here): per project, or "unavailable". */
+export type ClientPaper = {
+  /** False while signing is dormant (no env) or for orgs with no published book (the demo, previews). */
+  enabled: boolean
+  /** Project ids whose read failed (503 = signing isn't set up for this org, a timeout, a bad shape). */
+  unavailable: Set<string>
+  byProject: Map<string, NeededSignature[]>
+}
+
 /**
- * The client's paperwork per published project, live from Sign Here (never stored here).
- * Only projects that carry a job number; only the org's own members' items (see lib/client/sign.ts).
+ * Contract v2: the engine returns only the viewer's OWN client-kind paper (staff viewing as the client: every
+ * member's, read-only). Only projects that carry a job number. A failed read is "unavailable", never "all set".
  */
-export async function clientSignatures(orgId: string, projects: { id: string; job_number: string | null }[], isStaff: boolean) {
-  const out = new Map<string, NeededSignature[]>()
-  if (!signingEnabled()) return out
-  const members = await db.membership.findMany({
-    where: { organization_id: orgId, hidden: false },
-    select: { person: { select: { email: true } } },
-  })
-  const emails = members.map((m) => m.person.email)
+export async function clientSignatures(
+  org: { slug: string },
+  projects: { id: string; job_number: string | null }[],
+  viewer: SignViewer,
+): Promise<ClientPaper> {
+  const out: ClientPaper = { enabled: false, unavailable: new Set(), byProject: new Map() }
+  // The demo and preview orgs have no published book, so the engine would always answer 503: show nothing there.
+  if (!signingEnabled() || isDemoSlug(org.slug) || org.slug.endsWith("--preview")) return out
+  out.enabled = true
   await Promise.all(
     projects
       .filter((p) => p.job_number)
       .map(async (p) => {
-        const items = await neededForJob(p.job_number!)
-        if (items) out.set(p.id, forClient(items, emails, isStaff))
+        const res = await neededForJob(p.job_number!, org.slug, viewer)
+        if (!res) return
+        if (!res.ok) out.unavailable.add(p.id)
+        else out.byProject.set(p.id, forClient(res.items, viewer))
       }),
   )
   return out
@@ -80,16 +93,14 @@ export async function clientSignatures(orgId: string, projects: { id: string; jo
 export async function needsYou(
   orgId: string,
   projects: ProjectWithAll[],
-  signatures: Map<string, NeededSignature[]> = new Map(),
-  myEmail = "",
+  signatures: ClientPaper = { enabled: false, unavailable: new Set(), byProject: new Map() },
 ) {
   const items: NeedsItem[] = []
-  // Paper waiting for THIS person (their own email): the most urgent kind of ask.
+  // Paper waiting for this person (the engine already returned only their own; staff viewing see every member's).
   for (const p of projects) {
-    for (const s of signatures.get(p.id) ?? []) {
-      // myEmail "*" = staff viewing as the client: show every member's open paper.
-      if (s.status !== "signed" && (myEmail === "*" || s.who.email?.toLowerCase() === myEmail.toLowerCase())) {
-        items.push({ kind: "sign", urgency: 1, project: p, item: s })
+    for (const s of signatures.byProject.get(p.id) ?? []) {
+      if (!isDone(s) && s.state !== "awaiting_countersign") {
+        items.push({ kind: "sign", urgency: s.overdue ? 0 : 1, project: p, item: s })
       }
     }
   }

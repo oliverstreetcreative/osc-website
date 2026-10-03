@@ -1,42 +1,62 @@
-// Signatures in the client portal: a FRONT-END on Sign Here, the one signature
-// engine (Sam 10/3 01:05). Contract: Matters/sign-here/HANDOFF.md, "THE
-// CONTRACT — signatures needed (v1)". This module never keeps its own status:
-// every read asks the engine (the registry is the truth).
+// Signatures in the client portal: a FRONT-END on Sign Here, the one signature engine (Sam 10/3 01:05).
+// Contract v2: Matters/sign-here/HANDOFF.md, "THE CONTRACT — signatures needed, v2" (v1 is retired and refuses this
+// token). This module never keeps its own status: every read asks the engine (the registry is the truth).
 //
-// Server-to-server only, with a service token the engine scopes to:
-//   GET  {SIGN_HERE_URL}/sign/api/needed/{job}                     -> Summary
-//   POST {SIGN_HERE_URL}/sign/api/needed/{job}/start  {item_id, template, mode:"email", email}
-//   GET  {SIGN_HERE_URL}/sign/api/receipt/{agreement_id}?for_email= -> application/pdf
-// Until SIGN_HERE_URL + SIGN_HERE_SERVICE_TOKEN are set, signing is dormant:
-// nothing shows, nothing breaks.
+// Server-to-server only (never proxied to the public), with ONE service token plus who-is-asking headers:
+//   GET  {SIGN_HERE_URL}/sign/api/v2/needed/{job}         -> Summary (only the viewer's OWN client-kind paper)
+//   POST {SIGN_HERE_URL}/sign/api/v2/start/{job} {item_id} -> {agreement_id, sign_url}; the ENGINE picks the template
+//   GET  {SIGN_HERE_URL}/sign/api/v2/receipt/{agreement_id} -> the executed PDF, only for its signer
+// Headers on every call: Authorization: Bearer <token>; X-Sign-Org: <the org's PUBLISHED book slug>;
+// X-Sign-Viewer: <the signed-in person's email>, or X-Sign-Staff: 1 (staff viewing as the client: read-only, no viewer).
 //
-// What a CLIENT sees (spine: audience): only items whose `who.email` is one of
-// their organization's members, only the client-facing kinds, never a SAMPLE
-// (unblessed template). Crew memos, minors' releases and other people's
-// releases stay office/crew. Staff viewing as the client see the same list,
-// with samples marked.
+// Fail closed, visibly: with signing switched on, any non-200 (503 = "signing isn't set up for this org"), a timeout
+// or a bad shape is "Paperwork unavailable right now", NEVER "all set". An empty list from a 200 is genuinely nothing
+// to sign. Until SIGN_HERE_URL + SIGN_HERE_SERVICE_TOKEN are set, signing is dormant: nothing shows, nothing breaks.
 
 export type SignKind = "talent_release" | "minor_release" | "location_release" | "client_agreement" | "crew_deal_memo"
 
+export type SignState =
+  | "missing"
+  | "sent"
+  | "link_expired"
+  | "signed_sample"
+  | "awaiting_countersign"
+  | "covers_short"
+  | "signed"
+  | "on_file"
+  | "unknown"
+
+/** The fields of the engine's NeededSignature (v2) this portal uses. Ids are opaque: never parse them. */
 export type NeededSignature = {
   id: string
   job: string
-  date: string | null
   kind: SignKind
-  who: { name: string; role?: string; email?: string; phone?: string }
-  templates: string[]
+  label?: string
+  date: string | null
+  days?: string[]
+  who: { name: string; email?: string }
+  template?: string | null
   can_start: boolean
-  why_not: string
+  why_not?: string
+  state?: SignState
   status: "missing" | "sent" | "signed"
+  satisfied?: boolean
   agreement_id: string | null
   signed_at: string | null
-  signed_name: string | null
-  sent_at: string | null
-  link_expired: boolean
-  sample: boolean
+  sent_at?: string | null
+  link_expired?: boolean
+  sample?: boolean // absent for real viewers; staff see samples, marked
+  due?: string | null
+  overdue?: boolean
 }
 
-type Summary = { contract: number; job: string; items: NeededSignature[] }
+type Summary = { contract: number; job: string; items: NeededSignature[]; generated_at?: string }
+
+/** What a read returned: the items, or that the engine couldn't answer (show "unavailable", never "all set"). */
+export type NeededResult = { ok: true; items: NeededSignature[] } | { ok: false }
+
+/** Who is asking: the signed-in person, or OSC staff viewing as the client (read-only). */
+export type SignViewer = { email: string } | { staff: true }
 
 const CLIENT_KINDS: SignKind[] = ["client_agreement", "talent_release", "location_release"]
 
@@ -52,60 +72,87 @@ const base = () => process.env.SIGN_HERE_URL?.trim().replace(/\/$/, "") || ""
 const token = () => process.env.SIGN_HERE_SERVICE_TOKEN?.trim() || ""
 export const signingEnabled = () => Boolean(base() && token())
 
-async function call(path: string, init: RequestInit = {}) {
+function headersFor(org: string, viewer: SignViewer): Record<string, string> {
+  const h: Record<string, string> = { Authorization: `Bearer ${token()}`, "X-Sign-Org": org }
+  if ("staff" in viewer) h["X-Sign-Staff"] = "1"
+  else h["X-Sign-Viewer"] = viewer.email
+  return h
+}
+
+async function call(path: string, org: string, viewer: SignViewer, init: RequestInit = {}) {
   return fetch(`${base()}${path}`, {
     ...init,
-    headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json", ...(init.headers ?? {}) },
+    headers: { ...headersFor(org, viewer), "Content-Type": "application/json", ...(init.headers ?? {}) },
     cache: "no-store",
     signal: AbortSignal.timeout(8000),
   })
 }
 
-/** Everything the engine says this job needs, or null when signing is off or the engine is unreachable. */
-export async function neededForJob(job: string): Promise<NeededSignature[] | null> {
-  if (!signingEnabled() || !job) return null
+/** The engine's list for one job, as THIS viewer may see it. Null = signing is dormant (show nothing). */
+export async function neededForJob(job: string, org: string, viewer: SignViewer): Promise<NeededResult | null> {
+  if (!signingEnabled() || !job || !org) return null
   try {
-    const res = await call(`/sign/api/needed/${encodeURIComponent(job)}`)
-    if (!res.ok) return null
+    const res = await call(`/sign/api/v2/needed/${encodeURIComponent(job)}`, org, viewer)
+    if (!res.ok) {
+      if (res.status !== 503) console.error("client-site sign: needed refused", job, res.status)
+      return { ok: false }
+    }
     const body = (await res.json()) as Summary
-    return body.contract >= 1 && Array.isArray(body.items) ? body.items : null
+    if (!(body.contract >= 2) || !Array.isArray(body.items)) return { ok: false }
+    return { ok: true, items: body.items }
   } catch (err) {
     console.error("client-site sign: needed failed", job, err)
-    return null
+    return { ok: false }
   }
 }
 
-/** The client's own paper: their members' items, client-facing kinds, no samples (staff see samples, marked). */
-export function forClient(items: NeededSignature[], memberEmails: string[], isStaff: boolean) {
-  const emails = new Set(memberEmails.map((e) => e.toLowerCase()))
+/** A harmless second filter on what the engine already scoped: client-facing kinds; for a client, their own paper
+ *  and never a sample; staff viewing see every member's (samples marked). */
+export function forClient(items: NeededSignature[], viewer: SignViewer) {
+  const staff = "staff" in viewer
+  const me = staff ? "" : viewer.email.toLowerCase()
   return items.filter(
-    (i) =>
-      CLIENT_KINDS.includes(i.kind) &&
-      !!i.who.email &&
-      emails.has(i.who.email.toLowerCase()) &&
-      (isStaff || !i.sample),
+    (i) => CLIENT_KINDS.includes(i.kind) && (staff || (!!i.who.email && i.who.email.toLowerCase() === me && !i.sample)),
   )
 }
 
-export type Started = { agreement_id: string; sign_url: string }
+/** Signed for good: the engine's `satisfied` (a blessed template, countersigned if required, every day covered). */
+export const isDone = (s: NeededSignature) => (s.satisfied ?? s.status === "signed") === true
 
-/** Mint (or reuse) the signing link for ONE item, bound to the signer's own email. Nothing is sent. */
-export async function startSigning(job: string, itemId: string, template: string, email: string): Promise<Started | null> {
+export type StartResult = { ok: true; sign_url: string } | { ok: false; reason: "office" | "unavailable" }
+
+/** Mint (or reuse) the signing link for ONE of the viewer's own items. The engine picks the template. Nothing is sent. */
+export async function startSigning(job: string, org: string, email: string, itemId: string): Promise<StartResult> {
+  if (!signingEnabled()) return { ok: false, reason: "unavailable" }
+  try {
+    const res = await call(`/sign/api/v2/start/${encodeURIComponent(job)}`, org, { email }, {
+      method: "POST",
+      body: JSON.stringify({ item_id: itemId }),
+    })
+    // 409 {needs: "office", why}: Sam sets this one up (or it's still a sample). We show our own fixed words, never
+    // the engine's text, so nothing outside our copy reaches a client page.
+    if (res.status === 409) return { ok: false, reason: "office" }
+    if (!res.ok) {
+      console.error("client-site sign: start refused", job, itemId, res.status)
+      return { ok: false, reason: "unavailable" }
+    }
+    const body = (await res.json()) as { agreement_id?: string; sign_url?: string }
+    return body.sign_url ? { ok: true, sign_url: body.sign_url } : { ok: false, reason: "unavailable" }
+  } catch (err) {
+    console.error("client-site sign: start failed", job, itemId, err)
+    return { ok: false, reason: "unavailable" }
+  }
+}
+
+/** The executed PDF, only for the person who signed it (the engine checks the viewer header). */
+export async function receipt(agreementId: string, org: string, email: string): Promise<Response | null> {
   if (!signingEnabled()) return null
-  const res = await call(`/sign/api/needed/${encodeURIComponent(job)}/start`, {
-    method: "POST",
-    body: JSON.stringify({ item_id: itemId, template, mode: "email", email }),
-  })
-  if (!res.ok) {
-    console.error("client-site sign: start refused", job, itemId, res.status, (await res.text()).slice(0, 200))
+  try {
+    const res = await call(`/sign/api/v2/receipt/${encodeURIComponent(agreementId)}`, org, { email })
+    return res.ok ? res : null
+  } catch {
     return null
   }
-  return (await res.json()) as Started
 }
 
-/** The executed PDF, only for the person who signed it (the engine checks). */
-export async function receipt(agreementId: string, email: string): Promise<Response | null> {
-  if (!signingEnabled()) return null
-  const res = await call(`/sign/api/receipt/${encodeURIComponent(agreementId)}?for_email=${encodeURIComponent(email)}`)
-  return res.ok ? res : null
-}
+export const signBase = base

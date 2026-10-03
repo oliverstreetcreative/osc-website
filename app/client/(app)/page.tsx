@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Check, CalendarDays, Receipt, Clapperboard, ArrowRight, FileSignature } from "lucide-react"
 import { requireClientContext } from "@/lib/client/context"
 import { orgProjects, needsYou, clientSignatures, type NeedsItem } from "@/lib/client/data"
-import { KIND_LABEL } from "@/lib/client/sign"
+import { KIND_LABEL, type SignViewer } from "@/lib/client/sign"
 import { SignButton } from "@/app/client/sign-button"
 import { StartCard } from "@/app/client/start-cards"
 import { greeting, money, relativeDue, day, daysFromToday, duration } from "@/lib/client/format"
@@ -12,11 +12,22 @@ import { ProjectCard } from "@/app/client/project-card"
 
 export const metadata = { title: "Home" }
 
-export default async function Home() {
+// Fixed words for what the "Read and sign" route reports back (never text from the URL or the engine).
+const SIGN_NOTICE: Record<string, string> = {
+  office: "Sam will set this one up and let you know.",
+  unavailable: "Paperwork is unavailable right now. Try again in a few minutes.",
+}
+
+export default async function Home({ searchParams }: { searchParams: { sign?: string } }) {
   const ctx = await requireClientContext()
   const projects = await orgProjects(ctx.org.id)
-  const signatures = await clientSignatures(ctx.org.id, projects, !!ctx.viewing)
-  const needs = await needsYou(ctx.org.id, projects, signatures, ctx.viewing ? "*" : ctx.user.email)
+  // Sign Here contract v2: the viewer's own paper; staff viewing as the client read every member's (read-only).
+  const viewer: SignViewer = ctx.viewing ? { staff: true } : { email: ctx.user.email }
+  const signatures = await clientSignatures(ctx.org, projects, viewer)
+  const needs = await needsYou(ctx.org.id, projects, signatures)
+  const paperUnavailable = signatures.unavailable.size > 0
+  const signNotice = searchParams.sign ? SIGN_NOTICE[searchParams.sign] ?? null : null
+  const me = ctx.viewing ? "" : ctx.user.email.toLowerCase()
   const orgName = ctx.org.short_name ?? ctx.org.name
   const active = projects.filter((p) => p.phase !== "paid" && p.phase !== "delivered")
   // When nothing needs them: lead with the latest film, and list the rest below it.
@@ -38,11 +49,26 @@ export default async function Home() {
         <SectionTitle>
           <span id="needs">Needs you</span>
         </SectionTitle>
+        {signNotice ? (
+          <div className="cs-card cs-pad" role="status" style={{ marginBottom: 10 }}>
+            <p>{signNotice}</p>
+          </div>
+        ) : null}
+        {paperUnavailable ? (
+          // Never "all set" while Sign Here can't answer (contract v2: fail closed, visibly).
+          <div className="cs-card cs-need" style={{ marginBottom: 10 }}>
+            <div className="cs-need-top">
+              <span className="cs-eyebrow"><FileSignature size={13} style={{ verticalAlign: -2, marginRight: 6 }} />Paperwork</span>
+            </div>
+            <h3>Unavailable right now</h3>
+            <p>We can&rsquo;t check what needs signing at the moment. Try again in a few minutes.</p>
+          </div>
+        ) : null}
         {needs.length ? (
           <div className="cs-list">
-            {needs.map((n) => <NeedCard key={key(n)} n={n} demo={isDemoSlug(ctx.org.slug)} />)}
+            {needs.map((n) => <NeedCard key={key(n)} n={n} demo={isDemoSlug(ctx.org.slug)} me={me} />)}
           </div>
-        ) : (
+        ) : paperUnavailable ? null : (
           <div className="cs-card cs-calm">
             <span className="cs-calm-dot"><Check size={22} /></span>
             <div>
@@ -119,19 +145,32 @@ function key(n: NeedsItem) {
 }
 
 // demo: the staging demo org (SPEC §19). Its links are placeholders, so its buttons show "Off in the demo".
-function NeedCard({ n, demo }: { n: NeedsItem; demo: boolean }) {
+function NeedCard({ n, demo, me }: { n: NeedsItem; demo: boolean; me: string }) {
   if (n.kind === "sign") {
     const s = n.item
+    const mine = !!me && s.who.email?.toLowerCase() === me
     return (
       <div className="cs-card cs-need">
         <div className="cs-need-top">
           <span className="cs-eyebrow"><FileSignature size={13} style={{ verticalAlign: -2, marginRight: 6 }} />To sign</span>
-          {s.sample ? <span className="cs-pill">Sample</span> : s.status === "sent" ? <span className="cs-status due">Waiting for you</span> : null}
+          {s.sample ? (
+            <span className="cs-pill">Sample</span>
+          ) : s.overdue ? (
+            <span className="cs-status late">Overdue</span>
+          ) : s.due ? (
+            <span className="cs-status due">Due {day(new Date(s.due), { month: "short", day: "numeric" })}</span>
+          ) : s.state === "sent" ? (
+            <span className="cs-status due">Waiting for you</span>
+          ) : null}
         </div>
-        <h3>{KIND_LABEL[s.kind]} · {n.project.name}</h3>
-        <p>For {s.who.name}</p>
+        <h3>{s.label ?? KIND_LABEL[s.kind]} · {n.project.name}</h3>
+        <p>{mine ? "For you" : `For ${s.who.name}`}</p>
         <div className="cs-need-act">
-          <SignButton job={s.job} itemId={s.id} template={s.templates[0] ?? ""} disabled={!s.can_start || !s.templates.length} />
+          {mine ? (
+            <SignButton job={s.job} itemId={s.id} disabled={!s.can_start} />
+          ) : (
+            <span className="cs-status">Read-only while viewing</span>
+          )}
         </div>
       </div>
     )

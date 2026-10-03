@@ -3,7 +3,7 @@ import { notFound } from "next/navigation"
 import { ChevronLeft, Download, ExternalLink, MapPin, Clock, Phone, MessageSquare, Mail, UserPlus } from "lucide-react"
 import { requireClientContext } from "@/lib/client/context"
 import { orgProject, clientSignatures } from "@/lib/client/data"
-import { KIND_LABEL } from "@/lib/client/sign"
+import { KIND_LABEL, isDone, type SignViewer } from "@/lib/client/sign"
 import { SignButton } from "@/app/client/sign-button"
 import { day, duration, money, relativeDue, muxThumb, daysFromToday, todayUTC } from "@/lib/client/format"
 import { eventForOrgs, googleLink } from "@/lib/client/calendar"
@@ -36,7 +36,12 @@ export default async function ProjectPage({ params }: { params: { id: string } }
   if (!found) notFound()
   const { p, org } = found
   const demo = isDemoSlug(org.slug) // the staging demo (SPEC §19): placeholder links, buttons off
-  const paper = (await clientSignatures(org.id, [p], !!ctx.viewing)).get(p.id) ?? []
+  // Sign Here contract v2: the viewer's own paper (staff viewing: every member's, read-only); a failed read is
+  // "unavailable", never an empty "all set".
+  const viewer: SignViewer = ctx.viewing ? { staff: true } : { email: ctx.user.email }
+  const signing = await clientSignatures(org, [p], viewer)
+  const paper = signing.byProject.get(p.id) ?? []
+  const paperUnavailable = signing.unavailable.has(p.id)
   const me = ctx.viewing ? "" : ctx.user.email.toLowerCase()
   const origin = await pageOrigin()
   const orgName = org.short_name ?? org.name
@@ -193,30 +198,48 @@ export default async function ProjectPage({ params }: { params: { id: string } }
               </section>
             ) : null}
 
-            {paper.length ? (
+            {paper.length || paperUnavailable ? (
               <section className="cs-section">
                 <SectionTitle>Paperwork</SectionTitle>
                 <div className="cs-rows">
+                  {paperUnavailable ? (
+                    <div className="cs-row">
+                      <span className="cs-row-main">
+                        <strong>Unavailable right now</strong>
+                        <small>We can&rsquo;t check what needs signing at the moment. Try again in a few minutes.</small>
+                      </span>
+                    </div>
+                  ) : null}
                   {paper.map((s) => {
                     const mine = !!me && s.who.email?.toLowerCase() === me
+                    const done = isDone(s)
                     return (
                       <div key={s.id} className="cs-row" style={{ flexWrap: "wrap" }}>
                         <span className="cs-row-main">
-                          <strong>{KIND_LABEL[s.kind]}{s.sample ? " · sample" : ""}</strong>
+                          <strong>{s.label ?? KIND_LABEL[s.kind]}{s.sample ? " · sample" : ""}</strong>
                           <small>{mine ? "For you" : `For ${s.who.name}`}</small>
                         </span>
                         <span className="cs-row-end">
-                          {s.status === "signed" ? (
+                          {done ? (
                             <>
                               <span className="cs-status paid">
                                 Signed{s.signed_at ? ` ${day(new Date(s.signed_at), { month: "short", day: "numeric" })}` : ""}
                               </span>
                               {mine && s.agreement_id ? (
-                                <a className="cs-link" href={`/client/sign/receipt/${s.agreement_id}`} target="_blank" rel="noopener">Your copy</a>
+                                <a className="cs-link" href={`/client/sign/receipt/${encodeURIComponent(s.agreement_id)}`} target="_blank" rel="noopener">Your copy</a>
                               ) : null}
                             </>
+                          ) : s.state === "awaiting_countersign" ? (
+                            <span className="cs-status soon">Signed · OSC signs next</span>
+                          ) : s.state === "signed_sample" ? (
+                            <span className="cs-status">Sample signed (doesn&rsquo;t count)</span>
                           ) : mine ? (
-                            <SignButton job={s.job} itemId={s.id} template={s.templates[0] ?? ""} disabled={!s.can_start || !s.templates.length} />
+                            <>
+                              {s.overdue ? <span className="cs-status late">Overdue</span> : s.due ? (
+                                <span className="cs-status due">Due {day(new Date(s.due), { month: "short", day: "numeric" })}</span>
+                              ) : null}
+                              <SignButton job={s.job} itemId={s.id} disabled={!s.can_start} />
+                            </>
                           ) : (
                             <span className="cs-status due">Waiting on {s.who.name.split(" ")[0]}</span>
                           )}
