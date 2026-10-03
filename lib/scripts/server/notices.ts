@@ -40,6 +40,28 @@ export async function notify(scriptId: string, kind: NoticeKind, actorId: string
   }
 }
 
+/**
+ * "@Sam" in a comment: the people on this script whose first name matches get a "mention" notice. In an internal
+ * comment only OSC staff can be mentioned (v4 #11). Returns who was mentioned.
+ */
+export async function notifyMentions(scriptId: string, body: string, actorId: string, internal: boolean): Promise<string[]> {
+  const names = new Set([...body.matchAll(/(?:^|[\s(])@([\p{L}][\p{L}'-]{0,30})/gu)].map((m) => m[1].toLowerCase()))
+  if (!names.size) return []
+  const ids = new Set(await audienceOf(scriptId, false))
+  const staff = await db.person.findMany({ where: { is_staff: true }, select: { id: true } })
+  for (const s of staff) ids.add(s.id)
+  const people = await db.person.findMany({
+    where: { id: { in: [...ids] }, ...(internal ? { is_staff: true } : {}) },
+    select: { id: true, first_name: true, name: true },
+  })
+  const hit = people.filter((p) => p.id !== actorId && names.has((p.first_name || p.name || "").trim().split(/\s+/)[0].toLowerCase()))
+  for (const p of hit) {
+    const pending = await db.scriptNotice.findFirst({ where: { person_id: p.id, script_id: scriptId, kind: "mention", sent_at: null }, select: { id: true } })
+    if (!pending) await db.scriptNotice.create({ data: { person_id: p.id, script_id: scriptId, kind: "mention" } })
+  }
+  return hit.map((p) => p.id)
+}
+
 function origin(): string | null {
   if (IS_PRODUCTION) return "https://oliverstreetcreative.com"
   const d = process.env.RAILWAY_PUBLIC_DOMAIN?.trim()

@@ -9,7 +9,7 @@ import { db } from "@/lib/db"
 import { atLeast, roleOf, sessionFacts, UUID } from "@/lib/scripts/server/access"
 import { broadcast, openLive } from "@/lib/scripts/server/registry"
 import { personCode } from "@/lib/scripts/marks"
-import { notify } from "@/lib/scripts/server/notices"
+import { notify, notifyMentions } from "@/lib/scripts/server/notices"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -99,6 +99,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   })
   ping(params.id)
   notify(params.id, "comment", facts.person.id, { internal: audience === "office" }).catch((err) => console.error("scripts: notice failed", err))
+  notifyMentions(params.id, body, facts.person.id, audience === "office").catch((err) => console.error("scripts: mention notice failed", err))
   return NextResponse.json({ id, thread_id: thread_id ?? id, audience })
 }
 
