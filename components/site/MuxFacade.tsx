@@ -13,6 +13,8 @@ export function MuxFacade({ src, poster, title }: { src: string; poster: string;
     <div className="cs-player">
       {on ? (
         <iframe
+          // the button that had focus is gone; hand focus to the player
+          ref={(f) => f?.focus()}
           src={`${src}${src.includes("?") ? "&" : "?"}autoplay=true`}
           title={title}
           allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
