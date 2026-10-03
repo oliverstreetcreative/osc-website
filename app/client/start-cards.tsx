@@ -27,7 +27,7 @@ export function StartCard({ ctx }: { ctx: ClientContext }) {
             <strong>Start a new project</strong>
             <small>Tell Sam what you have in mind</small>
           </span>
-          <ArrowRight size={18} color="var(--muted)" />
+          <ArrowRight size={18} color="var(--mut)" />
         </Link>
       </section>
     )

@@ -47,7 +47,7 @@ export default async function CalendarPage() {
           <a className="cs-btn" href={webcal}><CalendarDays /> Subscribe (Apple or Outlook)</a>
           <a className="cs-btn ghost" href={google} target="_blank" rel="noopener">Subscribe in Google Calendar</a>
           <p className="cs-lede" style={{ fontSize: 13, wordBreak: "break-all" }}>
-            Or paste this private link into any calendar app: <span style={{ color: "var(--text)" }}>{https}</span>
+            Or paste this private link into any calendar app: <span style={{ color: "var(--ink)" }}>{https}</span>
           </p>
         </div>
       </section>

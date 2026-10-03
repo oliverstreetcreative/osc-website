@@ -31,17 +31,17 @@ export async function GET(req: NextRequest) {
     .sign(new TextEncoder().encode(secret))
   const next = req.nextUrl.searchParams.get("next") ?? "/client"
   const frames = req.nextUrl.searchParams.get("frames")
+  // Screenshots of both appearances (SPEC §20): &theme=dark|light is stored the portal's own way (localStorage
+  // osc.portal.look, the hub's convention) by the frames page before its iframes load; anything else = Auto.
+  const themeParam = req.nextUrl.searchParams.get("theme")
+  const look = themeParam === "dark" || themeParam === "light" ? themeParam : null
   const res = frames
-    ? new NextResponse(framesHtml(frames.split(",").filter((p) => p.startsWith("/client") || p === "/login")), {
+    ? new NextResponse(framesHtml(frames.split(",").filter((p) => p.startsWith("/client") || p === "/login"), look), {
         headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
       })
     : NextResponse.redirect(`${publicOrigin(req)}${next.startsWith("/") ? next : "/client"}`, 303)
   res.cookies.set("osc_session", jwt, { domain: cookieDomainFor(req), path: "/", httpOnly: true, sameSite: "lax", secure: isSecure(req), expires })
   res.cookies.set("cs_org", "", { path: "/", maxAge: 0 })
-  // Screenshots of both themes (SPEC §20): &theme=dark|light sets the device's Appearance cookie; anything else = Auto.
-  const theme = req.nextUrl.searchParams.get("theme")
-  if (theme === "dark" || theme === "light") res.cookies.set("cs_theme", theme, { path: "/", sameSite: "lax", secure: isSecure(req), expires })
-  else res.cookies.set("cs_theme", "", { path: "/", maxAge: 0 })
   // Staff only: &view=<org-slug> opens "View as client" directly (for screenshots), logged like a real start.
   const view = req.nextUrl.searchParams.get("view")
   const org = view && person.is_staff ? await db.organization.findFirst({ where: { slug: view, hidden: false } }) : null
@@ -61,12 +61,16 @@ export const dynamic = "force-dynamic"
 // Screenshot harness: true 390x844 phone screens of each path, scrolled one
 // screen at a time (headless Chrome won't lay a window out under 500px wide,
 // but an iframe will). Same origin, so the session cookie set above applies.
-function framesHtml(paths: string[]) {
+function framesHtml(paths: string[], look: "dark" | "light" | null) {
   const list = JSON.stringify(paths.map((p) => p.replace(/[<>"']/g, "")))
+  const setLook = look
+    ? `try{localStorage.setItem("osc.portal.look","${look}")}catch(e){}`
+    : `try{localStorage.removeItem("osc.portal.look")}catch(e){}`
   return `<!doctype html><meta charset="utf-8"><title>frames</title>
 <style>body{margin:0;background:#3a3a38;display:flex;flex-wrap:wrap;gap:14px;padding:14px;font:12px -apple-system,sans-serif;color:#ddd}
 figure{margin:0}iframe{width:390px;height:844px;border:0;background:#fff;display:block;border-radius:6px}figcaption{padding:3px 2px}</style>
 <body><script>
+${setLook}
 const paths=${list};
 for (const p of paths) {
   const f=document.createElement('figure'); f.innerHTML='<figcaption>'+p+' · 1</figcaption>';

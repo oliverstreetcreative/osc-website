@@ -81,7 +81,7 @@ export default async function ViewAsPicker() {
                         {current === o.slug ? " · viewing now" : ""}
                       </small>
                     </span>
-                    <ChevronRight size={18} color="var(--muted)" />
+                    <ChevronRight size={18} color="var(--mut)" />
                   </button>
                 </form>
               ))}
@@ -104,7 +104,7 @@ export default async function ViewAsPicker() {
                       <strong>{o.name}</strong>
                       <small>What goes live if you tap Publish{current === o.slug ? " · viewing now" : ""}</small>
                     </span>
-                    <ChevronRight size={18} color="var(--muted)" />
+                    <ChevronRight size={18} color="var(--mut)" />
                   </button>
                 </form>
               ))}

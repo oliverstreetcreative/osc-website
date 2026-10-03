@@ -62,7 +62,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${ebGaramond.variable}`}>
+    <html lang="en" className={`${inter.variable} ${ebGaramond.variable}`} suppressHydrationWarning>
       <head>
         <script
           type="application/ld+json"

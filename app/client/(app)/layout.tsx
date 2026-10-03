@@ -3,11 +3,9 @@ import { ImpersonationBanner } from "@/components/ImpersonationBanner"
 import { Wordmark } from "@/app/client/ui"
 import { Nav, Tabs } from "@/app/client/nav"
 import { ThemeSwitch } from "@/app/client/theme-switch"
-import { themeFromCookie } from "@/lib/client/theme"
 
 export default async function ClientShell({ children }: { children: React.ReactNode }) {
   const ctx = await requireClientContext()
-  const theme = await themeFromCookie()
   const initials = (ctx.user.first_name ?? ctx.user.name ?? "?").trim().slice(0, 1).toUpperCase()
   const showOrgs = !ctx.viewing && ctx.orgs.length > 1
 
@@ -82,7 +80,7 @@ export default async function ClientShell({ children }: { children: React.ReactN
                 ) : (
                   <a href="/client/calendar">Calendar feed</a>
                 )}
-                <ThemeSwitch initial={theme} />
+                <ThemeSwitch />
                 <form action="/client/signout" method="post"><button>Sign out</button></form>
               </div>
             </details>

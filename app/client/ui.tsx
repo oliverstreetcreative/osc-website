@@ -100,7 +100,7 @@ export function DocRow({ doc, showProject = true }: {
         <strong>{doc.title}</strong>
         <small>{bits.join(" · ")}</small>
       </span>
-      <span className="cs-row-end" aria-hidden style={{ color: "var(--muted)" }}>
+      <span className="cs-row-end" aria-hidden style={{ color: "var(--mut)" }}>
         {doc.url ? <ExternalLink size={18} /> : <Download size={18} />}
       </span>
     </a>

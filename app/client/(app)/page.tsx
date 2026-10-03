@@ -130,7 +130,7 @@ export default async function Home({ searchParams }: { searchParams: { sign?: st
             <strong>Add your dates to your calendar</strong>
             <small>Filming days and due dates</small>
           </span>
-          <ArrowRight size={18} color="var(--muted)" />
+          <ArrowRight size={18} color="var(--mut)" />
         </Link>
       </section>
 
