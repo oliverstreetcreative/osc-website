@@ -43,6 +43,7 @@ function updateFor(server: Y.Doc, next: PMNode, clientId: number): Uint8Array {
 
 const baseKey = (d: PMNode) => JSON.stringify(viewOf(d, "base").toJSON())
 
+// 10/3: also ran clean at 5,000 sequences (80,000 honest edits); the default stays quick.
 test("honest suggestions from two people always pass (1000 sequences × 16 edits)", () => {
   for (let seed = 1; seed <= 1000; seed++) {
     const people = twoPeople()
