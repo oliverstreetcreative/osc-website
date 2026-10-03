@@ -45,6 +45,9 @@ model Person {
   memberships    Membership[]
   project_requests ProjectRequest[]
   calendar_token String?      @unique // private ICS feed: /calendar/<token>.ics
+  script_clients ScriptClient[]
+  script_access  ScriptAccess[]
+  script_notices ScriptNotice[]
 
   // Relations
   project_contacts      ProjectContact[]
@@ -103,6 +106,7 @@ model Project {
   organization    Organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull)
   invoices        Invoice[]
   documents       Document[]
+  scripts         Script[]
 
   // Relations
   project_contacts     ProjectContact[]
@@ -218,6 +222,7 @@ model Deliverable {
   project               Project               @relation(fields: [project_id], references: [id], onDelete: Cascade)
   deliverable_reviews   DeliverableReview[]
   deliverable_approvals DeliverableApproval[]
+  scripts               Script[]
 
   @@index([project_id])
   @@index([source_bible_id, source_bible_table], name: "idx_deliverables_source_bible")
@@ -654,6 +659,8 @@ model Organization {
   invoices      Invoice[]
   documents     Document[]
   requests      ProjectRequest[]
+  scripts       Script[]
+  script_access ScriptAccess[]
 
   @@map("organizations")
 }
@@ -751,4 +758,203 @@ model ProjectRequest {
   @@index([organization_id])
   @@index([status])
   @@map("project_requests")
+}
+
+// ---------------------------------------------------------------------------
+// SCRIPTS (SPEC §14 v4 "Data model v4, as Prisma", + v5): the client's front
+// door for scripting, live co-editing in Yjs. Scripts are ARCHIVED, never
+// deleted (archived_at). History tables (updates, versions, comments,
+// approvals) keep person ids as plain uuids, no foreign key, so a person
+// leaving never erases who wrote what.
+// ---------------------------------------------------------------------------
+
+model Script {
+  id              String        @id @default(uuid()) @db.Uuid
+  organization_id String?       @db.Uuid // the client it's shared within (null = OSC-only draft)
+  project_id      String?       @db.Uuid
+  deliverable_id  String?       @db.Uuid // v1: one script per deliverable
+  job             String? // "26-037"
+  title           String // "02 Appropriation :30"
+  format          String        @default("av") // av | screenplay (v2)
+  target_seconds  Int? // from the deliverable's length; null = "no target set"
+  pace_wpm        Int           @default(150)
+  reader          String? // "Mike Harmon"
+  audience        String        @default("office") // office until Sam shares it
+  status          String        @default("draft") // draft | ready_for_notes | ready_for_ok | approved
+  canonical       String        @default("dropbox") // dropbox (files canonical until Sam OKs production) | portal | gdoc
+  read_only       Boolean       @default(false) // true while a Google Doc is canonical (v4 #4)
+  shoot_version   Int? // ScriptVersion.n the hub serves on a shoot day
+  approvers       Json? // emails, gated like §13
+  approval        String        @default("any") // any | all
+  source          Json? // import provenance {adapter, path, sha256, label}
+  created_by      String        @db.Uuid
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
+  archived_at     DateTime?
+  organization    Organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull)
+  project         Project?      @relation(fields: [project_id], references: [id], onDelete: SetNull)
+  deliverable     Deliverable?  @relation(fields: [deliverable_id], references: [id], onDelete: SetNull)
+  updates         ScriptUpdate[]
+  snapshots       ScriptSnapshot[]
+  clients         ScriptClient[]
+  versions        ScriptVersion[]
+  access          ScriptAccess[]
+  comments        ScriptComment[]
+  approvals       ScriptApproval[]
+  notices         ScriptNotice[]
+
+  @@index([organization_id])
+  @@index([project_id])
+  @@map("scripts")
+}
+
+model ScriptUpdate {
+  // EVERY update kept; id is the DB-assigned seq (v4 #1)
+  id         BigInt   @id @default(autoincrement())
+  script_id  String   @db.Uuid
+  update     Bytes
+  person_id  String   @db.Uuid
+  client_id  BigInt // the Yjs clientID that made it (bound in ScriptClient)
+  created_at DateTime @default(now())
+  script     Script   @relation(fields: [script_id], references: [id], onDelete: Cascade)
+
+  @@index([script_id, id])
+  @@map("script_updates")
+}
+
+model ScriptSnapshot {
+  // a cache of state up to an update id; rebuilt from rows, never the only copy
+  id         String   @id @default(uuid()) @db.Uuid
+  script_id  String   @db.Uuid
+  upto_id    BigInt
+  state      Bytes
+  created_at DateTime @default(now())
+  script     Script   @relation(fields: [script_id], references: [id], onDelete: Cascade)
+
+  @@index([script_id, upto_id])
+  @@map("script_snapshots")
+}
+
+model ScriptClient {
+  // a Yjs clientID belongs to exactly one person, for every role (v4 #5)
+  script_id  String   @db.Uuid
+  client_id  BigInt
+  person_id  String   @db.Uuid
+  created_at DateTime @default(now())
+  script     Script   @relation(fields: [script_id], references: [id], onDelete: Cascade)
+  person     Person   @relation(fields: [person_id], references: [id], onDelete: Cascade)
+
+  @@id([script_id, client_id])
+  @@index([person_id])
+  @@map("script_clients")
+}
+
+model ScriptVersion {
+  id            String   @id @default(uuid()) @db.Uuid
+  script_id     String   @db.Uuid
+  n             Int
+  name          String? // "Mike's edits"; lint refuses internal markers
+  kind          String // auto | named | restore | approved | import
+  upto_id       BigInt // last ScriptUpdate included
+  state         Bytes
+  text          String // the BASE text, no pending suggestions (v4 #7)
+  rows          Json // render rows for history and exports
+  total_seconds Float?
+  authors       Json // person ids since the previous version
+  created_by    String?  @db.Uuid // null = autosave
+  created_at    DateTime @default(now())
+  script        Script   @relation(fields: [script_id], references: [id], onDelete: Cascade)
+
+  @@unique([script_id, n])
+  @@map("script_versions")
+}
+
+model ScriptAccess {
+  id              String         @id @default(uuid()) @db.Uuid
+  script_id       String         @db.Uuid
+  person_id       String?        @db.Uuid
+  organization_id String?        @db.Uuid // "Beech Acres · everyone"
+  email           String?
+  role            String // viewer | commenter | suggester | editor
+  invited_by      String         @db.Uuid
+  invited_at      DateTime       @default(now())
+  accepted_at     DateTime?
+  revoked_at      DateTime?
+  expires_at      DateTime? // the job's end (freelancer test, §16)
+  script          Script         @relation(fields: [script_id], references: [id], onDelete: Cascade)
+  person          Person?        @relation(fields: [person_id], references: [id], onDelete: Cascade)
+  organization    Organization?  @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  invites         ScriptInvite[]
+
+  @@index([script_id])
+  @@index([person_id])
+  @@map("script_access")
+}
+
+model ScriptInvite {
+  // 14 days; spent only by a TAP on its page, never on load (v4 #10)
+  id         String       @id @default(uuid()) @db.Uuid
+  access_id  String       @db.Uuid
+  token_hash String       @unique
+  created_at DateTime     @default(now())
+  expires_at DateTime
+  spent_at   DateTime?
+  access     ScriptAccess @relation(fields: [access_id], references: [id], onDelete: Cascade)
+
+  @@index([access_id])
+  @@map("script_invites")
+}
+
+model ScriptComment {
+  id          String    @id @default(uuid()) @db.Uuid
+  script_id   String    @db.Uuid
+  thread_id   String    @db.Uuid
+  parent_id   String?   @db.Uuid
+  author_id   String    @db.Uuid
+  body        String
+  anchor      Json? // Yjs relative positions {from, to}
+  quote       String? // the text it was on, kept if the text goes
+  suggestion  String? // a reply ON a suggestion: its id (v4 #12)
+  audience    String    @default("office") // replies inherit the thread's (v4 #11)
+  resolved_at DateTime?
+  resolved_by String?   @db.Uuid
+  created_at  DateTime  @default(now())
+  script      Script    @relation(fields: [script_id], references: [id], onDelete: Cascade)
+
+  @@index([script_id, thread_id])
+  @@map("script_comments")
+}
+
+model ScriptApproval {
+  // frozen, like §13's VersionApproval
+  id          String   @id @default(uuid()) @db.Uuid
+  script_id   String   @db.Uuid
+  version_n   Int
+  text_sha256 String // hash of the approved text (v4 #7)
+  person_id   String   @db.Uuid
+  name        String
+  email       String
+  ip          String?
+  user_agent  String?
+  note        String?
+  created_at  DateTime @default(now())
+  script      Script   @relation(fields: [script_id], references: [id], onDelete: Cascade)
+
+  @@index([script_id])
+  @@map("script_approvals")
+}
+
+model ScriptNotice {
+  // batched: one email per person per 15 minutes
+  id         String    @id @default(uuid()) @db.Uuid
+  person_id  String    @db.Uuid
+  script_id  String    @db.Uuid
+  kind       String // mention | comment | suggestion | shared
+  created_at DateTime  @default(now())
+  sent_at    DateTime?
+  person     Person    @relation(fields: [person_id], references: [id], onDelete: Cascade)
+  script     Script    @relation(fields: [script_id], references: [id], onDelete: Cascade)
+
+  @@index([person_id, sent_at])
+  @@map("script_notices")
 }
