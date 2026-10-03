@@ -1,0 +1,624 @@
+{
+ "about": "Timing test vectors (client-website SPEC §14). lib/scripts/timing.ts must reproduce every case. Made by scripts/test_script_timing.py --vectors from hand-checked cases and the real scripts.",
+ "default_wpm": 150,
+ "text": [
+  {
+   "text": "Hi. I’m Mike Harmon and I am running for Secretary of State of the Commonwealth of Kentucky.",
+   "words": 17,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "$29M",
+   "words": 4,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "in 2026",
+   "words": 4,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "at 3:15",
+   "words": 3,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "3:00",
+   "words": 2,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "3:05",
+   "words": 3,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "10–15 minutes",
+   "words": 4,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "Pro 2nd Amendment",
+   "words": 3,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "the 20th district",
+   "words": 3,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "the 21st century",
+   "words": 4,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "please head to Gexforsenate.com",
+   "words": 8,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "I secured more than $___ million for our district—real investments",
+   "words": 12,
+   "pauses_s": 0.0,
+   "blanks": 1
+  },
+  {
+   "text": "I also secured over $___million for road improvements",
+   "words": 10,
+   "pauses_s": 0.0,
+   "blanks": 1
+  },
+  {
+   "text": "My name is Maria Rodriguez… and I'm running",
+   "words": 8,
+   "pauses_s": 0.5,
+   "blanks": 0
+  },
+  {
+   "text": "**SFX:** Music resolves. **SUPER:** Paid for by Maria Rodriguez for Congress.",
+   "words": 0,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "**Maria (O/C):** I wasn't born into freedom… I ran to it.",
+   "words": 9,
+   "pauses_s": 0.5,
+   "blanks": 0
+  },
+  {
+   "text": "Call (859) 512-1419 today",
+   "words": 12,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "(beat) Thank you.",
+   "words": 2,
+   "pauses_s": 1.0,
+   "blanks": 0
+  },
+  {
+   "text": "(pause) Thank you.",
+   "words": 2,
+   "pauses_s": 1.5,
+   "blanks": 0
+  },
+  {
+   "text": "(Close up) My husband",
+   "words": 2,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "[Cut to road crews] Fixing roads",
+   "words": 2,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "Remember: vote",
+   "words": 2,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "NARRATOR: To learn more",
+   "words": 3,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "re-election",
+   "words": 1,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "50% of families",
+   "words": 4,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "1,200 kids",
+   "words": 5,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "2.5 million",
+   "words": 4,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "November third!.",
+   "words": 2,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "in 1999",
+   "words": 4,
+   "pauses_s": 0.0,
+   "blanks": 0
+  },
+  {
+   "text": "in 2005",
+   "words": 4,
+   "pauses_s": 0.0,
+   "blanks": 0
+  }
+ ],
+ "rows": [
+  {
+   "rows": [
+    {
+     "audio": [
+      {
+       "text": "one two three four five"
+      }
+     ]
+    }
+   ],
+   "wpm": 150,
+   "total_s": 2.0
+  },
+  {
+   "rows": [
+    {
+     "audio": [
+      {
+       "text": "one two three four five"
+      }
+     ],
+     "hold_s": 3
+    }
+   ],
+   "wpm": 150,
+   "total_s": 3.0
+  },
+  {
+   "rows": [
+    {
+     "video": [
+      "End card"
+     ],
+     "audio": [],
+     "hold_s": 3
+    }
+   ],
+   "wpm": 150,
+   "total_s": 3.0
+  },
+  {
+   "rows": [
+    {
+     "video": [
+      "End card"
+     ],
+     "audio": []
+    }
+   ],
+   "wpm": 150,
+   "total_s": 0.0
+  },
+  {
+   "rows": [
+    {
+     "audio": [
+      {
+       "text": "(beat)"
+      }
+     ]
+    }
+   ],
+   "wpm": 150,
+   "total_s": 1.0
+  },
+  {
+   "rows": [
+    {
+     "audio": [
+      {
+       "text": "one two three four five six seven eight nine ten eleven"
+      }
+     ]
+    }
+   ],
+   "wpm": 165,
+   "total_s": 4.0
+  },
+  {
+   "name": "harmon",
+   "rows": [
+    {
+     "video": [],
+     "audio": [
+      {
+       "speaker": null,
+       "text": "Hi. Im Mike Harmon and I am running for Secretary of State of the Commonwealth of Kentucky."
+      }
+     ],
+     "directions": [],
+     "source": "Hi. Im Mike Harmon and I am running for Secretary of State of the Commonwealth of Kentucky."
+    },
+    {
+     "video": [],
+     "audio": [
+      {
+       "speaker": null,
+       "text": "I proudly served the people of the Commonwealth as the taxpayers’ watchdog in Frankfort during my time as state auditor uncovering waste, fraud and abuse."
+      }
+     ],
+     "directions": [],
+     "source": "I proudly served the people of the Commonwealth as the taxpayers’ watchdog in Frankfort during my time as state auditor uncovering waste, fraud and abuse."
+    },
+    {
+     "video": [],
+     "audio": [
+      {
+       "speaker": null,
+       "text": "Before that, I served in the state house fighting to protect your religious freedoms, for smaller government, for Pro-Life, Pro-Family, and Pro 2nd Amendment policies."
+      }
+     ],
+     "directions": [
+      "heightened speed on delivery but slow down for next line"
+     ],
+     "source": "Before that, I served in the state house fighting to protect your religious freedoms, for smaller government, for Pro-Life, Pro-Family, and Pro 2nd Amendment policies. (heightened speed on delivery but slow down for next line)"
+    },
+    {
+     "video": [],
+     "audio": [
+      {
+       "speaker": null,
+       "text": "I am the only candidate seeking the Republican nomination who has a proven conservative track record."
+      }
+     ],
+     "directions": [],
+     "source": "I am the only candidate seeking the Republican nomination who has a proven conservative track record."
+    },
+    {
+     "video": [],
+     "audio": [
+      {
+       "speaker": null,
+       "text": "You trusted me with protecting your taxpayer dollars, now I’m asking you to trust me again to protect the integrity of your vote."
+      }
+     ],
+     "directions": [],
+     "source": "You trusted me with protecting your taxpayer dollars, now I’m asking you to trust me again to protect the integrity of your vote."
+    },
+    {
+     "video": [],
+     "audio": [
+      {
+       "speaker": null,
+       "text": "I humbly ask that next May, you vote for me so I can go back to working for you by following the data and demanding our elections are safe and secure. Thank you and God bless."
+      }
+     ],
+     "directions": [],
+     "source": "I humbly ask that next May, you vote for me so I can go back to working for you by following the data and demanding our elections are safe and secure. Thank you and God bless."
+    },
+    {
+     "video": [
+      "Logo fade in. Paid for by Mike Harmon."
+     ],
+     "audio": [],
+     "directions": [],
+     "source": "Logo fade in. Paid for by Mike Harmon."
+    }
+   ],
+   "wpm": 150,
+   "total_s": 56.8,
+   "words": 142,
+   "blanks": 0
+  },
+  {
+   "name": "gex-family",
+   "rows": [
+    {
+     "video": [
+      "Close up"
+     ],
+     "audio": [
+      {
+       "speaker": "Judy",
+       "text": "My husband, Gex Williams, is running for re-election to the Kentucky State Senate."
+      }
+     ],
+     "directions": [],
+     "source": "1. Judy: (Close up) My husband, Gex Williams, is running for re-election to the Kentucky State Senate."
+    },
+    {
+     "video": [
+      "Family Photos"
+     ],
+     "audio": [
+      {
+       "speaker": "Judy",
+       "text": "If re-elected, I know that Gex will continue fighting for our communities because he truly cares."
+      }
+     ],
+     "directions": [],
+     "source": "2. Judy: (Family Photos) If re-elected, I know that Gex will continue fighting for our communities because he truly cares."
+    },
+    {
+     "video": [
+      "Frankfort photo"
+     ],
+     "audio": [
+      {
+       "speaker": "Judy",
+       "text": "He's a firm conservative, who will always advocate for our shared family values and will stand up for what is right."
+      }
+     ],
+     "directions": [],
+     "source": "(Frankfort photo) He's a firm conservative, who will always advocate for our shared family values and will stand up for what is right."
+    },
+    {
+     "video": [],
+     "audio": [
+      {
+       "speaker": "Judy",
+       "text": "I hope you will join me in voting for Gex on November third!."
+      }
+     ],
+     "directions": [],
+     "source": "3. Judy: I hope you will join me in voting for Gex on November third!."
+    },
+    {
+     "video": [],
+     "audio": [
+      {
+       "speaker": "NARRATOR",
+       "text": "To learn more, please visit gexforsenate.com"
+      }
+     ],
+     "directions": [],
+     "source": "4. NARRATOR: To learn more, please visit gexforsenate.com"
+    }
+   ],
+   "wpm": 150,
+   "total_s": 29.2,
+   "words": 73,
+   "blanks": 0
+  },
+  {
+   "name": "gex-waste",
+   "rows": [
+    {
+     "video": [],
+     "audio": [
+      {
+       "speaker": null,
+       "text": "I'm Gex Williams, and it's an honor to represent Kentucky's 20th Senate District."
+      }
+     ],
+     "directions": [],
+     "source": "I'm Gex Williams, and it's an honor to represent Kentucky's 20th Senate District."
+    },
+    {
+     "video": [],
+     "audio": [
+      {
+       "speaker": null,
+       "text": "I'm a businessman who decided to head to Frankfort because I was sick and tired of watching politicians wasting taxpayer dollars."
+      }
+     ],
+     "directions": [],
+     "source": "I'm a businessman who decided to head to Frankfort because I was sick and tired of watching politicians wasting taxpayer dollars."
+    },
+    {
+     "video": [],
+     "audio": [
+      {
+       "speaker": null,
+       "text": "Since being elected, I've stood up to special interests and fought against tax increases being proposed to prop up big government."
+      }
+     ],
+     "directions": [],
+     "source": "Since being elected, I've stood up to special interests and fought against tax increases being proposed to prop up big government."
+    },
+    {
+     "video": [],
+     "audio": [
+      {
+       "speaker": null,
+       "text": "But my works not done. Frankfort still needs to be reformed and there is always a federal regulation to push back against."
+      }
+     ],
+     "directions": [],
+     "source": "But my works not done. Frankfort still needs to be reformed and there is always a federal regulation to push back against."
+    },
+    {
+     "video": [],
+     "audio": [
+      {
+       "speaker": null,
+       "text": "That's why I humbly ask that you send me back to Frankfort. I will never stop fighting for you and your families and I hope to earn your vote on or before November third."
+      }
+     ],
+     "directions": [],
+     "source": "That's why I humbly ask that you send me back to Frankfort. I will never stop fighting for you and your families and I hope to earn your vote on or before November third."
+    },
+    {
+     "video": [],
+     "audio": [
+      {
+       "speaker": null,
+       "text": "If you would like to learn more about me, please head to Gexforsenate.com"
+      }
+     ],
+     "directions": [],
+     "source": "If you would like to learn more about me, please head to Gexforsenate.com"
+    }
+   ],
+   "wpm": 150,
+   "total_s": 51.2,
+   "words": 128,
+   "blanks": 0
+  },
+  {
+   "name": "gex-appropriation",
+   "rows": [
+    {
+     "video": [],
+     "audio": [
+      {
+       "speaker": null,
+       "text": "The 20th district needs a fighter in Frankfort who can deliver."
+      }
+     ],
+     "directions": [],
+     "source": "The 20th district needs a fighter in Frankfort who can deliver."
+    },
+    {
+     "video": [],
+     "audio": [
+      {
+       "speaker": null,
+       "text": "During the most recent legislative session, I secured more than $___ million for our district—real investments that will make a real difference."
+      }
+     ],
+     "directions": [],
+     "source": "During the most recent legislative session, I secured more than $___ million for our district—real investments that will make a real difference."
+    },
+    {
+     "video": [],
+     "audio": [
+      {
+       "speaker": null,
+       "text": "That includes $___ million to rebuild Frankfort's Singer Brige—repairing a main feature of the City's downtown."
+      }
+     ],
+     "directions": [],
+     "source": "That includes $___ million to rebuild Frankfort's Singer Brige—repairing a main feature of the City's downtown."
+    },
+    {
+     "video": [
+      "Cut to road crews / driving shots"
+     ],
+     "audio": [
+      {
+       "speaker": null,
+       "text": "I also secured over $___million for road improvements across the district—fixing and making safer the roads our families use every day."
+      }
+     ],
+     "directions": [],
+     "source": "I also secured over $___million for road improvements across the district—fixing and making safer the roads our families use every day."
+    },
+    {
+     "video": [
+      "Cut back to Gex, direct-to-camera"
+     ],
+     "audio": [
+      {
+       "speaker": null,
+       "text": "As your state senator, I will always fight to ensure our district receives the support that it deserves."
+      }
+     ],
+     "directions": [],
+     "source": "As your state senator, I will always fight to ensure our district receives the support that it deserves."
+    },
+    {
+     "video": [],
+     "audio": [
+      {
+       "speaker": null,
+       "text": "I'm proud to represent you—and I humbly ask for your vote so I can continue working to deliver results for the 20th district."
+      }
+     ],
+     "directions": [],
+     "source": "I'm proud to represent you—and I humbly ask for your vote so I can continue working to deliver results for the 20th district."
+    },
+    {
+     "video": [],
+     "audio": [
+      {
+       "speaker": null,
+       "text": "If you would like to learn more about me, please head to Gexforsenate.com"
+      }
+     ],
+     "directions": [],
+     "source": "If you would like to learn more about me, please head to Gexforsenate.com"
+    }
+   ],
+   "wpm": 150,
+   "total_s": 54.4,
+   "words": 136,
+   "blanks": 3
+  }
+ ],
+ "labels": [
+  {
+   "total_s": 28.2,
+   "target_s": 30,
+   "blanks": 0,
+   "label": "0:28 of :30"
+  },
+  {
+   "total_s": 34.4,
+   "target_s": 30,
+   "blanks": 0,
+   "label": "0:34 of :30 · 4 s over"
+  },
+  {
+   "total_s": 56.8,
+   "target_s": null,
+   "blanks": 0,
+   "label": "0:57 · no target set"
+  },
+  {
+   "total_s": 52.0,
+   "target_s": 60,
+   "blanks": 2,
+   "label": "about 0:52 of 1:00 · 2 blanks"
+  },
+  {
+   "total_s": 30.4,
+   "target_s": 30,
+   "blanks": 0,
+   "label": "0:30 of :30"
+  },
+  {
+   "total_s": 61.0,
+   "target_s": 60,
+   "blanks": 1,
+   "label": "about 1:01 of 1:00 · 1 s over · 1 blank"
+  }
+ ]
+}
