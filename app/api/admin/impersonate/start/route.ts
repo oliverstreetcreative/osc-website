@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { createImpersonationToken, IMPERSONATION_COOKIE } from '@/lib/auth/impersonation'
+import { getStaffUser } from '@/lib/portal-auth'
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // Read real session headers (set by middleware from osc_session)
   const adminId = req.headers.get('x-user-id')
-  const isStaff = req.headers.get('x-user-is-staff')
 
   if (!adminId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  if (isStaff !== 'true') {
+  // Staff status from the database, not the session token (which can be weeks stale).
+  if (!(await getStaffUser())) {
     return NextResponse.json({ error: 'Forbidden — staff only' }, { status: 403 })
   }
 

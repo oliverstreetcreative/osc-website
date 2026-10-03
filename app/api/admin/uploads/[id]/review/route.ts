@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { db } from '@/lib/db'
 import { isImpersonating } from '@/lib/auth/impersonation'
+import { getStaffUser } from '@/lib/portal-auth'
 
 const VALID_STATUSES = ['Reviewed', 'Bounced', 'Not Ready'] as const
 
@@ -19,12 +20,12 @@ export async function POST(
 
   const headersList = await headers()
   const userId  = headersList.get('x-user-id')
-  const isStaff = headersList.get('x-user-is-staff')
 
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  if (isStaff !== 'true') {
+  // Staff status from the database, not the session token (which can be weeks stale).
+  if (!(await getStaffUser())) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

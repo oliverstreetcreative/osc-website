@@ -35,6 +35,16 @@ export async function getPortalUser(): Promise<PortalUser | null> {
 }
 
 /**
+ * For staff-only API routes: the signed-in person, only when the DATABASE says they are
+ * staff. The session token's is_staff flag (x-user-is-staff) can be up to 30 days stale:
+ * someone taken off staff.json keeps it until their token expires.
+ */
+export async function getStaffUser(): Promise<PortalUser | null> {
+  const user = await getPortalUser()
+  return user?.is_staff ? user : null
+}
+
+/**
  * Like getPortalUser but throws if not authenticated or not portal-allowed.
  * Use this in page/layout server components that require auth.
  */
