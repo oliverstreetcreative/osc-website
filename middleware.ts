@@ -421,6 +421,10 @@ async function route(req: NextRequest): Promise<NextResponse> {
 
   if (isPublicPath(pathname)) return NextResponse.next()
 
+  // The shoot-day hub reads a script server to server with a key in a header, no session (client-website SPEC §14
+  // v4 #9); the route checks the key. Nothing else under /api/scripts is open.
+  if (/^\/api\/scripts\/[0-9a-f-]{36}\/render$/i.test(pathname) && req.method === 'GET') return NextResponse.next()
+
   // Protected prefixes use exact-or-trailing-slash matching so that sibling
   // public assets like /client-logos/*.png are NOT auth-gated by accident.
   const isProtected =

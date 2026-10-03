@@ -27,7 +27,7 @@ async function nextN(scriptId: string) {
 }
 
 /** A version of the live document as it stands. Call inside withLive (the state then matches `upto`). */
-export async function saveVersion(l: Live, kind: "auto" | "named" | "restore" | "approved", name: string | null, by: string | null) {
+export async function saveVersion(l: Live, kind: "auto" | "named" | "restore" | "approved" | "shoot", name: string | null, by: string | null) {
   const script = await db.script.findUnique({ where: { id: l.id }, select: { pace_wpm: true, target_seconds: true } })
   const prev = await db.scriptVersion.findFirst({ where: { script_id: l.id }, orderBy: { n: "desc" }, select: { upto_id: true } })
   const authors = await db.scriptUpdate.findMany({
