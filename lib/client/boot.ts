@@ -15,7 +15,12 @@ export async function boot() {
   if (IS_STAGING && process.env.CLIENT_SITE_SKIP_DB_PUSH !== "1") await stagingSchema()
 
   const { syncBooks } = await import("./sync")
-  const run = () => syncBooks().catch((err) => console.error("client-site: sync failed", err))
+  const { deliverRequests } = await import("./requests")
+  const run = async () => {
+    await syncBooks().catch((err) => console.error("client-site: sync failed", err))
+    // "Start a new project" requests: retry delivery to the intake queue, notice pickups (SPEC §17).
+    await deliverRequests().catch((err) => console.error("client-site: request delivery failed", err))
+  }
   setTimeout(run, 2_000)
   setInterval(run, 5 * 60_000).unref?.()
 }

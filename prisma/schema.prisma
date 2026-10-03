@@ -43,6 +43,7 @@ model Person {
 
   // Client site (2026-10)
   memberships    Membership[]
+  project_requests ProjectRequest[]
   calendar_token String?      @unique // private ICS feed: /calendar/<token>.ics
 
   // Relations
@@ -98,6 +99,7 @@ model Project {
   team            Json?
   sort_date       DateTime?
   hidden          Boolean       @default(false)
+  from_request    String? // a client's "Start a new project" request this project answers (SPEC §17)
   organization    Organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull)
   invoices        Invoice[]
   documents       Document[]
@@ -651,6 +653,7 @@ model Organization {
   projects      Project[]
   invoices      Invoice[]
   documents     Document[]
+  requests      ProjectRequest[]
 
   @@map("organizations")
 }
@@ -715,4 +718,37 @@ model Document {
 
   @@index([organization_id])
   @@map("documents")
+}
+
+// ---------------------------------------------------------------------------
+// "Start a new project" requests (SPEC §17). Client-made; never synced from a
+// book. Delivered to the existing intake queue (_admin/intake-queue/_new/).
+// ---------------------------------------------------------------------------
+model ProjectRequest {
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
+  person_id       String       @db.Uuid
+  person_name     String
+  person_email    String
+  kind            String
+  like_project    String?
+  timing          String
+  due_on          DateTime?    @db.Date
+  about           String?
+  form_key        String       @unique
+  status          String       @default("pending") // pending | sent | in_review | closed
+  queue_file      String?
+  queued_at       DateTime?
+  picked_up_at    DateTime?
+  closed_at       DateTime?
+  attempts        Int          @default(0)
+  last_error      String?
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+  organization    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  person          Person       @relation(fields: [person_id], references: [id], onDelete: Cascade)
+
+  @@index([organization_id])
+  @@index([status])
+  @@map("project_requests")
 }

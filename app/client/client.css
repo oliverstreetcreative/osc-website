@@ -100,6 +100,28 @@
 .cs-pop .on { font-weight: 600; }
 .cs-pop .on::after { content: "✓"; margin-left: auto; color: var(--green); }
 
+/* ---------- start a new project (§17) ---------- */
+.cs-start { margin-top: 18px; display: grid; gap: 22px; }
+.cs-start fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; min-width: 0; }
+.cs-start legend { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; padding: 0; }
+.cs-choice {
+  display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; min-height: 56px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm); cursor: pointer;
+}
+.cs-choice:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.cs-choice input[type="radio"] { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--ink); flex-shrink: 0; }
+.cs-choice > span { display: grid; gap: 2px; min-width: 0; }
+.cs-choice b { font-size: 15px; font-weight: 600; }
+.cs-choice small { font-size: 13px; color: var(--muted); }
+.cs .cs-date-input, .cs-field textarea {
+  font: inherit; font-size: 16px; color: var(--text); background: var(--paper);
+  border: 1px solid var(--line-strong); border-radius: 10px; padding: 10px 12px; margin-top: 8px; max-width: 100%;
+}
+.cs-field { display: grid; gap: 4px; }
+.cs-field > span { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.cs-field textarea { margin-top: 4px; resize: vertical; min-height: 96px; width: 100%; background: var(--card); }
+.cs-form-error { background: rgba(209, 59, 46, 0.08); color: #9b2a20; border: 1px solid rgba(209, 59, 46, 0.25); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+
 /* ---------- staff: view as client ---------- */
 .cs-sticky { position: sticky; top: 0; z-index: 40; }
 .cs-sticky .cs-top { position: static; }

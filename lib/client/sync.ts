@@ -198,6 +198,7 @@ export async function applyBook(book: Book) {
       dates: p.dates,
       team: p.team,
       sort_date: d(p.sort_date),
+      from_request: p.from_request ?? null,
       hidden: false,
     }
     const proj = await db.project.upsert({ where: { ext_key: ext }, create: { ext_key: ext, ...data }, update: data })

@@ -78,6 +78,8 @@ const Project = z.object({
   dates: z.array(z.object({ label: z.string(), date, note: z.string().optional() })).default([]),
   team: z.array(z.object({ name: z.string(), role: z.string() })).default([]),
   sort_date: date.optional(),
+  /** The client's "Start a new project" request this project answers; its card leaves when this publishes. */
+  from_request: z.string().uuid().optional(),
   films: z.array(Film).default([]),
   shoots: z.array(Shoot).default([]),
 })

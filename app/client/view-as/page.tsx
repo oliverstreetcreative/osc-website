@@ -3,6 +3,7 @@ import { Eye, ChevronRight } from "lucide-react"
 import { getPortalUser } from "@/lib/portal-auth"
 import { db } from "@/lib/db"
 import { viewAsOrgSlug } from "@/lib/client/context"
+import { undeliveredCount } from "@/lib/client/requests"
 import { day } from "@/lib/client/format"
 import { Wordmark } from "@/app/client/ui"
 
@@ -29,6 +30,7 @@ export default async function ViewAsPicker() {
     },
   })
   const live = orgs.filter((o) => !o.slug.endsWith("--preview"))
+  const stuck = await undeliveredCount() // "Start a new project" requests the intake queue hasn't received
   const previews = orgs.filter((o) => o.slug.endsWith("--preview"))
   const recent = await db.portalEvent.findMany({
     where: { event_type: { in: ["view_as_start", "view_as_exit"] } },
@@ -54,6 +56,11 @@ export default async function ViewAsPicker() {
         <p className="cs-eyebrow">OSC staff</p>
         <h1 className="cs-hello">Hi, {first}.</h1>
         <p className="cs-lede">See any client&rsquo;s site exactly as they do. Read-only.</p>
+        {stuck ? (
+          <p className="cs-form-error" role="alert" style={{ marginTop: 14 }}>
+            {stuck} client request{stuck === 1 ? " isn't" : "s aren't"} in the intake queue yet. The site keeps retrying.
+          </p>
+        ) : null}
 
         <section className="cs-section" style={{ marginTop: 22 }}>
           <h2 className="cs-h2"><span>View as client</span></h2>

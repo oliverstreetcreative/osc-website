@@ -4,6 +4,7 @@ import { requireClientContext } from "@/lib/client/context"
 import { orgProjects, needsYou, clientSignatures, type NeedsItem } from "@/lib/client/data"
 import { KIND_LABEL } from "@/lib/client/sign"
 import { SignButton } from "@/app/client/sign-button"
+import { StartCard } from "@/app/client/start-cards"
 import { greeting, money, relativeDue, day, daysFromToday, duration } from "@/lib/client/format"
 import { PosterImage, HelpFooter, PlayBadge, SectionTitle } from "@/app/client/ui"
 import { ProjectCard } from "@/app/client/project-card"
@@ -92,6 +93,8 @@ export default async function Home() {
           </div>
         </section>
       ) : null}
+
+      <StartCard ctx={ctx} />
 
       <section className="cs-section">
         <Link href="/client/calendar" className="cs-card cs-row" style={{ borderRadius: 16 }}>
