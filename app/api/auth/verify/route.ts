@@ -6,8 +6,12 @@ import { cookieDomainFor, isSecure } from '@/lib/client/host'
 
 const SESSION_TTL_DAYS = 30
 
-function redirectForRole(role: string, isStaff: boolean): string {
-  if (isStaff || role === 'STAFF') return 'https://login.oliverstreetcreative.com/admin'
+function redirectForRole(role: string, isStaff: boolean, host: string): string {
+  // Staff: the admin on the login host; anywhere else, the client site's
+  // "View as client" picker on the same host.
+  if (isStaff || role === 'STAFF') {
+    return host.startsWith('login.') ? 'https://login.oliverstreetcreative.com/admin' : '/client/view-as'
+  }
   if (role === 'CREW') return 'https://crew.oliverstreetcreative.com/'
   // Clients land on the client site on the host they signed in from
   // (oliverstreetcreative.com/client in production, the staging domain on staging).
@@ -83,7 +87,11 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  const redirectTo = redirectForRole(person.role, person.is_staff)
+  const redirectTo = redirectForRole(
+    person.role,
+    person.is_staff,
+    (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? '').toLowerCase(),
+  )
   const res = NextResponse.json({ redirectTo })
   res.cookies.set('osc_session', jwt, {
     domain: cookieDomainFor(req),

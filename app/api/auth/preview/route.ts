@@ -7,6 +7,8 @@ import { SignJWT } from "jose"
 import { db } from "@/lib/db"
 import { IS_STAGING } from "@/lib/site-env"
 import { cookieDomainFor, isSecure, publicOrigin } from "@/lib/client/host"
+import { VIEW_COOKIE } from "@/lib/client/context"
+import { logViewAs, mintViewCookie, VIEW_TTL_SECONDS } from "@/lib/client/view-as"
 
 const KEY_SHA256 = "541190cb348c7ac8454b5ae2eda83deecf9a35d8c72810539c1133fddc9c84ea"
 
@@ -30,12 +32,23 @@ export async function GET(req: NextRequest) {
   const next = req.nextUrl.searchParams.get("next") ?? "/client"
   const frames = req.nextUrl.searchParams.get("frames")
   const res = frames
-    ? new NextResponse(framesHtml(frames.split(",").filter((p) => p.startsWith("/client"))), {
+    ? new NextResponse(framesHtml(frames.split(",").filter((p) => p.startsWith("/client") || p === "/login")), {
         headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
       })
     : NextResponse.redirect(`${publicOrigin(req)}${next.startsWith("/") ? next : "/client"}`, 303)
   res.cookies.set("osc_session", jwt, { domain: cookieDomainFor(req), path: "/", httpOnly: true, sameSite: "lax", secure: isSecure(req), expires })
   res.cookies.set("cs_org", "", { path: "/", maxAge: 0 })
+  // Staff only: &view=<org-slug> opens "View as client" directly (for screenshots), logged like a real start.
+  const view = req.nextUrl.searchParams.get("view")
+  const org = view && person.is_staff ? await db.organization.findFirst({ where: { slug: view, hidden: false } }) : null
+  if (org) {
+    await logViewAs("view_as_start", person, org, req)
+    res.cookies.set(VIEW_COOKIE, await mintViewCookie(person.id, org.slug), {
+      domain: cookieDomainFor(req), path: "/", httpOnly: true, sameSite: "lax", secure: isSecure(req), maxAge: VIEW_TTL_SECONDS,
+    })
+  } else {
+    res.cookies.set(VIEW_COOKIE, "", { domain: cookieDomainFor(req), path: "/", maxAge: 0 })
+  }
   return res
 }
 

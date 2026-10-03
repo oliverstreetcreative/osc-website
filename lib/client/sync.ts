@@ -6,6 +6,28 @@ import { Book } from "./book"
 import { listJson, readText } from "./dropbox"
 
 export const BOOKS_FOLDER = "/_admin/client-site/books"
+// OSC staff who may sign in and use "View as client". Same allowlist idea as the
+// books: a staff identity exists on the site only because it's in this file.
+export const STAFF_FILE = "/_admin/client-site/staff.json"
+
+async function applyStaff() {
+  let raw: string
+  try {
+    raw = await readText(STAFF_FILE)
+  } catch {
+    return // no staff file yet: nothing to do
+  }
+  const body = JSON.parse(raw) as { version: number; staff: { email: string; name: string; first_name?: string }[] }
+  for (const s of body.staff ?? []) {
+    const email = s.email.trim().toLowerCase()
+    if (!email.endsWith("@oliverstreetcreative.com")) continue // staff are OSC addresses, always
+    await db.person.upsert({
+      where: { email },
+      create: { email, name: s.name, first_name: s.first_name, role: "STAFF", is_staff: true, portal_allowed: true },
+      update: { name: s.name, first_name: s.first_name ?? null, role: "STAFF", is_staff: true, portal_allowed: true },
+    })
+  }
+}
 
 const d = (s?: string | null) => (s ? new Date(`${s}T12:00:00Z`) : null)
 
@@ -25,6 +47,11 @@ export function syncBooks(): Promise<SyncReport> {
 
 async function doSync(): Promise<SyncReport> {
   const report: SyncReport = { ok: [], failed: [], at: new Date().toISOString() }
+  try {
+    await applyStaff()
+  } catch (err) {
+    report.failed.push({ file: STAFF_FILE, error: String((err as Error)?.message ?? err).slice(0, 300) })
+  }
   const files = await listJson(BOOKS_FOLDER)
   const seen = new Set<string>()
   for (const file of files) {

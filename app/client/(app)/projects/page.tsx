@@ -1,7 +1,7 @@
 import { requireClientContext } from "@/lib/client/context"
 import { orgProjects } from "@/lib/client/data"
-import { ProjectCard } from "../project-card"
-import { HelpFooter } from "../ui"
+import { ProjectCard } from "@/app/client/project-card"
+import { HelpFooter } from "@/app/client/ui"
 
 export const metadata = { title: "Projects" }
 

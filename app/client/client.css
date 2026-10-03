@@ -100,6 +100,27 @@
 .cs-pop .on { font-weight: 600; }
 .cs-pop .on::after { content: "✓"; margin-left: auto; color: var(--green); }
 
+/* ---------- staff: view as client ---------- */
+.cs-sticky { position: sticky; top: 0; z-index: 40; }
+.cs-sticky .cs-top { position: static; }
+.cs-viewing {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 16px; min-height: 44px; background: var(--orange); color: var(--ink);
+  font-size: 14px; font-weight: 500;
+}
+.cs-viewing b { font-weight: 700; }
+.cs-viewing-act { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.cs .cs-viewing-act a, .cs .cs-viewing-act button {
+  display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border-radius: 999px;
+  font-size: 13px; font-weight: 600; border: 0; cursor: pointer;
+}
+.cs .cs-viewing-act a { background: rgba(20, 20, 18, 0.12); color: var(--ink); }
+.cs .cs-viewing-act button { background: var(--ink); color: var(--on-ink); }
+.cs .cs-pick { width: 100%; background: var(--card); border: 0; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.cs .cs-pick:hover { background: #fbfaf8; }
+.cs-rows form + form .cs-row { border-top: 1px solid var(--line); }
+.cs-pick-logo { width: 28px; height: 28px; object-fit: contain; }
+
 /* ---------- bottom tabs (phone) ---------- */
 .cs-tabs {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;

@@ -4,6 +4,12 @@ import { VILLAGE_COOKIE_NAME, verifyVillageCookie } from '@/app/village/lib'
 import { IS_STAGING } from '@/lib/site-env'
 
 const SESSION_COOKIE_NAME = 'osc_session'
+const VIEW_AS_ALLOWED_WRITES = new Set([
+  '/client/view-as/start',
+  '/client/view-as/exit',
+  '/client/signout',
+  '/api/auth/logout',
+])
 const IDENTITY_HEADERS = [
   'x-user-id',
   'x-user-email',
@@ -181,6 +187,18 @@ export async function middleware(req: NextRequest) {
         'cache-control': 'no-store',
         'X-Robots-Tag': 'noindex, nofollow',
       },
+    })
+  }
+  // View as client (OSC staff) is READ-ONLY: while the cs_view cookie exists,
+  // refuse every write except the few that end the view or sign out.
+  if (
+    req.cookies.get('cs_view')?.value &&
+    !['GET', 'HEAD', 'OPTIONS'].includes(req.method) &&
+    !VIEW_AS_ALLOWED_WRITES.has(req.nextUrl.pathname)
+  ) {
+    return new NextResponse('Read-only: you are viewing the site as a client. Exit the view to make changes.', {
+      status: 403,
+      headers: { 'content-type': 'text/plain; charset=utf-8' },
     })
   }
   const res = await route(req)

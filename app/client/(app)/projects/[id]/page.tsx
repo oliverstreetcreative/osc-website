@@ -6,7 +6,7 @@ import { orgProject } from "@/lib/client/data"
 import { day, duration, money, relativeDue, muxThumb, daysFromToday, todayUTC } from "@/lib/client/format"
 import { eventForOrgs, googleLink } from "@/lib/client/calendar"
 import { pageOrigin } from "@/lib/client/host"
-import { PosterImage, PhaseTracker, DocRow, HelpFooter, AddToCalendar, SectionTitle } from "../../ui"
+import { PosterImage, PhaseTracker, DocRow, HelpFooter, AddToCalendar, SectionTitle } from "@/app/client/ui"
 
 type Dl = { label: string; url?: string; path?: string; size?: string; note?: string }
 

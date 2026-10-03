@@ -3,7 +3,7 @@ import { Check } from "lucide-react"
 import { requireClientContext } from "@/lib/client/context"
 import { orgInvoices, orgDocuments } from "@/lib/client/data"
 import { money, day, relativeDue, daysFromToday } from "@/lib/client/format"
-import { DocRow, HelpFooter, SectionTitle } from "../ui"
+import { DocRow, HelpFooter, SectionTitle } from "@/app/client/ui"
 
 export const metadata = { title: "Billing" }
 

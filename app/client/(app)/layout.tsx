@@ -1,0 +1,72 @@
+import { requireClientContext } from "@/lib/client/context"
+import { ImpersonationBanner } from "@/components/ImpersonationBanner"
+import { Wordmark } from "@/app/client/ui"
+import { Nav, Tabs } from "@/app/client/nav"
+
+export default async function ClientShell({ children }: { children: React.ReactNode }) {
+  const ctx = await requireClientContext()
+  const initials = (ctx.user.first_name ?? ctx.user.name ?? "?").trim().slice(0, 1).toUpperCase()
+  const showOrgs = !ctx.viewing && ctx.orgs.length > 1
+
+  return (
+    <>
+      <ImpersonationBanner />
+      <div className="cs-sticky">
+      {ctx.viewing ? (
+        <div className="cs-viewing" role="status">
+          <span>
+            Viewing as <b>{ctx.viewing.orgName}</b> · read-only
+          </span>
+          <span className="cs-viewing-act">
+            <a href="/client/view-as">Switch</a>
+            <form action="/client/view-as/exit" method="post">
+              <button>Exit</button>
+            </form>
+          </span>
+        </div>
+      ) : null}
+      <header className="cs-top">
+        <div className="cs-top-in">
+          <a href="/client" aria-label="Home"><Wordmark /></a>
+          <Nav />
+          <div className="cs-top-r">
+            {showOrgs ? (
+              <details className="cs-menu">
+                <summary className="cs-chip-btn"><span>{ctx.org.short_name ?? ctx.org.name}</span> ▾</summary>
+                <div className="cs-pop">
+                  {ctx.orgs.map((o) => (
+                    <form key={o.id} action="/client/org" method="post">
+                      <input type="hidden" name="slug" value={o.slug} />
+                      <button className={o.id === ctx.org.id ? "on" : ""}>{o.name}</button>
+                    </form>
+                  ))}
+                </div>
+              </details>
+            ) : null}
+            <details className="cs-menu">
+              <summary className="cs-avatar" aria-label="Account">{initials}</summary>
+              <div className="cs-pop">
+                <div className="cs-pop-head">
+                  <strong>{ctx.user.name}</strong>
+                  <small>{ctx.viewing ? `OSC staff · viewing ${ctx.viewing.orgName}` : ctx.user.email}</small>
+                </div>
+                {ctx.viewing ? (
+                  <>
+                    <a href="/client/view-as">View another client</a>
+                    <form action="/client/view-as/exit" method="post"><button>Stop viewing</button></form>
+                  </>
+                ) : (
+                  <a href="/client/calendar">Calendar feed</a>
+                )}
+                <form action="/client/signout" method="post"><button>Sign out</button></form>
+              </div>
+            </details>
+          </div>
+        </div>
+      </header>
+      </div>
+      {children}
+      <Tabs />
+    </>
+  )
+}

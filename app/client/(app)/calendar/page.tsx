@@ -5,12 +5,25 @@ import { db } from "@/lib/db"
 import { eventsForPerson } from "@/lib/client/calendar"
 import { day, todayUTC } from "@/lib/client/format"
 import { pageOrigin } from "@/lib/client/host"
-import { HelpFooter, SectionTitle } from "../ui"
+import { HelpFooter, SectionTitle } from "@/app/client/ui"
 
 export const metadata = { title: "Calendar" }
 
 export default async function CalendarPage() {
   const ctx = await requireClientContext()
+  if (ctx.viewing) {
+    // The feed link is personal to each client; staff viewing a client never see or create one.
+    return (
+      <main className="cs-main">
+        <p className="cs-eyebrow">Your calendar</p>
+        <h1 className="cs-title" style={{ marginTop: 6 }}>Every date, in your calendar</h1>
+        <div className="cs-card cs-empty" style={{ marginTop: 22 }}>
+          <b>Each client gets a private feed link here.</b>
+          It&rsquo;s personal to them, so it isn&rsquo;t shown while you&rsquo;re viewing as a client.
+        </div>
+      </main>
+    )
+  }
   let person = await db.person.findUnique({ where: { id: ctx.user.id } })
   if (person && !person.calendar_token) {
     person = await db.person.update({ where: { id: person.id }, data: { calendar_token: randomBytes(24).toString("base64url") } })

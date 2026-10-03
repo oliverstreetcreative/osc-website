@@ -3,8 +3,8 @@ import { Check, CalendarDays, Receipt, Clapperboard, ArrowRight } from "lucide-r
 import { requireClientContext } from "@/lib/client/context"
 import { orgProjects, needsYou, type NeedsItem } from "@/lib/client/data"
 import { greeting, money, relativeDue, day, daysFromToday, duration } from "@/lib/client/format"
-import { PosterImage, HelpFooter, PlayBadge, SectionTitle } from "./ui"
-import { ProjectCard } from "./project-card"
+import { PosterImage, HelpFooter, PlayBadge, SectionTitle } from "@/app/client/ui"
+import { ProjectCard } from "@/app/client/project-card"
 
 export const metadata = { title: "Home" }
 

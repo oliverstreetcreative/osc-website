@@ -3,7 +3,7 @@ import { Search } from "lucide-react"
 import { requireClientContext } from "@/lib/client/context"
 import { orgDocuments } from "@/lib/client/data"
 import { DOC_KIND_LABEL } from "@/lib/client/format"
-import { DocRow, HelpFooter } from "../ui"
+import { DocRow, HelpFooter } from "@/app/client/ui"
 
 export const metadata = { title: "Documents" }
 
