@@ -67,6 +67,7 @@ test("honest suggestions from two people always pass (1000 sequences × 16 edits
 })
 
 test("…and through Yjs, as the server sees them: two browsers, each its own Y.Doc (150 sequences × 12 edits)", () => {
+  // 10/3: also ran clean at 1,000 sequences (12,000 edits through Yjs); the default stays quick.
   for (let seed = 1; seed <= 150; seed++) {
     const people = twoPeople()
     const r = rng(seed * 7)
