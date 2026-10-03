@@ -2,6 +2,7 @@
 // id that came from getClientContext() — never from the URL alone.
 import { db } from "@/lib/db"
 import { daysFromToday, todayUTC } from "./format"
+import { neededForJob, forClient, signingEnabled, type NeededSignature } from "./sign"
 
 const visible = { hidden: false } as const
 
@@ -50,10 +51,48 @@ export type NeedsItem =
   | { kind: "invoice"; urgency: number; invoice: Awaited<ReturnType<typeof orgInvoices>>[number] }
   | { kind: "shoot"; urgency: number; project: ProjectWithAll; shoot: ProjectWithAll["shoot_periods"][number] }
   | { kind: "review"; urgency: number; project: ProjectWithAll; film: ProjectWithAll["deliverables"][number] }
+  | { kind: "sign"; urgency: number; project: { name: string; slug: string | null; job_number: string | null }; item: NeededSignature }
+
+/**
+ * The client's paperwork per published project, live from Sign Here (never stored here).
+ * Only projects that carry a job number; only the org's own members' items (see lib/client/sign.ts).
+ */
+export async function clientSignatures(orgId: string, projects: { id: string; job_number: string | null }[], isStaff: boolean) {
+  const out = new Map<string, NeededSignature[]>()
+  if (!signingEnabled()) return out
+  const members = await db.membership.findMany({
+    where: { organization_id: orgId, hidden: false },
+    select: { person: { select: { email: true } } },
+  })
+  const emails = members.map((m) => m.person.email)
+  await Promise.all(
+    projects
+      .filter((p) => p.job_number)
+      .map(async (p) => {
+        const items = await neededForJob(p.job_number!)
+        if (items) out.set(p.id, forClient(items, emails, isStaff))
+      }),
+  )
+  return out
+}
 
 /** What needs the client, most urgent first. */
-export async function needsYou(orgId: string, projects: ProjectWithAll[]) {
+export async function needsYou(
+  orgId: string,
+  projects: ProjectWithAll[],
+  signatures: Map<string, NeededSignature[]> = new Map(),
+  myEmail = "",
+) {
   const items: NeedsItem[] = []
+  // Paper waiting for THIS person (their own email): the most urgent kind of ask.
+  for (const p of projects) {
+    for (const s of signatures.get(p.id) ?? []) {
+      // myEmail "*" = staff viewing as the client: show every member's open paper.
+      if (s.status !== "signed" && (myEmail === "*" || s.who.email?.toLowerCase() === myEmail.toLowerCase())) {
+        items.push({ kind: "sign", urgency: 1, project: p, item: s })
+      }
+    }
+  }
   const invoices = await orgInvoices(orgId)
   for (const inv of invoices) {
     if (inv.status !== "open") continue

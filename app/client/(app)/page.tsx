@@ -1,7 +1,9 @@
 import Link from "next/link"
-import { Check, CalendarDays, Receipt, Clapperboard, ArrowRight } from "lucide-react"
+import { Check, CalendarDays, Receipt, Clapperboard, ArrowRight, FileSignature } from "lucide-react"
 import { requireClientContext } from "@/lib/client/context"
-import { orgProjects, needsYou, type NeedsItem } from "@/lib/client/data"
+import { orgProjects, needsYou, clientSignatures, type NeedsItem } from "@/lib/client/data"
+import { KIND_LABEL } from "@/lib/client/sign"
+import { SignButton } from "@/app/client/sign-button"
 import { greeting, money, relativeDue, day, daysFromToday, duration } from "@/lib/client/format"
 import { PosterImage, HelpFooter, PlayBadge, SectionTitle } from "@/app/client/ui"
 import { ProjectCard } from "@/app/client/project-card"
@@ -11,7 +13,8 @@ export const metadata = { title: "Home" }
 export default async function Home() {
   const ctx = await requireClientContext()
   const projects = await orgProjects(ctx.org.id)
-  const needs = await needsYou(ctx.org.id, projects)
+  const signatures = await clientSignatures(ctx.org.id, projects, !!ctx.viewing)
+  const needs = await needsYou(ctx.org.id, projects, signatures, ctx.viewing ? "*" : ctx.user.email)
   const orgName = ctx.org.short_name ?? ctx.org.name
   const active = projects.filter((p) => p.phase !== "paid" && p.phase !== "delivered")
   // When nothing needs them: lead with the latest film, and list the rest below it.
@@ -107,10 +110,27 @@ export default async function Home() {
 }
 
 function key(n: NeedsItem) {
+  if (n.kind === "sign") return `g-${n.item.id}`
   return n.kind === "invoice" ? `i-${n.invoice.id}` : n.kind === "shoot" ? `s-${n.shoot.id}` : `r-${n.film.id}`
 }
 
 function NeedCard({ n }: { n: NeedsItem }) {
+  if (n.kind === "sign") {
+    const s = n.item
+    return (
+      <div className="cs-card cs-need">
+        <div className="cs-need-top">
+          <span className="cs-eyebrow"><FileSignature size={13} style={{ verticalAlign: -2, marginRight: 6 }} />To sign</span>
+          {s.sample ? <span className="cs-pill">Sample</span> : s.status === "sent" ? <span className="cs-status due">Waiting for you</span> : null}
+        </div>
+        <h3>{KIND_LABEL[s.kind]} · {n.project.name}</h3>
+        <p>For {s.who.name}</p>
+        <div className="cs-need-act">
+          <SignButton job={s.job} itemId={s.id} template={s.templates[0] ?? ""} disabled={!s.can_start || !s.templates.length} />
+        </div>
+      </div>
+    )
+  }
   if (n.kind === "invoice") {
     const inv = n.invoice
     const late = inv.due_on ? daysFromToday(inv.due_on) < 0 : false
