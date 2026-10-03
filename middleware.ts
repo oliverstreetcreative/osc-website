@@ -108,7 +108,7 @@ function demoMayRequest(req: NextRequest): boolean {
 function endDemoSession(req: NextRequest): NextResponse {
   const url = req.nextUrl.clone()
   url.pathname = '/login'
-  url.search = ''
+  url.search = '?demo_ended=1'
   const res = NextResponse.redirect(url)
   res.headers.append('Set-Cookie', `${SESSION_COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`)
   const domain = process.env.SESSION_COOKIE_DOMAIN?.trim()
@@ -250,7 +250,8 @@ export async function middleware(req: NextRequest) {
   const isWrite = !['GET', 'HEAD', 'OPTIONS'].includes(req.method)
 
   // The staging demo: valid only while it matches the current token; read-only everywhere (SPEC §19 v2).
-  if (req.cookies.get(SESSION_COOKIE_NAME)?.value) {
+  // /demo/<token> itself is exempt, so a NEW link replaces an old (rotated) demo session instead of bouncing to /login.
+  if (req.cookies.get(SESSION_COOKIE_NAME)?.value && !pathMatches(req.nextUrl.pathname, '/demo')) {
     const session = await verifySession(req)
     if (session?.demo !== undefined) {
       const fingerprint = await demoFingerprintEdge()

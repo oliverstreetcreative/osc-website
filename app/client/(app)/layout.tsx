@@ -69,9 +69,7 @@ export default async function ClientShell({ children }: { children: React.ReactN
                     {ctx.viewing?.demo ? "Demo account" : ctx.viewing ? `OSC staff · viewing ${ctx.viewing.orgName}` : ctx.user.email}
                   </small>
                 </div>
-                {ctx.viewing?.demo ? (
-                  <a href="/client/calendar">Calendar feed</a>
-                ) : ctx.viewing?.legacy ? (
+                {ctx.viewing?.demo ? null : ctx.viewing?.legacy ? (
                   <form action="/api/admin/impersonate/stop" method="post"><button>Stop viewing</button></form>
                 ) : ctx.viewing ? (
                   <>

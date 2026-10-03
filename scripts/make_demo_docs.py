@@ -42,9 +42,9 @@ def page(title, sub, body, sig=None):
 <h1>{title}</h1><p class="sub">{sub}</p>{body}{sig_html}</body></html>"""
 
 docs = {
-    "Sample Production Agreement - 2025 Year-End Report.pdf": page(
+    "Sample Production Agreement - Year in Review 2025.pdf": page(
         "Production Agreement",
-        "2025 Year-End Report · a sample agreement for the portal demo",
+        "Year in Review 2025 · a sample agreement for the portal demo",
         """<h2>What we're making</h2>
 <p>One year-end report film, about four minutes, plus a :30 cutdown for social. Interviews with two board members and
 three families the Foundation served this year, with b-roll of the programs in action.</p>
@@ -59,9 +59,9 @@ three families the Foundation served this year, with b-roll of the programs in a
 <p>Half to book the dates, half when the second cut is ready.</p>""",
         sig=[("Dana Whitfield", "Fernwood Community Foundation · sample signer"),
              ("Sam Patton", "Oliver Street Creative")]),
-    "Sample Proposal - 2025 Year-End Report.pdf": page(
+    "Sample Proposal - Year in Review 2025.pdf": page(
         "Proposal",
-        "2025 Year-End Report · a sample proposal for the portal demo",
+        "Year in Review 2025 · a sample proposal for the portal demo",
         """<h2>The idea</h2>
 <p>Your year in the words of the people who lived it. Instead of a slideshow of numbers, three families tell us what
 changed for them, and two board members tell us why the Foundation keeps showing up.</p>

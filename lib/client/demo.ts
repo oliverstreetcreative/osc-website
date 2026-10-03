@@ -114,17 +114,17 @@ export function demoBook(today = new Date()): Book {
     ],
     projects: [
       {
-        key: "year-end-report",
-        slug: "year-end-report",
-        title: "2025 Year-End Report",
+        key: "year-in-review",
+        slug: "year-in-review",
+        title: "Year in Review 2025",
         kind: "Report film",
         summary: "Your year in the words of the people who lived it: three families and two board members.",
         status_line: "Cut 2 is ready for your notes.",
         next_step: "Watch it and leave your notes. We lock picture after this round.",
         phase: "review",
         dates: [
+          // (The pickup interview is the shoot below; a date line for it would show the day twice.)
           { label: "Notes due", date: at(4) },
-          { label: "Pickup interview", date: at(9) },
           { label: "Final delivery", date: at(21) },
         ],
         team,
@@ -134,7 +134,6 @@ export function demoBook(today = new Date()): Book {
             key: "report-cut-2",
             title: report.title,
             version: "Cut 2 · sample film",
-            duration_s: 245,
             mux_playback_id: report.playbackId,
             poster_time: report.thumbTime,
             review_url: DEMO_LINK,
@@ -166,7 +165,6 @@ export function demoBook(today = new Date()): Book {
             key: "gala-film",
             title: gala.title,
             version: "Sample film",
-            duration_s: 300,
             delivered_on: at(-55),
             mux_playback_id: gala.playbackId,
             poster_time: gala.thumbTime,
@@ -182,25 +180,25 @@ export function demoBook(today = new Date()): Book {
     invoices: [
       { number: "DEMO-0981", project_key: "spring-gala", title: "Spring Gala Story Film · booking (50%)", amount: 2400, issued_on: at(-130), paid_on: at(-126), status: "paid" },
       { number: "DEMO-0994", project_key: "spring-gala", title: "Spring Gala Story Film · balance at delivery", amount: 2400, issued_on: at(-55), paid_on: at(-52), status: "paid" },
-      { number: "DEMO-1004", project_key: "year-end-report", title: "2025 Year-End Report · booking (50%)", amount: 3250, issued_on: at(-44), paid_on: at(-41), status: "paid" },
+      { number: "DEMO-1004", project_key: "year-in-review", title: "Year in Review 2025 · booking (50%)", amount: 3250, issued_on: at(-44), paid_on: at(-41), status: "paid" },
       {
-        number: "DEMO-1007", project_key: "year-end-report", title: "2025 Year-End Report · balance at cut 2 (50%)",
+        number: "DEMO-1007", project_key: "year-in-review", title: "Year in Review 2025 · balance at cut 2 (50%)",
         amount: 3250, issued_on: at(-2), due_on: at(12), status: "open", pay_url: DEMO_LINK,
       },
     ],
     documents: [
       {
-        key: "agreement-report", project_key: "year-end-report", kind: "agreement", title: "Production Agreement (sample)",
-        description: "2025 Year-End Report", dated_on: at(-46), signed_by: "Dana Whitfield", signed_on: at(-45),
-        path: `${DEMO_DOCS}/Sample Production Agreement - 2025 Year-End Report.pdf`,
+        key: "agreement-report", project_key: "year-in-review", kind: "agreement", title: "Production Agreement (sample)",
+        description: "Year in Review 2025", dated_on: at(-46), signed_by: "Dana Whitfield", signed_on: at(-45),
+        path: `${DEMO_DOCS}/Sample Production Agreement - Year in Review 2025.pdf`,
       },
       {
-        key: "proposal-report", project_key: "year-end-report", kind: "proposal", title: "Proposal (sample)",
-        description: "2025 Year-End Report", dated_on: at(-52),
-        path: `${DEMO_DOCS}/Sample Proposal - 2025 Year-End Report.pdf`,
+        key: "proposal-report", project_key: "year-in-review", kind: "proposal", title: "Proposal (sample)",
+        description: "Year in Review 2025", dated_on: at(-52),
+        path: `${DEMO_DOCS}/Sample Proposal - Year in Review 2025.pdf`,
       },
       {
-        key: "release-center", project_key: "year-end-report", kind: "release", title: "Location Release (sample)",
+        key: "release-center", project_key: "year-in-review", kind: "release", title: "Location Release (sample)",
         description: "Fernwood Community Center", dated_on: at(-20), signed_by: "Dana Whitfield", signed_on: at(-20),
         path: `${DEMO_DOCS}/Sample Location Release - Fernwood Community Center.pdf`,
       },

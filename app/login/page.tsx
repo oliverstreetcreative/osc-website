@@ -10,6 +10,7 @@ export default function LoginPage() {
     const q = new URLSearchParams(window.location.search)
     if (q.get('no_account')) setNote('You’re signed in, but no client account is linked to this email yet. Text Sam and he’ll set it up.')
     else if (q.get('signed_out')) setNote('You’re signed out.')
+    else if (q.get('demo_ended')) setNote('That demo link has ended. Ask Sam for a new one.')
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {

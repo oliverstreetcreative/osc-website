@@ -12,6 +12,7 @@ import { db } from "@/lib/db"
 import { Book } from "./book"
 import { listJson, readText } from "./dropbox"
 import { DEMO_ORG_SLUG, demoBook, demoOn, isDemoSlug } from "./demo"
+import { IS_PRODUCTION, IS_STAGING } from "@/lib/site-env"
 
 export const PUBLISHED_FOLDER = "/_admin/client-site/published"
 export const PREVIEW_FOLDER = "/_admin/client-site/preview"
@@ -98,6 +99,24 @@ async function doSync(): Promise<SyncReport> {
   } catch (err) {
     report.failed.push({ file: STAFF_FILE, error: String((err as Error)?.message ?? err).slice(0, 300) })
   }
+  // The staging demo (SPEC §19) goes FIRST: its data comes from the repo, so a Dropbox failure below can't stop it.
+  // Applied only while demoOn() (staging + CLIENT_DEMO_TOKEN). Only a DEPLOYED server ever hides demo orgs: a sync
+  // run from a Mac (scripts/client-sync.ts, IS_STAGING false) leaves them exactly as they are.
+  const demo = demoOn()
+  const deployed = IS_STAGING || IS_PRODUCTION
+  if (demo) {
+    try {
+      const dropped: string[] = []
+      await applyBook(failClosed(demoBook(), dropped))
+      if (dropped.length) report.failed.push({ file: "demo", error: `held back (internal marker): ${dropped.join(", ")}` })
+      report.ok.push(DEMO_ORG_SLUG)
+    } catch (err) {
+      report.failed.push({ file: "demo", error: String((err as Error)?.message ?? err).slice(0, 500) })
+    }
+  } else if (deployed) {
+    await db.organization.updateMany({ where: { slug: { startsWith: "demo-" }, hidden: false }, data: { hidden: true } })
+  }
+
   const published = await listJson(PUBLISHED_FOLDER)
   const previews = await listJson(PREVIEW_FOLDER).catch(() => [] as string[])
   const files = [...published, ...previews]
@@ -126,26 +145,13 @@ async function doSync(): Promise<SyncReport> {
       report.failed.push({ file, error: String((err as Error)?.message ?? err).slice(0, 500) })
     }
   }
-  // The staging demo (SPEC §19): applied only while demoOn() (staging + CLIENT_DEMO_TOKEN), like any book but from
-  // the repo, inside its own error handling. When the switch is off, every demo- org is hidden.
-  const demo = demoOn()
-  if (demo) {
-    try {
-      const dropped: string[] = []
-      await applyBook(failClosed(demoBook(), dropped))
-      if (dropped.length) report.failed.push({ file: "demo", error: `held back (internal marker): ${dropped.join(", ")}` })
-      report.ok.push(DEMO_ORG_SLUG)
-    } catch (err) {
-      report.failed.push({ file: "demo", error: String((err as Error)?.message ?? err).slice(0, 500) })
-    }
-  } else {
-    await db.organization.updateMany({ where: { slug: { startsWith: "demo-" }, hidden: false }, data: { hidden: true } })
-  }
-  // A book that disappeared revokes its org (hidden, never deleted). Only when
-  // the listing itself worked and found at least one REAL book (the demo never counts).
+  // A book that disappeared revokes its org (hidden, never deleted). Only when the listing itself worked and found
+  // at least one REAL book. Demo orgs are never swept here: the switch above alone decides them.
   if (files.length && seen.size) {
-    const keep = demo ? [...seen, DEMO_ORG_SLUG] : [...seen]
-    await db.organization.updateMany({ where: { slug: { notIn: keep }, hidden: false }, data: { hidden: true } })
+    await db.organization.updateMany({
+      where: { slug: { notIn: [...seen] }, hidden: false, NOT: { slug: { startsWith: "demo-" } } },
+      data: { hidden: true },
+    })
   }
   lastSync = report
   console.log("client-site sync:", JSON.stringify(report))
