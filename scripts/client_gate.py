@@ -22,6 +22,10 @@ Usage (stdlib only; DROPBOX_LOCAL_ROOT overrides the Dropbox path):
                                           publish pending items (all by default); refuses if lint fails
   client_gate.py remove  <org> --items k1,k2 --by <who>
                                           take items down now (removal never needs approval)
+  client_gate.py auto    <org>            publish, WITHOUT a ticket, lint-clean changes of the kinds that never
+                                          need Sam (SPEC §11 kinds v2); everything else stays waiting
+  client_gate.py undo    <org> --at <log time> --by <who>
+                                          put back what one auto-publish changed (if nothing changed since)
 Item keys: org · person:<email> · project:<key> · film:<project>/<film> · shoot:<project>/<shoot>
            · invoice:<number> · document:<key>
 """
@@ -177,6 +181,10 @@ TEXT_BAD = [
     (r"\b(day rate|rate card|margin|crew pay|our cost|bid|budget line|net profit)\b", "money talk"),
     (r"\b(routing number|account number|ABA|SWIFT|IBAN)\b", "bank details"),
 ]
+# Kinds v2 (design review 10/3 08:40): words about money never publish WITHOUT Sam. Only the automatic path checks
+# them (they'd be false alarms in the general lint: a client's own "Scope and budget" document is fine to show,
+# and the general lint blocks Sam's approve outright).
+MONEY_WORDS_FOR_AUTO = re.compile(r"\b(budget|pay|paid|invoice|cost|price|fee)\b|\$\s?\d", re.I)
 OSC_PHONE = re.compile(r"\(?859\)?[-. ]?512[-. ]?1419")
 PHONE = re.compile(r"\(?\b\d{3}\)?[-. ]\d{3}[-. ]\d{4}\b")
 EMAIL = re.compile(r"[\w.+-]+@([\w-]+\.)+[\w-]+")
@@ -383,7 +391,7 @@ def protected_items(items):
     return out
 
 
-def publish(slug, keys, by, ticket, removing=()):
+def publish(slug, keys, by, ticket, removing=(), extra=None):
     draft, live, d, l, *_ = diff(slug)
     items = dict(l)
     for k in keys:
@@ -402,7 +410,7 @@ def publish(slug, keys, by, ticket, removing=()):
         raise SystemExit("refused: these versions were approved by the client and can't change or disappear: "
                          + ", ".join(broken))
     write_json(os.path.join(PUBLISHED, f"{slug}.json"), book)
-    log(slug, {"by": by, "ticket": ticket, "published": list(keys), "removed": list(removing)})
+    log(slug, {"by": by, "ticket": ticket, "published": list(keys), "removed": list(removing), **(extra or {})})
     write_preview(slug)
     return book
 
@@ -423,6 +431,80 @@ def write_preview(slug):
         inv["number"] = f"{inv['number']} (preview)"
     write_json(os.path.join(PREVIEW, f"{slug}--preview.json"), book)
     return book
+
+# ---------------------------------------------------------------- kinds, not items (SPEC §11 v2)
+
+# Sam's tap is for what's NEW to a client. A lint-clean CHANGE to these fields of an already-published item
+# publishes without a ticket. Dates wait until they come from the canonical calendar event; a film's `ask` may
+# move to "notes" or "none" on its own, but `ask: ok` puts an Approve button in front of the client: Sam taps.
+AUTO_FIELDS = {"project": {"status_line", "next_step", "summary"}, "film": {"ask"}}
+AUTO_FILM_ASK = {"none", "notes"}
+
+
+def auto_ok(key, before, after):
+    """True when `before` -> `after` changes only fields that may publish without Sam."""
+    kind = key.split(":", 1)[0]
+    allowed = AUTO_FIELDS.get(kind)
+    if not allowed:
+        return False
+    changed = {k for k in set(before) | set(after) if before.get(k) != after.get(k)}
+    if not changed or not changed <= allowed:
+        return False
+    if "ask" in changed and after.get("ask") not in AUTO_FILM_ASK:
+        return False
+    return True
+
+
+def cmd_auto(a):
+    _, _, d, l, new, changed, removed = diff(a.org)
+    candidates = [k for k in changed if auto_ok(k, l[k][1], d[k][1])]
+    held = lint(a.org, candidates) if candidates else {}
+    for k in candidates:
+        money = next((m.group(0) for s in strings(d[k][1]) for m in [MONEY_WORDS_FOR_AUTO.search(s)] if m), None)
+        if money and k not in held:
+            held[k] = [f'mentions money ("{money}"): needs Sam\'s tap']
+    clean = [k for k in candidates if k not in held]
+    if clean:
+        extra = {"previous": {k: l[k][1] for k in clean}, "after_digest": {k: digest(d[k][1]) for k in clean}}
+        publish(a.org, clean, "auto: lint clean", "auto", extra=extra)
+    for k in clean:
+        print(f"  AUTO     {k:48} {d[k][0]}")
+    for k, ps in held.items():
+        print(f"  HELD     {k:48} {'; '.join(ps)}")
+    waiting = [k for k in new + changed if k not in clean]
+    print(f"{a.org}: {len(clean)} published automatically · {len(waiting)} waiting for Sam's tap")
+    return 0
+
+
+def read_log(slug):
+    path = os.path.join(LOG, f"{slug}.jsonl")
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as f:
+        return [json.loads(line) for line in f if line.strip()]
+
+
+def cmd_undo(a):
+    entry = next((e for e in read_log(a.org) if e.get("at") == a.at and e.get("ticket") == "auto"), None)
+    if not entry or not entry.get("previous"):
+        raise SystemExit(f"no automatic publish at {a.at} in {a.org}'s log")
+    live = load(os.path.join(PUBLISHED, f"{a.org}.json"))
+    l = flatten(live)
+    items = dict(l)
+    put_back, moved_on = [], []
+    for k, prev in entry["previous"].items():
+        if k in l and digest(l[k][1]) == entry["after_digest"].get(k):
+            items[k] = (l[k][0], prev)
+            put_back.append(k)
+        else:
+            moved_on.append(k)  # changed again (or removed) since: undoing would clobber newer content
+    if put_back:
+        write_json(os.path.join(PUBLISHED, f"{a.org}.json"), assemble(live, items, list(l)))
+        log(a.org, {"by": a.by, "ticket": "undo", "undid": a.at, "published": put_back, "removed": []})
+        write_preview(a.org)
+    note = f"; left {len(moved_on)} that changed since: {', '.join(moved_on)}" if moved_on else ""
+    print(f"{a.org}: put back {len(put_back)} item(s){note}")
+    return 0
 
 # ---------------------------------------------------------------- commands
 
@@ -501,9 +583,15 @@ def main():
     s.add_argument("--items", required=True)
     s.add_argument("--by", required=True)
     s.add_argument("--ticket")
+    s = sub.add_parser("auto")
+    s.add_argument("org")
+    s = sub.add_parser("undo")
+    s.add_argument("org")
+    s.add_argument("--at", required=True)
+    s.add_argument("--by", required=True)
     a = ap.parse_args()
     rc = {"status": cmd_status, "lint": cmd_lint, "preview": cmd_preview, "ticket": cmd_ticket,
-          "approve": cmd_approve, "remove": cmd_remove}[a.cmd](a)
+          "approve": cmd_approve, "remove": cmd_remove, "auto": cmd_auto, "undo": cmd_undo}[a.cmd](a)
     sys.exit(rc or 0)
 
 

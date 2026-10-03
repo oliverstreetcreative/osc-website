@@ -168,6 +168,70 @@ class GateTest(unittest.TestCase):
         self.assertEqual(pv["people"], [])
         self.assertEqual([v["n"] for v in pv["projects"][0]["films"][0]["versions"]], [1, 2])
 
+    # --- kinds, not items (SPEC §11 v2): auto + undo ---
+    def live_with_status(self, status="Shooting next week."):
+        b = book([version(1)])
+        b["projects"][0]["status_line"] = status
+        self.write_draft(b)
+        self.assertEqual(self.approve_all().returncode, 0)
+        return b
+
+    def test_auto_publishes_a_clean_status_change(self):
+        b = self.live_with_status()
+        b["projects"][0]["status_line"] = "Cut 2 is ready."
+        self.write_draft(b)
+        r = self.gate("auto", "acme")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("1 published automatically", r.stdout)
+        self.assertEqual(self.published()["projects"][0]["status_line"], "Cut 2 is ready.")
+
+    def test_auto_never_publishes_new_things(self):
+        b = self.live_with_status()
+        b["documents"].append({"key": "d1", "kind": "other", "title": "Notes", "audience": "client"})
+        self.write_draft(b)
+        r = self.gate("auto", "acme")
+        self.assertIn("0 published automatically", r.stdout)
+        self.assertEqual(self.published()["documents"], [])
+
+    def test_auto_holds_money_words_and_lint(self):
+        b = self.live_with_status()
+        b["projects"][0]["status_line"] = "Waiting on the budget for day two."
+        self.write_draft(b)
+        r = self.gate("auto", "acme")
+        self.assertIn("HELD", r.stdout)
+        self.assertIn("needs Sam's tap", r.stdout)
+        self.assertEqual(self.published()["projects"][0]["status_line"], "Shooting next week.")
+        b["projects"][0]["status_line"] = "See the HANDOFF."  # internal marker: lint holds it too
+        self.write_draft(b)
+        self.assertIn("HELD", self.gate("auto", "acme").stdout)
+
+    def test_auto_leaves_other_fields_and_ask_ok_for_sam(self):
+        b = self.live_with_status()
+        b["projects"][0]["title"] = "Spots (renamed)"
+        self.write_draft(b)
+        self.assertIn("0 published automatically", self.gate("auto", "acme").stdout)
+        b = self.live_with_status()  # reset the draft to live
+        b["projects"][0]["films"][0]["ask"] = "ok"  # puts an Approve button in front of the client
+        self.write_draft(b)
+        self.assertIn("0 published automatically", self.gate("auto", "acme").stdout)
+        b["projects"][0]["films"][0]["ask"] = "notes"
+        self.write_draft(b)
+        self.assertIn("1 published automatically", self.gate("auto", "acme").stdout)
+
+    def test_undo_puts_back_one_auto_publish_unless_changed_since(self):
+        b = self.live_with_status()
+        b["projects"][0]["status_line"] = "Cut 2 is ready."
+        self.write_draft(b)
+        self.gate("auto", "acme")
+        with open(os.path.join(self.site, "published", "_log", "acme.jsonl")) as f:
+            at = [json.loads(x) for x in f if x.strip()][-1]["at"]
+        r = self.gate("undo", "acme", "--at", at, "--by", "Sam")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("put back 1", r.stdout)
+        self.assertEqual(self.published()["projects"][0]["status_line"], "Shooting next week.")
+        # A second undo finds the item changed since (it's back to the old text): nothing is clobbered.
+        self.assertIn("put back 0", self.gate("undo", "acme", "--at", at, "--by", "Sam").stdout)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)
