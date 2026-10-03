@@ -5,6 +5,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://oliverstreetcreative.com"
 
   return [
+    {
+      url: `${baseUrl}/work`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    },
     ...WORK_VIDEOS.map((v) => ({
       url: `${baseUrl}/work/${v.slug}`,
       lastModified: new Date(),
