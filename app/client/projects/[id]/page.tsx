@@ -219,8 +219,15 @@ function FilmPlayer({ f, project, orgName, logo }: {
   if (f.file_path) {
     return (
       <div className="cs-player" style={{ aspectRatio: aspect }}>
-        <video controls playsInline preload="metadata" poster={f.poster_path ? `/client/poster/film/${f.id}` : undefined}>
-          <source src={`/client/media/${f.id}#t=0.5`} type="video/mp4" />
+        {/* With a poster still: show it and load nothing until play (masters can open on a slate).
+            Without one: let the browser paint a frame from half a second in. */}
+        <video
+          controls
+          playsInline
+          preload={f.poster_path ? "none" : "metadata"}
+          poster={f.poster_path ? `/client/poster/film/${f.id}` : undefined}
+        >
+          <source src={f.poster_path ? `/client/media/${f.id}` : `/client/media/${f.id}#t=0.5`} type="video/mp4" />
         </video>
       </div>
     )
