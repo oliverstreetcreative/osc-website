@@ -49,6 +49,7 @@ export async function orgDocuments(orgId: string) {
 }
 
 export type NeedsItem =
+  | { kind: "script"; urgency: number; script: { id: string; title: string; status: string } }
   | { kind: "invoice"; urgency: number; invoice: Awaited<ReturnType<typeof orgInvoices>>[number] }
   | { kind: "shoot"; urgency: number; project: ProjectWithAll; shoot: ProjectWithAll["shoot_periods"][number] }
   | { kind: "review"; urgency: number; project: ProjectWithAll; film: ProjectWithAll["deliverables"][number] }
@@ -90,12 +91,38 @@ export async function clientSignatures(
 }
 
 /** What needs the client, most urgent first. */
+/** Scripts this org (or this person) can open: shared by Sam, not archived (SPEC §14). */
+export function visibleScriptsWhere(orgId: string, personId?: string) {
+  const now = new Date()
+  return {
+    archived_at: null,
+    audience: { not: "office" },
+    access: {
+      some: {
+        revoked_at: null,
+        AND: [
+          { OR: [{ organization_id: orgId }, ...(personId ? [{ person_id: personId }] : [])] },
+          { OR: [{ expires_at: null }, { expires_at: { gt: now } }] },
+        ],
+      },
+    },
+  }
+}
+
 export async function needsYou(
   orgId: string,
   projects: ProjectWithAll[],
   signatures: ClientPaper = { enabled: false, unavailable: new Set(), byProject: new Map() },
+  personId?: string,
 ) {
   const items: NeedsItem[] = []
+  // Scripts Sam marked ready for their notes or their OK (SPEC §14 phone moment 3).
+  const scripts = await db.script.findMany({
+    where: { ...visibleScriptsWhere(orgId, personId), status: { in: ["ready_for_notes", "ready_for_ok"] } },
+    select: { id: true, title: true, status: true },
+    orderBy: { updated_at: "desc" },
+  })
+  for (const s of scripts) items.push({ kind: "script", urgency: s.status === "ready_for_ok" ? 1 : 2, script: s })
   // Paper waiting for this person (the engine already returned only their own; staff viewing see every member's).
   for (const p of projects) {
     for (const s of signatures.byProject.get(p.id) ?? []) {

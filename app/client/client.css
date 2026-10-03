@@ -188,7 +188,7 @@
 /* ---------- bottom tabs (phone) ---------- */
 .cs-tabs {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; /* 4 tabs, or 5 with Scripts (SPEC §14) */
   background: var(--bg-glass);
   backdrop-filter: saturate(180%) blur(16px); -webkit-backdrop-filter: saturate(180%) blur(16px);
   border-top: 1px solid var(--line);

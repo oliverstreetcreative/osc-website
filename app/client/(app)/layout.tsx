@@ -1,4 +1,6 @@
 import { requireClientContext } from "@/lib/client/context"
+import { visibleScriptsWhere } from "@/lib/client/data"
+import { db } from "@/lib/db"
 import { ImpersonationBanner } from "@/components/ImpersonationBanner"
 import { Wordmark } from "@/app/client/ui"
 import { Nav, Tabs } from "@/app/client/nav"
@@ -6,6 +8,7 @@ import { ThemeSwitch } from "@/app/client/theme-switch"
 
 export default async function ClientShell({ children }: { children: React.ReactNode }) {
   const ctx = await requireClientContext()
+  const scripts = (await db.script.count({ where: visibleScriptsWhere(ctx.org.id, ctx.viewing ? undefined : ctx.user.id) })) > 0
   const initials = (ctx.user.first_name ?? ctx.user.name ?? "?").trim().slice(0, 1).toUpperCase()
   const showOrgs = !ctx.viewing && ctx.orgs.length > 1
 
@@ -46,7 +49,7 @@ export default async function ClientShell({ children }: { children: React.ReactN
       <header className="cs-top">
         <div className="cs-top-in">
           <a href="/client" aria-label="Home"><Wordmark /></a>
-          <Nav />
+          <Nav scripts={scripts} />
           <div className="cs-top-r">
             {showOrgs ? (
               <details className="cs-menu">
@@ -89,7 +92,7 @@ export default async function ClientShell({ children }: { children: React.ReactN
       </header>
       </div>
       {children}
-      <Tabs />
+      <Tabs scripts={scripts} />
     </>
   )
 }

@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Check, CalendarDays, Receipt, Clapperboard, ArrowRight, FileSignature } from "lucide-react"
+import { Check, CalendarDays, Receipt, Clapperboard, ArrowRight, FileSignature, ScrollText } from "lucide-react"
 import { requireClientContext } from "@/lib/client/context"
 import { orgProjects, needsYou, clientSignatures, type NeedsItem } from "@/lib/client/data"
 import { KIND_LABEL, type SignViewer } from "@/lib/client/sign"
@@ -24,7 +24,7 @@ export default async function Home({ searchParams }: { searchParams: { sign?: st
   // Sign Here contract v2: the viewer's own paper; staff viewing as the client read every member's (read-only).
   const viewer: SignViewer = ctx.viewing ? { staff: true } : { email: ctx.user.email }
   const signatures = await clientSignatures(ctx.org, projects, viewer)
-  const needs = await needsYou(ctx.org.id, projects, signatures)
+  const needs = await needsYou(ctx.org.id, projects, signatures, ctx.viewing ? undefined : ctx.user.id)
   const paperUnavailable = signatures.unavailable.size > 0
   const signNotice = searchParams.sign ? SIGN_NOTICE[searchParams.sign] ?? null : null
   const me = ctx.viewing ? "" : ctx.user.email.toLowerCase()
@@ -141,11 +141,26 @@ export default async function Home({ searchParams }: { searchParams: { sign?: st
 
 function key(n: NeedsItem) {
   if (n.kind === "sign") return `g-${n.item.id}`
+  if (n.kind === "script") return `c-${n.script.id}`
   return n.kind === "invoice" ? `i-${n.invoice.id}` : n.kind === "shoot" ? `s-${n.shoot.id}` : `r-${n.film.id}`
 }
 
 // demo: the staging demo org (SPEC §19). Its links are placeholders, so its buttons show "Off in the demo".
 function NeedCard({ n, demo, me }: { n: NeedsItem; demo: boolean; me: string }) {
+  if (n.kind === "script") {
+    return (
+      <div className="cs-card cs-need">
+        <div className="cs-need-top">
+          <span className="cs-eyebrow"><ScrollText size={13} style={{ verticalAlign: -2, marginRight: 6 }} />Script</span>
+          <span className="cs-status due">{n.script.status === "ready_for_ok" ? "Ready for your OK" : "Ready for your notes"}</span>
+        </div>
+        <h3>{n.script.title}</h3>
+        <div className="cs-need-act">
+          <Link className="cs-btn" href={`/client/scripts/${n.script.id}`}>Open the script</Link>
+        </div>
+      </div>
+    )
+  }
   if (n.kind === "sign") {
     const s = n.item
     const mine = !!me && s.who.email?.toLowerCase() === me
