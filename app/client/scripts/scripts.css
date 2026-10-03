@@ -87,6 +87,20 @@
 .cs .sc-sug-acts { display: inline-flex; gap: 8px; }
 .cs .cs-round.ok { background: var(--green-bg); border-color: var(--green-bd); color: var(--green-ink); }
 
+/* history */
+.cs .sc-history { margin: 16px 0; padding: 14px; border-radius: 14px; background: var(--zone); border: 1px solid var(--line); }
+.cs .sc-ver { padding: 8px 0; border-top: 1px solid var(--line); list-style: none; }
+.cs .sc-ver:first-child { border-top: 0; }
+.cs .sc-ver-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cs .sc-ver-text {
+  white-space: pre-wrap; font: inherit; font-size: 14px; color: var(--ink); margin-top: 8px;
+  padding: 10px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line);
+}
+
+/* the scripts list */
+.cs .sc-list a { display: flex; align-items: center; gap: 12px; }
+.cs .sc-list .sc-list-meta { color: var(--mut); font-size: 13px; }
+
 /* other people's cursors (TipTap's CollaborationCaret) */
 .cs .collaboration-carets__caret {
   border-left: 2px solid; border-right: 0; margin-left: -1px; margin-right: -1px;

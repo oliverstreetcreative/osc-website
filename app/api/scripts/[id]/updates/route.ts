@@ -9,6 +9,7 @@ import { NextResponse } from "next/server"
 import { atLeast, bindClients, roleOf, sessionFacts } from "@/lib/scripts/server/access"
 import { catchUp, commit, fromB64, withLive } from "@/lib/scripts/server/registry"
 import { checkUpdate, updateClients } from "@/lib/scripts/guard"
+import { maybeAutosave } from "@/lib/scripts/server/versions"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -49,6 +50,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const verdict = checkUpdate(l.doc, update, own, suggester)
     if (!verdict.ok) return { refused: verdict.why }
     const seq = await commit(l, update, facts.person.id, clientId, sub)
+    await maybeAutosave(l).catch((err) => console.error("scripts: autosave failed", err))
     return { seq: String(seq) }
   })
   if ("refused" in result) {

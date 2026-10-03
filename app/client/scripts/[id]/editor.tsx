@@ -12,6 +12,7 @@ import { idGenerator } from "@/lib/scripts/normalize"
 import { describe, listSuggestions, type SuggestionSummary } from "@/lib/scripts/suggestions"
 import { AvKeys, NodeMarkSync, RESOLVE_META, SuggestMode, emptyRow } from "@/lib/scripts/client/extensions"
 import { ScriptSync } from "@/lib/scripts/client/sync"
+import { History } from "./history"
 
 export type EditorProps = {
   scriptId: string
@@ -100,6 +101,7 @@ function Live({
   suggestingRef.current = suggesting
   const genRef = useRef<(() => string) | null>(null)
   const [hint, setHint] = useState<string | null>(null)
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const editor = useEditor(
     {
@@ -224,8 +226,12 @@ function Live({
             </span>
           ) : null}
           <span className={`sc-save ${state}`}>{ended ? ended : STATUS[state] ?? state}</span>
+          <button type="button" className="cs-btn sm ghost" aria-expanded={historyOpen} onClick={() => setHistoryOpen((o) => !o)}>
+            History
+          </button>
         </div>
       </div>
+      {historyOpen ? <History scriptId={sync.scriptId} canManage={isEditor} onClose={() => setHistoryOpen(false)} /> : null}
       {hint ? (
         <p className="sc-note" role="status">
           {hint}
