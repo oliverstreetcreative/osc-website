@@ -2,7 +2,8 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ChevronLeft, Download, ExternalLink, MapPin, Clock, Phone, MessageSquare, Mail, UserPlus } from "lucide-react"
 import { requireClientContext } from "@/lib/client/context"
-import { orgProject, clientSignatures } from "@/lib/client/data"
+import { orgProject, clientSignatures, visibleScriptsWhere } from "@/lib/client/data"
+import { db } from "@/lib/db"
 import { KIND_LABEL, isDone, type SignViewer } from "@/lib/client/sign"
 import { SignButton } from "@/app/client/sign-button"
 import { day, duration, money, relativeDue, muxThumb, daysFromToday, todayUTC } from "@/lib/client/format"
@@ -48,6 +49,12 @@ export default async function ProjectPage({ params }: { params: { id: string } }
   const dates = (Array.isArray(p.dates) ? p.dates : []) as { label: string; date: string; note?: string }[]
   const team = teamOf(p.team)
   const today = todayUTC()
+  // This project's scripts the person can open (SPEC §14: a Scripts section in each project).
+  const scripts = await db.script.findMany({
+    where: { ...visibleScriptsWhere(org.id, ctx.viewing ? undefined : ctx.user.id), project_id: p.id },
+    select: { id: true, title: true, status: true, target_seconds: true },
+    orderBy: { title: "asc" },
+  })
 
   // Timeline: shoot days + key dates, in date order.
   type Item = { when: Date; title: string; sub?: string; calId: string; shoot?: (typeof p.shoot_periods)[number] }
@@ -130,6 +137,28 @@ export default async function ProjectPage({ params }: { params: { id: string } }
             ) : null}
 
             {p.summary ? (
+              {scripts.length ? (
+                <section className="cs-section">
+                  <SectionTitle>{scripts.length > 1 ? "Scripts" : "Script"}</SectionTitle>
+                  <div className="cs-rows">
+                    {scripts.map((s) => (
+                      <Link key={s.id} href={`/client/scripts/${s.id}`} className="cs-row">
+                        <span className="cs-row-main">
+                          <b>{s.title}</b>
+                          {s.target_seconds ? <span className="cs-status"> · :{s.target_seconds}</span> : null}
+                        </span>
+                        {s.status === "ready_for_notes" ? (
+                          <span className="cs-pill now">Ready for your notes</span>
+                        ) : s.status === "ready_for_ok" ? (
+                          <span className="cs-pill now">Ready for your OK</span>
+                        ) : s.status === "approved" ? (
+                          <span className="cs-pill done">Approved</span>
+                        ) : null}
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
               <section className="cs-section">
                 <SectionTitle>About this project</SectionTitle>
                 <div className="cs-card cs-pad"><p style={{ fontSize: 15 }}>{p.summary}</p></div>
