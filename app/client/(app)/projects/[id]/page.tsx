@@ -136,29 +136,30 @@ export default async function ProjectPage({ params }: { params: { id: string } }
               </section>
             ) : null}
 
+            {scripts.length ? (
+              <section className="cs-section">
+                <SectionTitle>{scripts.length > 1 ? "Scripts" : "Script"}</SectionTitle>
+                <div className="cs-rows">
+                  {scripts.map((s) => (
+                    <Link key={s.id} href={`/client/scripts/${s.id}`} className="cs-row">
+                      <span className="cs-row-main">
+                        <b>{s.title}</b>
+                        {s.target_seconds ? <span className="cs-status"> · :{s.target_seconds}</span> : null}
+                      </span>
+                      {s.status === "ready_for_notes" ? (
+                        <span className="cs-pill now">Ready for your notes</span>
+                      ) : s.status === "ready_for_ok" ? (
+                        <span className="cs-pill now">Ready for your OK</span>
+                      ) : s.status === "approved" ? (
+                        <span className="cs-pill done">Approved</span>
+                      ) : null}
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
             {p.summary ? (
-              {scripts.length ? (
-                <section className="cs-section">
-                  <SectionTitle>{scripts.length > 1 ? "Scripts" : "Script"}</SectionTitle>
-                  <div className="cs-rows">
-                    {scripts.map((s) => (
-                      <Link key={s.id} href={`/client/scripts/${s.id}`} className="cs-row">
-                        <span className="cs-row-main">
-                          <b>{s.title}</b>
-                          {s.target_seconds ? <span className="cs-status"> · :{s.target_seconds}</span> : null}
-                        </span>
-                        {s.status === "ready_for_notes" ? (
-                          <span className="cs-pill now">Ready for your notes</span>
-                        ) : s.status === "ready_for_ok" ? (
-                          <span className="cs-pill now">Ready for your OK</span>
-                        ) : s.status === "approved" ? (
-                          <span className="cs-pill done">Approved</span>
-                        ) : null}
-                      </Link>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
               <section className="cs-section">
                 <SectionTitle>About this project</SectionTitle>
                 <div className="cs-card cs-pad"><p style={{ fontSize: 15 }}>{p.summary}</p></div>
