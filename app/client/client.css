@@ -22,6 +22,19 @@
   --green-ink: #2d6e49;
   --red: #d13b2e;            /* overdue */
   --gold: #f2c14e;           /* coming up */
+  /* --ink is the ALWAYS-dark surface (header, hero, posters, login). --strong is the strongest colour ON PAPER
+     (primary buttons, checked choices, the current tab); it flips in dark mode, --ink never does (SPEC §20 v2). */
+  --strong: #141412;
+  --on-strong: #f7f6f3;
+  --hover: #fbfaf8;
+  --paper-glass: rgba(247, 246, 243, 0.92);
+  --red-bg: rgba(209, 59, 46, 0.08);
+  --red-line: rgba(209, 59, 46, 0.25);
+  --red-ink: #9b2a20;
+  --green-bg: rgba(58, 138, 92, 0.1);
+  --green-line: rgba(58, 138, 92, 0.25);
+  --orange-bg: rgba(224, 120, 48, 0.12);
+  --orange-line: rgba(224, 120, 48, 0.3);
   --radius: 16px;
   --radius-sm: 10px;
   --shadow: 0 1px 2px rgba(20, 20, 18, 0.04), 0 8px 24px -12px rgba(20, 20, 18, 0.12);
@@ -30,6 +43,7 @@
   --wordmark: var(--font-barlow), "Barlow Condensed", "Arial Narrow", sans-serif;
   --script: var(--font-lobster), Lobster, cursive;
 
+  color-scheme: light; /* the portal's roots set data-theme; everything else (the public site) stays light */
   min-height: 100dvh;
   background: var(--paper);
   color: var(--text);
@@ -60,7 +74,7 @@
 }
 .cs-mark { display: flex; align-items: baseline; gap: 5px; white-space: nowrap; }
 .cs-mark b { font-family: var(--wordmark); font-weight: 600; font-size: 19px; letter-spacing: 0.04em; text-transform: uppercase; }
-.cs-mark i { font-family: var(--script); font-style: normal; font-size: 18px; color: var(--orange); }
+.cs-mark i { font-family: var(--script); font-style: normal; font-size: 18px; color: #e07830; }
 .cs-nav { display: none; gap: 4px; margin-left: 12px; }
 .cs-nav a {
   font-size: 14px; font-weight: 500; color: var(--on-ink-muted);
@@ -108,8 +122,8 @@
   display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; min-height: 56px;
   background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm); cursor: pointer;
 }
-.cs-choice:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
-.cs-choice input[type="radio"] { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--ink); flex-shrink: 0; }
+.cs-choice:has(input:checked) { border-color: var(--strong); box-shadow: inset 0 0 0 1px var(--strong); }
+.cs-choice input[type="radio"] { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--strong); flex-shrink: 0; }
 .cs-choice > span { display: grid; gap: 2px; min-width: 0; }
 .cs-choice b { font-size: 15px; font-weight: 600; }
 .cs-choice small { font-size: 13px; color: var(--muted); }
@@ -120,7 +134,7 @@
 .cs-field { display: grid; gap: 4px; }
 .cs-field > span { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .cs-field textarea { margin-top: 4px; resize: vertical; min-height: 96px; width: 100%; background: var(--card); }
-.cs-form-error { background: rgba(209, 59, 46, 0.08); color: #9b2a20; border: 1px solid rgba(209, 59, 46, 0.25); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.cs-form-error { background: var(--red-bg); color: var(--red-ink); border: 1px solid var(--red-line); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
 /* The date field sits outside the "By a date" label and shows only while that choice is picked. Browsers without
    :has() simply always show it (the server ignores a date sent with another choice). */
 .cs-date-wrap { padding: 4px 2px 0; }
@@ -147,7 +161,7 @@
 .cs .cs-viewing-act a { background: rgba(20, 20, 18, 0.12); color: var(--ink); }
 .cs .cs-viewing-act button { background: var(--ink); color: var(--on-ink); }
 .cs .cs-pick { width: 100%; background: var(--card); border: 0; text-align: left; cursor: pointer; font: inherit; color: inherit; }
-.cs .cs-pick:hover { background: #fbfaf8; }
+.cs .cs-pick:hover { background: var(--hover); }
 .cs-rows form + form .cs-row { border-top: 1px solid var(--line); }
 .cs-pick-logo { width: 28px; height: 28px; object-fit: contain; }
 
@@ -155,7 +169,7 @@
 .cs-tabs {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
   display: grid; grid-template-columns: repeat(4, 1fr);
-  background: rgba(247, 246, 243, 0.92);
+  background: var(--paper-glass);
   backdrop-filter: saturate(180%) blur(16px); -webkit-backdrop-filter: saturate(180%) blur(16px);
   border-top: 1px solid var(--line);
   padding-bottom: env(safe-area-inset-bottom);
@@ -165,7 +179,7 @@
   padding: 9px 0 8px; font-size: 11px; font-weight: 500; color: var(--muted);
 }
 .cs-tabs a svg { width: 22px; height: 22px; stroke-width: 1.75; }
-.cs-tabs a[aria-current="page"] { color: var(--ink); }
+.cs-tabs a[aria-current="page"] { color: var(--strong); }
 .cs-tabs a[aria-current="page"] svg { color: var(--orange); }
 
 /* ---------- page frame ---------- */
@@ -193,7 +207,7 @@
   border-top: 1px solid var(--line);
 }
 .cs-row:first-child { border-top: 0; }
-a.cs-row:hover { background: #fbfaf8; }
+a.cs-row:hover { background: var(--hover); }
 .cs-row-main { flex: 1; min-width: 0; }
 .cs-row-main strong { display: block; font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
 .cs-row-main small { display: block; color: var(--muted); font-size: 13px; margin-top: 1px; }
@@ -201,7 +215,7 @@ a.cs-row:hover { background: #fbfaf8; }
 .cs-row-end strong { display: block; font-variant-numeric: tabular-nums; font-weight: 600; }
 .cs-ico {
   width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0; display: grid; place-items: center;
-  background: var(--paper); color: var(--ink); border: 1px solid var(--line);
+  background: var(--paper); color: var(--strong); border: 1px solid var(--line);
 }
 .cs-ico svg { width: 19px; height: 19px; stroke-width: 1.75; }
 
@@ -216,14 +230,14 @@ a.cs-row:hover { background: #fbfaf8; }
   display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px;
   font-size: 12px; font-weight: 600; background: var(--paper); border: 1px solid var(--line); color: var(--text);
 }
-.cs-pill.done { background: rgba(58, 138, 92, 0.1); border-color: rgba(58, 138, 92, 0.25); color: var(--green-ink); }
-.cs-pill.now { background: rgba(224, 120, 48, 0.12); border-color: rgba(224, 120, 48, 0.3); color: var(--orange-ink); }
+.cs-pill.done { background: var(--green-bg); border-color: var(--green-line); color: var(--green-ink); }
+.cs-pill.now { background: var(--orange-bg); border-color: var(--orange-line); color: var(--orange-ink); }
 
 /* buttons */
 .cs .cs-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   height: 44px; padding: 0 18px; border-radius: 999px; font-size: 15px; font-weight: 600;
-  background: var(--ink); color: var(--on-ink); border: 0; cursor: pointer; white-space: nowrap;
+  background: var(--strong); color: var(--on-strong); border: 0; cursor: pointer; white-space: nowrap;
   transition: transform 150ms ease, opacity 150ms ease;
 }
 .cs .cs-btn:active { transform: scale(0.98); }
@@ -267,7 +281,7 @@ a.cs-row:hover { background: #fbfaf8; }
 .cs-need p { color: var(--muted); font-size: 14px; margin-top: 2px; }
 .cs-need-act { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
 .cs-calm { padding: 22px; display: flex; gap: 16px; align-items: center; }
-.cs-calm-dot { width: 44px; height: 44px; border-radius: 999px; background: rgba(58, 138, 92, 0.12); color: var(--green); display: grid; place-items: center; flex-shrink: 0; }
+.cs-calm-dot { width: 44px; height: 44px; border-radius: 999px; background: var(--green-bg); color: var(--green); display: grid; place-items: center; flex-shrink: 0; }
 .cs .cs-calm h3 { font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 24px; letter-spacing: 0; }
 .cs-calm p { color: var(--muted); font-size: 14px; margin-top: 2px; }
 
@@ -367,7 +381,7 @@ a.cs-row:hover { background: #fbfaf8; }
 .cs-filters { display: flex; gap: 8px; overflow-x: auto; margin: 12px -16px 0; padding: 0 16px 4px; scrollbar-width: none; }
 .cs-filters::-webkit-scrollbar { display: none; }
 .cs-filters a { flex-shrink: 0; height: 40px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 999px; font-size: 14px; font-weight: 500; border: 1px solid var(--line-strong); background: var(--card); }
-.cs-filters a[aria-current="true"] { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.cs-filters a[aria-current="true"] { background: var(--strong); color: var(--on-strong); border-color: var(--strong); }
 .cs-empty { padding: 28px 20px; text-align: center; color: var(--muted); font-size: 14px; }
 .cs-empty b { display: block; font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 22px; color: var(--text); margin-bottom: 4px; }
 
@@ -408,3 +422,57 @@ a.cs-row:hover { background: #fbfaf8; }
   .cs-track li { font-size: 12px; }
   .cs-hero-line { font-size: 23px; }
 }
+
+/* ==========================================================================
+   DARK MODE (SPEC §20 v2). One palette, written once: each token is light-dark(light, dark), resolved by the
+   element's color-scheme. The portal's root layouts render data-theme="auto|light|dark" (cookie cs_theme; Auto
+   follows the phone); the public site renders no attribute and stays light. Print is always light.
+   Browsers without light-dark() (iOS before 17.5) simply keep the light tokens.
+   ========================================================================== */
+@supports (color: light-dark(#000, #fff)) {
+  .cs {
+    --paper: light-dark(#f7f6f3, #121210);
+    --card: light-dark(#ffffff, #1c1c19);
+    --text: light-dark(#141412, #f2f1ec);
+    --muted: light-dark(#64635e, #a8a69f);          /* 7.0:1 on the dark card */
+    --faint: light-dark(#9a9993, #6f6e69);
+    --line: light-dark(rgba(20, 20, 18, 0.09), rgba(255, 255, 255, 0.10));
+    --line-strong: light-dark(rgba(20, 20, 18, 0.16), rgba(255, 255, 255, 0.18));
+    --orange: light-dark(#e07830, #f08a45);          /* 6.9:1 on the dark card */
+    --orange-ink: light-dark(#a8501a, #f08a45);
+    --green: light-dark(#3a8a5c, #5fb784);
+    --green-ink: light-dark(#2d6e49, #5fb784);
+    --red: light-dark(#d13b2e, #ef6a5e);
+    --strong: light-dark(#141412, #f2f1ec);
+    --on-strong: light-dark(#f7f6f3, #141412);
+    --hover: light-dark(#fbfaf8, #23231f);
+    --paper-glass: light-dark(rgba(247, 246, 243, 0.92), rgba(18, 18, 16, 0.92));
+    --red-bg: light-dark(rgba(209, 59, 46, 0.08), rgba(239, 106, 94, 0.14));
+    --red-line: light-dark(rgba(209, 59, 46, 0.25), rgba(239, 106, 94, 0.35));
+    --red-ink: light-dark(#9b2a20, #ef6a5e);
+    --green-bg: light-dark(rgba(58, 138, 92, 0.1), rgba(95, 183, 132, 0.16));
+    --green-line: light-dark(rgba(58, 138, 92, 0.25), rgba(95, 183, 132, 0.35));
+    --orange-bg: light-dark(rgba(224, 120, 48, 0.12), rgba(240, 138, 69, 0.16));
+    --orange-line: light-dark(rgba(224, 120, 48, 0.3), rgba(240, 138, 69, 0.38));
+    /* Shadows vanish on dark; the cards' 1px borders carry the edges there. */
+    --shadow: 0 1px 2px light-dark(rgba(20, 20, 18, 0.04), transparent),
+      0 8px 24px -12px light-dark(rgba(20, 20, 18, 0.12), transparent);
+  }
+}
+@media screen {
+  .cs[data-theme="auto"] { color-scheme: light dark; }
+  .cs[data-theme="dark"] { color-scheme: dark; }
+}
+@media print {
+  .cs { color-scheme: light !important; }
+}
+/* Never themed: the Mux player (an opaque white box while it loads otherwise) and client logos (a light chip). */
+.cs-player iframe { color-scheme: normal; }
+.cs-pick-logo { background: light-dark(transparent, #f7f6f3); border-radius: 6px; padding: 2px; }
+/* The Appearance switch in the account menu. */
+.cs-theme { display: flex; gap: 6px; padding: 8px 12px 4px; }
+.cs .cs-theme button {
+  flex: 1; height: 34px; border-radius: 999px; border: 1px solid var(--line-strong); background: transparent;
+  color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.cs .cs-theme button[aria-pressed="true"] { background: var(--strong); color: var(--on-strong); border-color: var(--strong); }
