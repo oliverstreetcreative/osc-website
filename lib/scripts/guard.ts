@@ -79,23 +79,38 @@ export function checkSuggester(prev: PMNode, next: PMNode, who: Suggester): Verd
   return { ok: true }
 }
 
-/**
- * The Yjs-level check for one update from a suggester's browser. `clientId` is the Yjs clientID the browser posted
- * (the route has already checked it's bound to this person). Never mutates `doc`.
- */
-export function checkSuggesterUpdate(doc: Y.Doc, update: Uint8Array, clientId: number, who: Suggester): Verdict {
-  let decoded
+/** The distinct Yjs clientIDs whose structs an update carries, or null if it can't be read. */
+export function updateClients(update: Uint8Array): number[] | null {
   try {
-    decoded = Y.decodeUpdate(update)
+    return [...new Set(Y.decodeUpdate(update).structs.map((s) => s.id.client))]
   } catch {
-    return { ok: false, why: "an update that can't be read" }
+    return null
   }
-  for (const s of decoded.structs) if (s.id.client !== clientId) return { ok: false, why: "an update with another session's changes in it" }
+}
+
+/**
+ * The Yjs-level check for one update, for EVERY role: its structs all come from clientIDs bound to the sender
+ * (`ownClients`; the route binds them first), and it applies completely (no pending structs). For a SUGGESTER (`who`
+ * set) the document-level rule above runs too. Never mutates `doc`.
+ */
+export function checkUpdate(doc: Y.Doc, update: Uint8Array, ownClients: ReadonlySet<number>, who: Suggester | null): Verdict {
+  const clients = updateClients(update)
+  if (!clients) return { ok: false, why: "an update that can't be read" }
+  if (clients.some((c) => !ownClients.has(c))) return { ok: false, why: "an update with another session's changes in it" }
   const trial = new Y.Doc({ gc: true })
   Y.applyUpdate(trial, Y.encodeStateAsUpdate(doc))
-  const prev = pmFromYDoc(trial)
-  Y.applyUpdate(trial, update)
+  const prev = who ? pmFromYDoc(trial) : null
+  try {
+    Y.applyUpdate(trial, update)
+  } catch {
+    return { ok: false, why: "an update that can't be applied" }
+  }
   const store = trial.store as unknown as { pendingStructs: unknown; pendingDs: unknown }
   if (store.pendingStructs || store.pendingDs) return { ok: false, why: "an update that depends on changes we don't have" }
-  return checkSuggester(prev, pmFromYDoc(trial), who)
+  return who ? checkSuggester(prev!, pmFromYDoc(trial), who) : { ok: true }
+}
+
+/** One suggester update from one browser session (tests; the route uses checkUpdate with every bound clientID). */
+export function checkSuggesterUpdate(doc: Y.Doc, update: Uint8Array, clientId: number, who: Suggester): Verdict {
+  return checkUpdate(doc, update, new Set([clientId]), who)
 }

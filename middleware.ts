@@ -33,6 +33,7 @@ const IDENTITY_HEADERS = [
   'x-user-email',
   'x-user-role',
   'x-user-is-staff',
+  'x-user-preview',
   'x-impersonating',
   'x-impersonator-id',
   'x-impersonation-target-name',
@@ -146,17 +147,20 @@ async function verifySession(req: NextRequest) {
       is_staff: payload.is_staff === true,
       // The staging demo (SPEC §19): the token's fingerprint, checked against the CURRENT token on every request.
       demo: payload.demo === undefined ? undefined : String(payload.demo),
+      // A staging preview sign-in (the screenshot harness): scripts treat it as read-only (SPEC §14 v4 #11).
+      preview: payload.preview === true,
     }
   } catch {
     return null
   }
 }
 
-function setUserHeaders(res: NextResponse, user: { id: string; email: string; role: string; is_staff: boolean }) {
+function setUserHeaders(res: NextResponse, user: { id: string; email: string; role: string; is_staff: boolean; preview?: boolean }) {
   res.headers.set('x-user-id', user.id)
   res.headers.set('x-user-email', user.email)
   res.headers.set('x-user-role', user.role)
   res.headers.set('x-user-is-staff', String(user.is_staff))
+  if (user.preview) res.headers.set('x-user-preview', 'true')
   return res
 }
 
@@ -427,12 +431,19 @@ async function route(req: NextRequest): Promise<NextResponse> {
     pathMatches(pathname, '/api/admin') ||
     pathMatches(pathname, '/api/portal') ||
     pathMatches(pathname, '/api/crew') ||
-    pathMatches(pathname, '/api/events')
+    pathMatches(pathname, '/api/events') ||
+    pathMatches(pathname, '/api/scripts')
 
   if (!isProtected) return NextResponse.next()
 
   const user = await verifySession(req)
-  if (!user) return redirectToLogin(req)
+  if (!user) {
+    // the script editor's feed and saves are fetches: a plain 401 it can act on, never the login page's HTML
+    if (pathMatches(pathname, '/api/scripts')) {
+      return NextResponse.json({ error: 'Sign in' }, { status: 401 })
+    }
+    return redirectToLogin(req)
+  }
 
   if (pathMatches(pathname, '/admin') && !user.is_staff && user.role !== 'STAFF') {
     return new NextResponse(null, { status: 404 })
