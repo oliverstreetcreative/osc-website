@@ -38,6 +38,10 @@ export async function GET(req: NextRequest) {
     : NextResponse.redirect(`${publicOrigin(req)}${next.startsWith("/") ? next : "/client"}`, 303)
   res.cookies.set("osc_session", jwt, { domain: cookieDomainFor(req), path: "/", httpOnly: true, sameSite: "lax", secure: isSecure(req), expires })
   res.cookies.set("cs_org", "", { path: "/", maxAge: 0 })
+  // Screenshots of both themes (SPEC §20): &theme=dark|light sets the device's Appearance cookie; anything else = Auto.
+  const theme = req.nextUrl.searchParams.get("theme")
+  if (theme === "dark" || theme === "light") res.cookies.set("cs_theme", theme, { path: "/", sameSite: "lax", secure: isSecure(req), expires })
+  else res.cookies.set("cs_theme", "", { path: "/", maxAge: 0 })
   // Staff only: &view=<org-slug> opens "View as client" directly (for screenshots), logged like a real start.
   const view = req.nextUrl.searchParams.get("view")
   const org = view && person.is_staff ? await db.organization.findFirst({ where: { slug: view, hidden: false } }) : null
