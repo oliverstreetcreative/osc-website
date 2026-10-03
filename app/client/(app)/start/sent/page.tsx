@@ -11,7 +11,7 @@ export const metadata = { title: "Sent" }
 export default async function Sent({ searchParams }: { searchParams: { id?: string; repeat?: string } }) {
   const ctx = await requireClientContext()
   const id = searchParams.id ?? ""
-  if (!/^[0-9a-f-]{36}$/.test(id)) notFound()
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) notFound()
   // Scoped to this org: another client's request id shows nothing.
   const r = await db.projectRequest.findFirst({ where: { id, organization_id: ctx.org.id } })
   if (!r) notFound()

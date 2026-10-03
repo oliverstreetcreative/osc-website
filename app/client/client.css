@@ -121,6 +121,14 @@
 .cs-field > span { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .cs-field textarea { margin-top: 4px; resize: vertical; min-height: 96px; width: 100%; background: var(--card); }
 .cs-form-error { background: rgba(209, 59, 46, 0.08); color: #9b2a20; border: 1px solid rgba(209, 59, 46, 0.25); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+/* The date field sits outside the "By a date" label and shows only while that choice is picked. Browsers without
+   :has() simply always show it (the server ignores a date sent with another choice). */
+.cs-date-wrap { padding: 4px 2px 0; }
+.cs-date-wrap .cs-date-input { margin-top: 4px; width: 100%; }
+@supports selector(:has(*)) {
+  .cs-timing .cs-date-wrap { display: none; }
+  .cs-timing:has(input[name="timing"][value="date"]:checked) .cs-date-wrap { display: grid; }
+}
 
 /* ---------- staff: view as client ---------- */
 .cs-sticky { position: sticky; top: 0; z-index: 40; }

@@ -1,5 +1,5 @@
 import { requireClientContext } from "@/lib/client/context"
-import { KIND_CHOICES, TIMING_CHOICES, MAX_ABOUT, canRequest, lastDeliveredProject, newFormKey } from "@/lib/client/requests"
+import { KIND_CHOICES, TIMING_CHOICES, MAX_ABOUT, canRequest, lastDeliveredProject, limitReached, newFormKey } from "@/lib/client/requests"
 import { todayUTC } from "@/lib/client/format"
 import { OSC_PHONE, OSC_SMS } from "@/app/client/ui"
 
@@ -7,8 +7,7 @@ export const metadata = { title: "Start a new project" }
 
 const ERRORS: Record<string, string> = {
   invalid: "Pick a kind of video and when you need it.",
-  limit: "That's a lot of requests today. Text Sam instead.",
-  role: "Ask the person who runs your projects, or text Sam.",
+  past: "That date has passed. Pick a new one.",
   org: "Something changed on this page. Try again.",
 }
 
@@ -17,19 +16,21 @@ const ERRORS: Record<string, string> = {
 export default async function StartProject({ searchParams }: { searchParams: { error?: string } }) {
   const ctx = await requireClientContext()
   const viewing = !!ctx.viewing
-  const may = canRequest(ctx) || viewing // staff see the client's page, with Send disabled
+  const may = canRequest(ctx) || viewing // staff (and the demo) see the client's page, with Send disabled
+  // Today's requests used up: say so BEFORE she types a paragraph, not after.
+  const full = !viewing && may && (await limitReached(ctx))
   const last = await lastDeliveredProject(ctx.org.id)
   const today = todayUTC().toISOString().slice(0, 10)
-  const error = searchParams.error ? ERRORS[searchParams.error] : null
+  const error = searchParams.error ? ERRORS[searchParams.error] ?? null : null
 
   return (
     <main className="cs-main">
       <p className="cs-eyebrow">{ctx.org.name}</p>
       <h1 className="cs-title" style={{ marginTop: 6 }}>Start a new project</h1>
 
-      {!may ? (
+      {!may || full || searchParams.error === "limit" ? (
         <div className="cs-card cs-pad" style={{ marginTop: 20 }}>
-          <p>Want another video?</p>
+          <p>{may ? "That's today's limit." : "Want another video?"}</p>
           <a className="cs-btn" style={{ marginTop: 14 }} href={OSC_SMS}>Text Sam · {OSC_PHONE}</a>
         </div>
       ) : (
@@ -54,7 +55,7 @@ export default async function StartProject({ searchParams }: { searchParams: { e
             ))}
           </fieldset>
 
-          <fieldset>
+          <fieldset className="cs-timing">
             <legend>When do you need it?</legend>
             {TIMING_CHOICES.map((t) => (
               <label key={t.id} className="cs-choice">
@@ -62,12 +63,15 @@ export default async function StartProject({ searchParams }: { searchParams: { e
                 <span>
                   <b>{t.label}</b>
                   {t.note ? <small>{t.note}</small> : null}
-                  {t.id === "date" ? (
-                    <input type="date" name="due" min={today} aria-label="Date, if you have one" className="cs-date-input" />
-                  ) : null}
                 </span>
               </label>
             ))}
+            {/* Outside the label on purpose: a tap inside a label doesn't pick its radio. Shown only while
+                "By a date" is picked (CSS :has), so a date can't ride along with another choice. */}
+            <label className="cs-field cs-date-wrap">
+              <span>Date, if you have one</span>
+              <input type="date" name="due" min={today} className="cs-date-input" />
+            </label>
           </fieldset>
 
           <label className="cs-field">
@@ -76,7 +80,11 @@ export default async function StartProject({ searchParams }: { searchParams: { e
           </label>
 
           <button className="cs-btn" disabled={viewing} style={{ width: "100%" }}>Send to Sam</button>
-          {viewing ? <p className="cs-lede" style={{ textAlign: "center" }}>Read-only while viewing.</p> : null}
+          {viewing ? (
+            <p className="cs-lede" style={{ textAlign: "center" }}>
+              {ctx.viewing?.demo ? "Off in the demo." : "Read-only while viewing."}
+            </p>
+          ) : null}
           <p className="cs-lede" style={{ textAlign: "center", marginTop: 14 }}>
             Rather talk? <a className="cs-link" href={OSC_SMS}>Text Sam · {OSC_PHONE}</a>
           </p>

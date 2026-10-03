@@ -58,8 +58,8 @@ export function RequestCards({ requests }: { requests: Req[] }) {
               <strong>{kindLabel(r.kind, r.like_project)} · {timingLabel(r.timing, r.due_on)}</strong>
               <small>
                 {r.status === "in_review"
-                  ? `Sam has your request · ${day(r.created_at, { month: "short", day: "numeric", timeZone: "America/New_York" })}`
-                  : `Requested ${day(r.created_at, { month: "short", day: "numeric", timeZone: "America/New_York" })} · Sam will be in touch`}
+                  ? `Asked ${day(r.created_at, { month: "short", day: "numeric", timeZone: "America/New_York" })} · Sam has it`
+                  : `Asked ${day(r.created_at, { month: "short", day: "numeric", timeZone: "America/New_York" })} · Sam will be in touch`}
               </small>
               {r.created_at.getTime() < threeDaysAgo ? (
                 <small>

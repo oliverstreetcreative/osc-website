@@ -56,6 +56,7 @@ CREATE TABLE "projects" (
     "team" JSONB,
     "sort_date" TIMESTAMP(3),
     "hidden" BOOLEAN NOT NULL DEFAULT false,
+    "from_request" TEXT,
 
     CONSTRAINT "projects_pkey" PRIMARY KEY ("id")
 );
@@ -450,6 +451,32 @@ CREATE TABLE "documents" (
     CONSTRAINT "documents_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "project_requests" (
+    "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
+    "person_id" UUID NOT NULL,
+    "person_name" TEXT NOT NULL,
+    "person_email" TEXT NOT NULL,
+    "kind" TEXT NOT NULL,
+    "like_project" TEXT,
+    "timing" TEXT NOT NULL,
+    "due_on" DATE,
+    "about" TEXT,
+    "form_key" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "queue_file" TEXT,
+    "queued_at" TIMESTAMP(3),
+    "picked_up_at" TIMESTAMP(3),
+    "closed_at" TIMESTAMP(3),
+    "attempts" INTEGER NOT NULL DEFAULT 0,
+    "last_error" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "project_requests_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "people_email_key" ON "people"("email");
 
@@ -702,3 +729,17 @@ ALTER TABLE "documents" ADD CONSTRAINT "documents_organization_id_fkey" FOREIGN 
 -- AddForeignKey
 ALTER TABLE "documents" ADD CONSTRAINT "documents_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
+-- CreateIndex
+CREATE UNIQUE INDEX "project_requests_form_key_key" ON "project_requests"("form_key");
+
+-- CreateIndex
+CREATE INDEX "project_requests_organization_id_idx" ON "project_requests"("organization_id");
+
+-- CreateIndex
+CREATE INDEX "project_requests_status_idx" ON "project_requests"("status");
+
+-- AddForeignKey
+ALTER TABLE "project_requests" ADD CONSTRAINT "project_requests_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "project_requests" ADD CONSTRAINT "project_requests_person_id_fkey" FOREIGN KEY ("person_id") REFERENCES "people"("id") ON DELETE CASCADE ON UPDATE CASCADE;
