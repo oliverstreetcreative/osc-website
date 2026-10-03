@@ -49,6 +49,8 @@ export class ScriptSync {
   private listeners = new Set<() => void>()
   private destroyed = false
   private readonly outboxKey: string
+  private lastHeard = 0 // when the stream last said anything (the server pings every 20 s)
+  private watchdog: ReturnType<typeof setInterval> | null = null
 
   constructor(
     readonly scriptId: string,
@@ -73,6 +75,20 @@ export class ScriptSync {
     window.addEventListener("online", this.reconnectNow)
     document.addEventListener("visibilitychange", this.onVisibility)
     this.presenceTimer = setInterval(() => this.sendAwareness(), 15_000)
+    // A stream can die without an error (a phone asleep, Safari in the background): if it's been silent for a
+    // minute, start a new one (the sync on reconnect fills in whatever was missed both ways).
+    this.watchdog = setInterval(() => {
+      if (this.es && this.lastHeard && Date.now() - this.lastHeard > 60_000) this.restart()
+    }, 15_000)
+  }
+
+  private restart() {
+    this.es?.close()
+    this.es = null
+    this.sub = null
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
+    this.retry = 0
+    this.connect()
   }
 
   subscribe(fn: () => void) {
@@ -100,6 +116,11 @@ export class ScriptSync {
     const sv = b64(Y.encodeStateVector(this.doc))
     const es = new EventSource(`/api/scripts/${this.scriptId}/events?sv=${encodeURIComponent(sv)}`)
     this.es = es
+    this.lastHeard = Date.now()
+    const heard = () => {
+      if (this.es === es) this.lastHeard = Date.now()
+    }
+    for (const name of ["sync", "update", "awareness", "left", "comments", "ping"]) es.addEventListener(name, heard)
     es.addEventListener("sync", (e) => {
       const d = JSON.parse((e as MessageEvent).data)
       this.retry = 0
@@ -149,10 +170,10 @@ export class ScriptSync {
   }
 
   private reconnectNow = () => {
-    if (this.es || this.destroyed) return
-    if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
-    this.retry = 0
-    this.connect()
+    if (this.destroyed) return
+    // a stream that's open and has spoken in the last 45 s is fine; anything else starts over
+    if (this.es && this.es.readyState !== EventSource.CLOSED && Date.now() - this.lastHeard < 45_000) return
+    this.restart()
   }
 
   // ------------------------------------------------------------------ outgoing
@@ -263,6 +284,7 @@ export class ScriptSync {
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
     if (this.presenceTimer) clearInterval(this.presenceTimer)
     if (this.awarenessTimer) clearTimeout(this.awarenessTimer)
+    if (this.watchdog) clearInterval(this.watchdog)
     window.removeEventListener("online", this.reconnectNow)
     document.removeEventListener("visibilitychange", this.onVisibility)
     removeAwarenessStates(this.awareness, [this.doc.clientID], "local")

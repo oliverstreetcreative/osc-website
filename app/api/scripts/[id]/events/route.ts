@@ -71,7 +71,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           presence: presenceNow(l),
         })
       }).catch(() => close())
-      ping = setInterval(() => write(": ping\n\n"), 20_000)
+      // a NAMED ping (not an SSE comment), so the browser can tell a live stream from a silently dead one (iOS Safari
+      // after backgrounding) and reconnect
+      ping = setInterval(() => send("ping", {}), 20_000)
       recheck = setInterval(() => {
         roleOf(id, facts)
           .then((a) => {
