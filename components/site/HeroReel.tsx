@@ -109,7 +109,7 @@ export function HeroReel({ poster, mp4, hls, startAt }: Props) {
           loop
           playsInline
           autoPlay
-          preload="auto"
+          preload="metadata"
           poster={poster}
           aria-hidden="true"
           tabIndex={-1}

@@ -19,7 +19,7 @@ export default function WorkIndexPage() {
       <section className="site-sec">
         <div className="site-in">
           <SectionHead as="h1" eyebrow="Work" title="Some of our work." lede={<>A few of the films we&rsquo;ve made.</>} />
-          <WorkCards videos={WORK_VIDEOS} describe />
+          <WorkCards videos={WORK_VIDEOS} describe heading="h2" />
           <p className="site-more">
             <a className="site-link" href="/#contact">
               More sample work available by request

@@ -55,8 +55,10 @@ export function SiteFrame({
           )}
           <div className="cs-top-r">
             {right ?? (
-              // /client, not /login: a signed-in client lands in their account; anyone
-              // else is sent to /login by middleware and comes back here after.
+              // /client, not /login: a signed-in client lands straight in their account;
+              // anyone else is sent to /login by middleware, and after the magic link
+              // the verify route sends clients to /client and staff to View as client.
+              // (Signed-in crew land on /login's "no client account" note: crew site TBD.)
               <a className="cs-chip-btn site-login" href="/client">
                 <span>Log in</span>
               </a>
@@ -64,7 +66,7 @@ export function SiteFrame({
           </div>
         </div>
       </header>
-      <div id="main">{children}</div>
+      <main id="main">{children}</main>
       <SiteFoot variant={footer} />
     </div>
   )

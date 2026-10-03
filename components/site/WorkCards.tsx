@@ -8,21 +8,31 @@ export function workStill(v: WorkVideo, width = 960) {
   return `https://image.mux.com/${v.playbackId}/thumbnail.webp?width=${width}&time=${v.thumbTime}`
 }
 
-export function WorkCards({ videos, describe = false }: { videos: WorkVideo[]; describe?: boolean }) {
+export function WorkCards({
+  videos,
+  describe = false,
+  heading: H = "h3",
+}: {
+  videos: WorkVideo[]
+  describe?: boolean
+  /** h2 when the cards sit right under the page's h1 (/work) */
+  heading?: "h2" | "h3"
+}) {
   return (
     <div className="site-posters site-posters-paper">
       {videos.map((v) => (
         <Link key={v.slug} href={`/work/${v.slug}`} className="cs-card cs-pcard">
           <div className="cs-poster">
-            <img src={workStill(v)} alt={`${v.title} - ${v.clientName}`} loading="lazy" />
+            {/* alt="": the title is right below, inside the same link */}
+            <img src={workStill(v)} alt="" loading="lazy" />
             <PlayBadge />
           </div>
           <div className="cs-pcard-body">
-            <h3>{v.title}</h3>
+            <H>{v.title}</H>
             <p className="site-pcard-client">{v.client}</p>
             {describe ? <p>{v.description}</p> : null}
             <div className="site-logo-row">
-              <img src={v.clientLogo} alt={v.clientName} />
+              <img src={v.clientLogo} alt="" />
             </div>
           </div>
         </Link>

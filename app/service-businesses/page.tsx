@@ -1,9 +1,10 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 import { WORK_VIDEOS, type WorkVideo } from "@/lib/work-videos"
 import { FROM_PRICE, FROM_PRICE_LINE } from "@/lib/silo-offer"
 import { SiteFrame } from "@/components/site/SiteFrame"
 import { HeroReel } from "@/components/site/HeroReel"
+import { SiteMotion } from "@/components/site/SiteMotion"
+import { MuxFacade } from "@/components/site/MuxFacade"
 import { PlayBadge } from "@/app/client/ui"
 
 // ---------------------------------------------------------------------------
@@ -57,23 +58,10 @@ function thumb(playbackId: string, time: number, width = 960) {
   return `https://image.mux.com/${playbackId}/thumbnail.webp?width=${width}&time=${time}`
 }
 
-// Motion fallbacks. CSS does the settle-in and the progress bar wherever
-// scroll-driven animations exist (current iOS Safari, Chrome). Only where they
-// don't, this adds an IntersectionObserver fade and a scroll listener for the
-// bar. It never touches text React rendered (that broke hydration once).
-const MOTION_JS = `(function(){try{
-var S=window.CSS&&CSS.supports;
-if(!(S&&CSS.supports('animation-timeline: view()'))&&'IntersectionObserver' in window){
- document.documentElement.setAttribute('data-motion','io');
- var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('seen');io.unobserve(e.target);}});},{rootMargin:'0px 0px -12% 0px'});
- var go=function(){document.querySelectorAll('.r > *').forEach(function(el){io.observe(el);});};
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();
-}
-if(!(S&&CSS.supports('animation-timeline: scroll()'))){
- var upd=function(){var b=document.getElementById('site-prog');if(!b)return;var h=document.documentElement;var m=h.scrollHeight-h.clientHeight;b.style.setProperty('--p',m>0?(h.scrollTop/m).toFixed(4):'0');};
- addEventListener('scroll',upd,{passive:true});addEventListener('resize',upd);document.addEventListener('DOMContentLoaded',upd);upd();
-}
-}catch(e){}})();`
+// Motion: CSS does the settle-in and the progress bar wherever scroll-driven
+// animations exist (current iOS Safari, Chrome). Everywhere else <SiteMotion />
+// adds an IntersectionObserver fade and a scroll listener for the bar, re-arming on
+// back-navigation (components/site/SiteMotion.tsx).
 
 // Page copy, plain-language pass (Jesse Dacri's claudespeak note 9/27; Sam
 // approved it outright 22:35). Written through sam-voice.
@@ -117,7 +105,7 @@ export default function ServiceBusinessesPage() {
       <div className="site-prog" aria-hidden="true">
         <i id="site-prog" />
       </div>
-      <script dangerouslySetInnerHTML={{ __html: MOTION_JS }} />
+      <SiteMotion />
 
       {/* 1 · THE HOOK - opens on real OSC footage: our own clients on camera.
           Muted loop; Safari plays the HLS natively, everywhere else shows the
@@ -256,26 +244,25 @@ export default function ServiceBusinessesPage() {
           <p className="site-lede" style={{ margin: "22px auto 0" }}>
             {t("workLede")}
           </p>
-          <iframe
-            className="site-player"
-            src={`https://player.mux.com/${REEL.playbackId}?thumbnail_time=${REEL.thumbTime}&poster=${encodeURIComponent(thumb(REEL.playbackId, REEL.thumbTime, 1280))}`}
-            title={REEL.title}
-            loading="lazy"
-            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-            allowFullScreen
-          />
+          <div className="site-player-wrap">
+            <MuxFacade
+              src={`https://player.mux.com/${REEL.playbackId}?thumbnail_time=${REEL.thumbTime}&poster=${encodeURIComponent(thumb(REEL.playbackId, REEL.thumbTime, 1280))}`}
+              poster={thumb(REEL.playbackId, REEL.thumbTime, 1280)}
+              title={REEL.title}
+            />
+          </div>
           <div className="site-tiles">
             {proof.map((v) => (
-              <Link key={v.slug} href={`/work/${v.slug}`} className="cs-card cs-pcard">
+              <a key={v.slug} href={`/work/${v.slug}`} className="cs-card cs-pcard">
                 <div className="cs-poster">
-                  <img src={thumb(v.playbackId, v.thumbTime, 800)} alt={`${v.title} - ${v.clientName}`} loading="lazy" />
+                  <img src={thumb(v.playbackId, v.thumbTime, 800)} alt="" loading="lazy" />
                   <PlayBadge />
                 </div>
                 <div className="cs-pcard-body">
                   <h3>{v.title}</h3>
                   <p>{v.client}</p>
                 </div>
-              </Link>
+              </a>
             ))}
           </div>
         </div>

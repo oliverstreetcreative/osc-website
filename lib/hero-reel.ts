@@ -18,8 +18,6 @@ export interface HeroReel {
   mp4Rendition: string
   /** The still that paints first (and the only thing shown when motion is off). */
   poster: string
-  /** What the reel is, for screen readers. */
-  label: string
 }
 
 export const HERO_REEL: HeroReel = {
@@ -28,7 +26,6 @@ export const HERO_REEL: HeroReel = {
   // Phoenix's Story's own public poster frame (lib/work-videos.ts, thumbTime 147).
   poster:
     "https://image.mux.com/WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM/thumbnail.webp?width=1920&time=147",
-  label: "A silent reel of moments from Oliver Street Creative films",
 }
 
 export function heroReelSources(reel: HeroReel): { mp4: string | null; hls: string | null } {

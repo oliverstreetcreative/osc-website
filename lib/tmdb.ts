@@ -1,7 +1,7 @@
-// Sam's film credits from TMDB. One home for the key and the fetch, shared by
-// /api/tmdb and the homepage (which now renders the credits on the server, so the
-// strip needs no client JavaScript). The key was already in source; it moved here
-// unchanged.
+// Sam's film credits from TMDB, fetched on the server for the homepage strip (no
+// client JavaScript, and the key never reaches a browser). The key was already in
+// source; it moved here unchanged. The old public /api/tmdb proxy was removed
+// 10/3: nothing used it any more (only the dead app/page-original.tsx).
 
 export const TMDB_API_KEY = "9850560d16d31508eb0478db334923cb"
 export const TMDB_PERSON_ID = "2283538"

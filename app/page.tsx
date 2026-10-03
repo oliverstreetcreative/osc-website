@@ -4,6 +4,7 @@ import { HERO_REEL, heroReelSources } from "@/lib/hero-reel"
 import { creditsFrom, fetchTmdbBundle, type Credit } from "@/lib/tmdb"
 import { SiteFrame, SectionHead } from "@/components/site/SiteFrame"
 import { HeroReel } from "@/components/site/HeroReel"
+import { MuxFacade } from "@/components/site/MuxFacade"
 import { PlayBadge } from "@/app/client/ui"
 
 // ---------------------------------------------------------------------------
@@ -123,7 +124,9 @@ export default async function HomePage() {
       <section className="site-hero" aria-labelledby="hero-title">
         <HeroReel poster={HERO_REEL.poster} mp4={reel.mp4} hls={reel.hls} />
         <div className="site-hero-in">
-          <div className="cs-eyebrow">Covington, KY</div>
+          {/* "Video production" added 10/3: with only a still on screen, the visible first
+              screen never said what OSC makes (adversarial review finding 11). */}
+          <div className="cs-eyebrow">Video production · Covington, KY</div>
           <h1 id="hero-title">
             <span className="sr-only">
               Oliver Street Creative — stories that move hearts, open minds, and build trust. Video production in
@@ -181,6 +184,7 @@ export default async function HomePage() {
                   <p>{HOME_COPY[`body:${p.key}`]}</p>
                   {films.length > 0 ? (
                     <div className="site-minis">
+                      <div className="cs-eyebrow site-minis-label">The work</div>
                       {films.map((v) => (
                         <Link key={v.slug} href={`/work/${v.slug}`} className="site-mini">
                           <img src={still(v.playbackId, v.thumbTime, 320)} alt="" loading="lazy" />
@@ -223,13 +227,17 @@ export default async function HomePage() {
               return (
                 <Link key={v.slug} href={`/work/${v.slug}`} className="site-pcard">
                   <div className="cs-poster">
-                    <img src={still(v.playbackId, v.thumbTime, 960)} alt={`${v.title} - ${v.clientName}`} loading="lazy" />
+                    {/* alt="": the title is right below, inside the same link */}
+                    <img src={still(v.playbackId, v.thumbTime, 960)} alt="" loading="lazy" />
                     {pillar ? <span className="cs-poster-tag">{pillar.label}</span> : null}
                     <PlayBadge />
                   </div>
                   <div className="cs-pcard-body">
                     <h3>{v.title}</h3>
                     <p>{v.client}</p>
+                    <div className="site-logo-row">
+                      <img src={v.clientLogo} alt="" />
+                    </div>
                   </div>
                 </Link>
               )
@@ -253,15 +261,11 @@ export default async function HomePage() {
             lede={<>Here&rsquo;s what a few of our clients said about working with us.</>}
           />
           <div className="site-feature">
-            <div className="cs-player">
-              <iframe
-                src={`https://player.mux.com/${TESTIMONIAL_REEL}?accent-color=%23E07830&start=93&thumbnail_time=93&poster=${encodeURIComponent(still(TESTIMONIAL_REEL, 93, 1280))}`}
-                title="Our clients on working with Oliver Street Creative"
-                loading="lazy"
-                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                allowFullScreen
-              />
-            </div>
+            <MuxFacade
+              src={`https://player.mux.com/${TESTIMONIAL_REEL}?accent-color=%23E07830&start=93&thumbnail_time=93&poster=${encodeURIComponent(still(TESTIMONIAL_REEL, 93, 1280))}`}
+              poster={still(TESTIMONIAL_REEL, 93, 1280)}
+              title="Our clients on working with Oliver Street Creative"
+            />
             <blockquote>
               <p>
                 &ldquo;The partnership with Oliver Street Creative was so valuable in understanding our goals and our values
