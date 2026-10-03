@@ -36,6 +36,8 @@
 .cs .sc-dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
 .cs .sc-save.offline { color: var(--accent); }
 
+.cs .sc-tools { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 0 0; }
+
 /* the document */
 .cs .sc-cols { display: none; }
 .cs .sc-doc { outline: none; font-size: 17px; line-height: 1.55; padding: 8px 0 40px; min-height: 40vh; }

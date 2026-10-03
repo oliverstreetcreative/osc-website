@@ -13,6 +13,8 @@ import { describe, listSuggestions, type SuggestionSummary } from "@/lib/scripts
 import { AvKeys, NodeMarkSync, RESOLVE_META, SuggestMode, emptyRow } from "@/lib/scripts/client/extensions"
 import { ScriptSync } from "@/lib/scripts/client/sync"
 import { History } from "./history"
+import { ApprovePanel, FilesPanel, SettingsPanel, SharePanel } from "./panels"
+import { CommentHighlights, CommentsPanel } from "./comments"
 
 export type EditorProps = {
   scriptId: string
@@ -22,7 +24,12 @@ export type EditorProps = {
   paceWpm: number
   /** A client's script: Sam suggests by default too (v4 #12). */
   clientsWords: boolean
+  /** OSC staff (not viewing as a client). */
+  staff: boolean
+  settings: { status: string; target_seconds: number | null; approvers: string[]; approval: string }
 }
+
+type PanelName = "history" | "comments" | "share" | "settings" | "approve" | "files"
 
 export function ScriptEditor(props: EditorProps) {
   const [generation, setGeneration] = useState(0)
@@ -86,13 +93,15 @@ function Live({
   targetS,
   paceWpm,
   clientsWords,
+  staff,
+  settings,
 }: EditorProps & { sync: ScriptSync; editorRef: React.MutableRefObject<Editor | null> }) {
   const snap = useSyncExternalStore(
     useCallback((fn: () => void) => sync.subscribe(fn), [sync]),
-    () => `${sync.state}|${sync.info?.role ?? ""}|${sync.info?.readOnly ?? ""}|${sync.ended ?? ""}`,
-    () => "connecting|||",
+    () => `${sync.state}|${sync.info?.role ?? ""}|${sync.info?.readOnly ?? ""}|${sync.ended ?? ""}|${sync.commentsVersion}`,
+    () => "connecting||||0",
   )
-  const [state, role, readOnly, ended] = snap.split("|")
+  const [state, role, readOnly, ended, commentsVersion] = snap.split("|")
   const canWrite = !ended && !readOnly && (role === "editor" || role === "suggester")
   const isEditor = role === "editor" && !readOnly && !ended
   const [mode, setMode] = useState<"editing" | "suggesting">(clientsWords ? "suggesting" : "editing")
@@ -101,7 +110,9 @@ function Live({
   suggestingRef.current = suggesting
   const genRef = useRef<(() => string) | null>(null)
   const [hint, setHint] = useState<string | null>(null)
-  const [historyOpen, setHistoryOpen] = useState(false)
+  const [panel, setPanel] = useState<PanelName | null>(null)
+  const toggle = (p: PanelName) => setPanel((cur) => (cur === p ? null : p))
+  const canComment = !ended && !readOnly && role !== "viewer" && role !== ""
 
   const editor = useEditor(
     {
@@ -113,6 +124,7 @@ function Live({
         CollaborationCaret.configure({ provider: { awareness: sync.awareness }, user: { name: "", color: "#8a8780" } }),
         NodeMarkSync,
         AvKeys,
+        CommentHighlights,
         SuggestMode.configure({
           active: () => suggestingRef.current,
           author: () => (sync.info ? { code: sync.info.me.code, clientId: sync.doc.clientID } : null),
@@ -226,12 +238,34 @@ function Live({
             </span>
           ) : null}
           <span className={`sc-save ${state}`}>{ended ? ended : STATUS[state] ?? state}</span>
-          <button type="button" className="cs-btn sm ghost" aria-expanded={historyOpen} onClick={() => setHistoryOpen((o) => !o)}>
-            History
-          </button>
         </div>
       </div>
-      {historyOpen ? <History scriptId={sync.scriptId} canManage={isEditor} onClose={() => setHistoryOpen(false)} /> : null}
+      <div className="sc-tools" role="toolbar" aria-label="Panels">
+        {(
+          [
+            ["comments", "Comments", true],
+            ["history", "History", true],
+            ["share", "Share", isEditor],
+            ["settings", "Settings", isEditor],
+            ["approve", "Approval", true],
+            ["files", "Files", true],
+          ] as [PanelName, string, boolean][]
+        )
+          .filter(([, , show]) => show)
+          .map(([name, label]) => (
+            <button key={name} type="button" className={`cs-btn sm ${panel === name ? "" : "ghost"}`} aria-expanded={panel === name} onClick={() => toggle(name)}>
+              {label}
+            </button>
+          ))}
+      </div>
+      {panel === "history" ? <History scriptId={sync.scriptId} canManage={isEditor} onClose={() => setPanel(null)} /> : null}
+      {panel === "comments" ? (
+        <CommentsPanel scriptId={sync.scriptId} editor={editor} staff={staff} canComment={canComment} bump={Number(commentsVersion)} onClose={() => setPanel(null)} />
+      ) : null}
+      {panel === "share" ? <SharePanel scriptId={sync.scriptId} staff={staff} onClose={() => setPanel(null)} /> : null}
+      {panel === "settings" ? <SettingsPanel scriptId={sync.scriptId} staff={staff} initial={settings} onClose={() => setPanel(null)} /> : null}
+      {panel === "approve" ? <ApprovePanel scriptId={sync.scriptId} pending={view?.pending ?? 0} onClose={() => setPanel(null)} /> : null}
+      {panel === "files" ? <FilesPanel scriptId={sync.scriptId} onClose={() => setPanel(null)} /> : null}
       {hint ? (
         <p className="sc-note" role="status">
           {hint}

@@ -30,6 +30,9 @@ export default async function ScriptPage({ params }: { params: { id: string } })
       pace_wpm: true,
       organization_id: true,
       source: true,
+      status: true,
+      approvers: true,
+      approval: true,
       organization: { select: { name: true, short_name: true } },
     },
   })
@@ -71,6 +74,13 @@ export default async function ScriptPage({ params }: { params: { id: string } })
           targetS={script.target_seconds}
           paceWpm={script.pace_wpm}
           clientsWords={!!script.organization_id || script.source !== null}
+          staff={facts.staff}
+          settings={{
+            status: script.status,
+            target_seconds: script.target_seconds,
+            approvers: Array.isArray(script.approvers) ? script.approvers.filter((e): e is string => typeof e === "string") : [],
+            approval: script.approval,
+          }}
         />
       </main>
     </div>

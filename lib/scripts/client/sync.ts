@@ -34,6 +34,8 @@ export class ScriptSync {
   info: SyncInfo | null = null
   /** The server stopped us: access ended, or the script is gone. */
   ended: string | null = null
+  /** Bumps whenever the server says comments changed (the comments panel re-reads with its own filter). */
+  commentsVersion = 0
 
   private es: EventSource | null = null
   private sub: string | null = null
@@ -125,6 +127,10 @@ export class ScriptSync {
     es.addEventListener("left", (e) => {
       const d = JSON.parse((e as MessageEvent).data)
       if (typeof d.client === "number" && d.client !== this.doc.clientID) removeAwarenessStates(this.awareness, [d.client], "remote")
+    })
+    es.addEventListener("comments", () => {
+      this.commentsVersion++
+      this.emit()
     })
     es.addEventListener("revoked", () => {
       this.ended = "Your access to this script has ended."

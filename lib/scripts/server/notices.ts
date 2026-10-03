@@ -24,8 +24,15 @@ async function audienceOf(scriptId: string, internal: boolean): Promise<string[]
   return [...ids]
 }
 
+const recent = new Map<string, number>() // script|kind|actor → last time recorded (typing sends many updates)
+
 /** Record that something happened (one pending notice per person, script and kind; the batch counts the rest). */
 export async function notify(scriptId: string, kind: NoticeKind, actorId: string, opts: { internal?: boolean } = {}) {
+  const key = `${scriptId}|${kind}|${actorId}|${opts.internal ? 1 : 0}`
+  const now = Date.now()
+  if (now - (recent.get(key) ?? 0) < 60_000) return
+  recent.set(key, now)
+  if (recent.size > 5000) recent.clear()
   const people = (await audienceOf(scriptId, !!opts.internal)).filter((p) => p !== actorId)
   for (const person_id of people) {
     const pending = await db.scriptNotice.findFirst({ where: { person_id, script_id: scriptId, kind, sent_at: null }, select: { id: true } })

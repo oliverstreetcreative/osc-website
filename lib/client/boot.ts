@@ -26,6 +26,9 @@ export async function boot() {
       const { importPendingScripts } = await import("../scripts/server/importer")
       await importPendingScripts().catch((err) => console.error("scripts: import pickup failed", err))
     }
+    // Script notices: at most one email per person per 15 minutes (SPEC §14).
+    const { sendDueNotices } = await import("../scripts/server/notices")
+    await sendDueNotices().catch((err) => console.error("scripts: notices failed", err))
   }
   setTimeout(run, 2_000)
   setInterval(run, 5 * 60_000).unref?.()

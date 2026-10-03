@@ -10,6 +10,7 @@ import { atLeast, bindClients, roleOf, sessionFacts } from "@/lib/scripts/server
 import { catchUp, commit, fromB64, withLive } from "@/lib/scripts/server/registry"
 import { checkUpdate, updateClients } from "@/lib/scripts/guard"
 import { maybeAutosave } from "@/lib/scripts/server/versions"
+import { notify } from "@/lib/scripts/server/notices"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -57,5 +58,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     console.warn(`scripts: refused an update on ${id} from ${facts.person.code}: ${result.refused}`)
     return NextResponse.json({ refused: true, why: result.refused }, { status: 409 })
   }
+  // A suggestion is news for the script's people (batched: one pending notice per person, script and kind).
+  if (suggester) notify(id, "suggestion", facts.person.id).catch((err) => console.error("scripts: notice failed", err))
   return NextResponse.json(result)
 }
