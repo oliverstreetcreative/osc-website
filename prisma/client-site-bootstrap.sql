@@ -477,6 +477,163 @@ CREATE TABLE "project_requests" (
     CONSTRAINT "project_requests_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "scripts" (
+    "id" UUID NOT NULL,
+    "organization_id" UUID,
+    "project_id" UUID,
+    "deliverable_id" UUID,
+    "job" TEXT,
+    "title" TEXT NOT NULL,
+    "format" TEXT NOT NULL DEFAULT 'av',
+    "target_seconds" INTEGER,
+    "pace_wpm" INTEGER NOT NULL DEFAULT 150,
+    "reader" TEXT,
+    "audience" TEXT NOT NULL DEFAULT 'office',
+    "status" TEXT NOT NULL DEFAULT 'draft',
+    "canonical" TEXT NOT NULL DEFAULT 'dropbox',
+    "read_only" BOOLEAN NOT NULL DEFAULT false,
+    "shoot_version" INTEGER,
+    "approvers" JSONB,
+    "approval" TEXT NOT NULL DEFAULT 'any',
+    "source" JSONB,
+    "created_by" UUID NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+    "archived_at" TIMESTAMP(3),
+
+    CONSTRAINT "scripts_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "script_updates" (
+    "id" BIGSERIAL NOT NULL,
+    "script_id" UUID NOT NULL,
+    "update" BYTEA NOT NULL,
+    "person_id" UUID NOT NULL,
+    "client_id" BIGINT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "script_updates_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "script_snapshots" (
+    "id" UUID NOT NULL,
+    "script_id" UUID NOT NULL,
+    "upto_id" BIGINT NOT NULL,
+    "state" BYTEA NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "script_snapshots_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "script_clients" (
+    "script_id" UUID NOT NULL,
+    "client_id" BIGINT NOT NULL,
+    "person_id" UUID NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "script_clients_pkey" PRIMARY KEY ("script_id","client_id")
+);
+
+-- CreateTable
+CREATE TABLE "script_versions" (
+    "id" UUID NOT NULL,
+    "script_id" UUID NOT NULL,
+    "n" INTEGER NOT NULL,
+    "name" TEXT,
+    "kind" TEXT NOT NULL,
+    "upto_id" BIGINT NOT NULL,
+    "state" BYTEA NOT NULL,
+    "text" TEXT NOT NULL,
+    "rows" JSONB NOT NULL,
+    "total_seconds" DOUBLE PRECISION,
+    "authors" JSONB NOT NULL,
+    "created_by" UUID,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "script_versions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "script_access" (
+    "id" UUID NOT NULL,
+    "script_id" UUID NOT NULL,
+    "person_id" UUID,
+    "organization_id" UUID,
+    "email" TEXT,
+    "role" TEXT NOT NULL,
+    "invited_by" UUID NOT NULL,
+    "invited_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "accepted_at" TIMESTAMP(3),
+    "revoked_at" TIMESTAMP(3),
+    "expires_at" TIMESTAMP(3),
+
+    CONSTRAINT "script_access_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "script_invites" (
+    "id" UUID NOT NULL,
+    "access_id" UUID NOT NULL,
+    "token_hash" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expires_at" TIMESTAMP(3) NOT NULL,
+    "spent_at" TIMESTAMP(3),
+
+    CONSTRAINT "script_invites_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "script_comments" (
+    "id" UUID NOT NULL,
+    "script_id" UUID NOT NULL,
+    "thread_id" UUID NOT NULL,
+    "parent_id" UUID,
+    "author_id" UUID NOT NULL,
+    "body" TEXT NOT NULL,
+    "anchor" JSONB,
+    "quote" TEXT,
+    "suggestion" TEXT,
+    "audience" TEXT NOT NULL DEFAULT 'office',
+    "resolved_at" TIMESTAMP(3),
+    "resolved_by" UUID,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "script_comments_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "script_approvals" (
+    "id" UUID NOT NULL,
+    "script_id" UUID NOT NULL,
+    "version_n" INTEGER NOT NULL,
+    "text_sha256" TEXT NOT NULL,
+    "person_id" UUID NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "ip" TEXT,
+    "user_agent" TEXT,
+    "note" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "script_approvals_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "script_notices" (
+    "id" UUID NOT NULL,
+    "person_id" UUID NOT NULL,
+    "script_id" UUID NOT NULL,
+    "kind" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "sent_at" TIMESTAMP(3),
+
+    CONSTRAINT "script_notices_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "people_email_key" ON "people"("email");
 
@@ -627,6 +784,54 @@ CREATE UNIQUE INDEX "documents_ext_key_key" ON "documents"("ext_key");
 -- CreateIndex
 CREATE INDEX "documents_organization_id_idx" ON "documents"("organization_id");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "project_requests_form_key_key" ON "project_requests"("form_key");
+
+-- CreateIndex
+CREATE INDEX "project_requests_organization_id_idx" ON "project_requests"("organization_id");
+
+-- CreateIndex
+CREATE INDEX "project_requests_status_idx" ON "project_requests"("status");
+
+-- CreateIndex
+CREATE INDEX "scripts_organization_id_idx" ON "scripts"("organization_id");
+
+-- CreateIndex
+CREATE INDEX "scripts_project_id_idx" ON "scripts"("project_id");
+
+-- CreateIndex
+CREATE INDEX "script_updates_script_id_id_idx" ON "script_updates"("script_id", "id");
+
+-- CreateIndex
+CREATE INDEX "script_snapshots_script_id_upto_id_idx" ON "script_snapshots"("script_id", "upto_id");
+
+-- CreateIndex
+CREATE INDEX "script_clients_person_id_idx" ON "script_clients"("person_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "script_versions_script_id_n_key" ON "script_versions"("script_id", "n");
+
+-- CreateIndex
+CREATE INDEX "script_access_script_id_idx" ON "script_access"("script_id");
+
+-- CreateIndex
+CREATE INDEX "script_access_person_id_idx" ON "script_access"("person_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "script_invites_token_hash_key" ON "script_invites"("token_hash");
+
+-- CreateIndex
+CREATE INDEX "script_invites_access_id_idx" ON "script_invites"("access_id");
+
+-- CreateIndex
+CREATE INDEX "script_comments_script_id_thread_id_idx" ON "script_comments"("script_id", "thread_id");
+
+-- CreateIndex
+CREATE INDEX "script_approvals_script_id_idx" ON "script_approvals"("script_id");
+
+-- CreateIndex
+CREATE INDEX "script_notices_person_id_sent_at_idx" ON "script_notices"("person_id", "sent_at");
+
 -- AddForeignKey
 ALTER TABLE "projects" ADD CONSTRAINT "projects_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
@@ -729,17 +934,56 @@ ALTER TABLE "documents" ADD CONSTRAINT "documents_organization_id_fkey" FOREIGN 
 -- AddForeignKey
 ALTER TABLE "documents" ADD CONSTRAINT "documents_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
--- CreateIndex
-CREATE UNIQUE INDEX "project_requests_form_key_key" ON "project_requests"("form_key");
-
--- CreateIndex
-CREATE INDEX "project_requests_organization_id_idx" ON "project_requests"("organization_id");
-
--- CreateIndex
-CREATE INDEX "project_requests_status_idx" ON "project_requests"("status");
-
 -- AddForeignKey
 ALTER TABLE "project_requests" ADD CONSTRAINT "project_requests_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "project_requests" ADD CONSTRAINT "project_requests_person_id_fkey" FOREIGN KEY ("person_id") REFERENCES "people"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "scripts" ADD CONSTRAINT "scripts_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "scripts" ADD CONSTRAINT "scripts_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "scripts" ADD CONSTRAINT "scripts_deliverable_id_fkey" FOREIGN KEY ("deliverable_id") REFERENCES "deliverables"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "script_updates" ADD CONSTRAINT "script_updates_script_id_fkey" FOREIGN KEY ("script_id") REFERENCES "scripts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "script_snapshots" ADD CONSTRAINT "script_snapshots_script_id_fkey" FOREIGN KEY ("script_id") REFERENCES "scripts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "script_clients" ADD CONSTRAINT "script_clients_script_id_fkey" FOREIGN KEY ("script_id") REFERENCES "scripts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "script_clients" ADD CONSTRAINT "script_clients_person_id_fkey" FOREIGN KEY ("person_id") REFERENCES "people"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "script_versions" ADD CONSTRAINT "script_versions_script_id_fkey" FOREIGN KEY ("script_id") REFERENCES "scripts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "script_access" ADD CONSTRAINT "script_access_script_id_fkey" FOREIGN KEY ("script_id") REFERENCES "scripts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "script_access" ADD CONSTRAINT "script_access_person_id_fkey" FOREIGN KEY ("person_id") REFERENCES "people"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "script_access" ADD CONSTRAINT "script_access_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "script_invites" ADD CONSTRAINT "script_invites_access_id_fkey" FOREIGN KEY ("access_id") REFERENCES "script_access"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "script_comments" ADD CONSTRAINT "script_comments_script_id_fkey" FOREIGN KEY ("script_id") REFERENCES "scripts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "script_approvals" ADD CONSTRAINT "script_approvals_script_id_fkey" FOREIGN KEY ("script_id") REFERENCES "scripts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "script_notices" ADD CONSTRAINT "script_notices_person_id_fkey" FOREIGN KEY ("person_id") REFERENCES "people"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "script_notices" ADD CONSTRAINT "script_notices_script_id_fkey" FOREIGN KEY ("script_id") REFERENCES "scripts"("id") ON DELETE CASCADE ON UPDATE CASCADE;

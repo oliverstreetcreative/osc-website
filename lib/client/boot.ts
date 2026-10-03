@@ -20,6 +20,12 @@ export async function boot() {
     await syncBooks().catch((err) => console.error("client-site: sync failed", err))
     // "Start a new project" requests: retry delivery to the intake queue, notice pickups (SPEC §17).
     await deliverRequests().catch((err) => console.error("client-site: request delivery failed", err))
+    // Scripts (SPEC §14): STAGING picks up import files from Dropbox (the rehearsal; production imports through the
+    // staff endpoint once Sam puts Scripts on the live site).
+    if (IS_STAGING) {
+      const { importPendingScripts } = await import("../scripts/server/importer")
+      await importPendingScripts().catch((err) => console.error("scripts: import pickup failed", err))
+    }
   }
   setTimeout(run, 2_000)
   setInterval(run, 5 * 60_000).unref?.()
