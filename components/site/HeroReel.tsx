@@ -25,10 +25,14 @@ type Props = {
   startAt?: number
 }
 
+// Can this browser, at this width, play at least one source? (A source whose media query
+// doesn't match is one the browser will skip, so it doesn't count.)
 function playable(sources: ReelSource[]): boolean {
   if (typeof document === "undefined" || sources.length === 0) return false
   const probe = document.createElement("video")
-  return sources.some((s) => probe.canPlayType(s.type) !== "")
+  return sources.some(
+    (s) => (!s.media || (window.matchMedia?.(s.media).matches ?? true)) && probe.canPlayType(s.type) !== "",
+  )
 }
 
 function quietByChoice(): boolean {
@@ -98,11 +102,14 @@ export function HeroReel({ poster, sources, startAt }: Props) {
 
   return (
     <div ref={box} className="site-reel">
+      {/* srcSet and sizes BEFORE src: React sets attributes in prop order on a client
+          render, and Safari would start fetching src before it saw the srcset (the same
+          reason next/image puts src last). */}
       <img
         className="site-reel-poster"
-        src={poster.src}
         srcSet={poster.srcSet}
         sizes={poster.srcSet ? "100vw" : undefined}
+        src={poster.src}
         alt=""
         decoding="async"
         fetchPriority="high"
@@ -130,8 +137,22 @@ export function HeroReel({ poster, sources, startAt }: Props) {
           }}
           onPause={() => setPaused(true)}
         >
-          {sources.map((s) => (
-            <source key={s.src + (s.media ?? "")} src={s.src + frag} type={s.type} media={s.media} />
+          {sources.map((s, i) => (
+            <source
+              key={s.src + (s.media ?? "")}
+              src={s.src + frag}
+              type={s.type}
+              media={s.media}
+              // the last source failing means none could play: back to the still, no button
+              onError={
+                i === sources.length - 1
+                  ? () => {
+                      setMounted(false)
+                      setCanPlay(false)
+                    }
+                  : undefined
+              }
+            />
           ))}
         </video>
       ) : null}

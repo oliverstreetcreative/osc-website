@@ -83,5 +83,8 @@ export function heroReelSources(reel: HeroReel): ReelSource[] {
     ...hlsSources(reel.playbackId),
     { src: mp4(reel.mp4.narrow), type: "video/mp4", media: NARROW },
     { src: mp4(reel.mp4.wide), type: "video/mp4" },
+    // last resort at any width, in case the 1080p file is missing (a render under 1080
+    // gets no 1080p rendition from Mux): a soft reel beats a dead Play button
+    { src: mp4(reel.mp4.narrow), type: "video/mp4" },
   ]
 }
