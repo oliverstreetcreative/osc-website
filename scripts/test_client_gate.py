@@ -232,6 +232,42 @@ class GateTest(unittest.TestCase):
         # A second undo finds the item changed since (it's back to the old text): nothing is clobbered.
         self.assertIn("put back 0", self.gate("undo", "acme", "--at", at, "--by", "Sam").stdout)
 
+    # --- team contacts (SPEC §21 v2): OSC's details or cleared by Sam; the +1 form is caught ---
+    def team_book(self, member, status=None):
+        b = book([version(1)])
+        b["projects"][0]["team"] = [member]
+        if status:
+            b["projects"][0]["status_line"] = status
+        self.write_draft(b)
+        return b
+
+    def test_team_with_osc_contacts_lints_clean(self):
+        self.team_book({"name": "Sam Patton", "role": "Director", "email": "sam@oliverstreetcreative.com",
+                        "phone": "+18595121419"})
+        r = self.gate("lint", "acme")
+        self.assertEqual(r.returncode, 0, r.stdout)
+
+    def test_freelancer_contacts_need_clearing(self):
+        self.team_book({"name": "Pat Gaffer", "role": "Gaffer", "email": "pat@gmail.com", "phone": "513-555-1234"})
+        r = self.gate("lint", "acme")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("pat@gmail.com", r.stdout)
+        self.assertIn("513-555-1234", r.stdout)
+        for value in ("pat@gmail.com", "(513) 555 1234"):  # cleared in any format, matched in any format
+            c = self.gate("clear-contact", "--person", "Pat Gaffer", "--value", value, "--by", "Sam", "--ticket", "T9")
+            self.assertEqual(c.returncode, 0, c.stderr)
+        self.assertEqual(self.gate("lint", "acme").returncode, 0)
+
+    def test_e164_phone_in_text_is_caught(self):
+        self.team_book({"name": "Sam Patton", "role": "Director"}, status="Questions? Call +15135551234.")
+        r = self.gate("lint", "acme")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("+15135551234", r.stdout)
+
+    def test_no_personal_address_on_a_team_card(self):
+        self.team_book({"name": "Sam Patton", "role": "Director", "address": "12 Main St"})
+        self.assertIn("no personal addresses", self.gate("lint", "acme").stdout)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)
