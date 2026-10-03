@@ -61,7 +61,7 @@ export default async function Billing() {
                     <strong>{money(inv.amount)}</strong>
                     <span className={`cs-status ${late ? "late" : "due"}`}>{relativeDue(inv.due_on)}</span>
                   </span>
-                  {inv.pay_url ? (
+                  {inv.pay_url && !onlyPay ? (
                     <a className="cs-btn sm" style={{ width: "100%" }} href={inv.pay_url} target="_blank" rel="noopener">Pay online (bank transfer or card)</a>
                   ) : null}
                 </div>
@@ -71,6 +71,7 @@ export default async function Billing() {
         </section>
       ) : null}
 
+      {paid.length || !open.length ? (
       <section className="cs-section">
         <SectionTitle>Paid</SectionTitle>
         {paid.length ? (
@@ -95,6 +96,7 @@ export default async function Billing() {
           <div className="cs-card cs-empty">No paid invoices yet.</div>
         )}
       </section>
+      ) : null}
 
       {vendorDocs.length ? (
         <section className="cs-section">

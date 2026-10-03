@@ -58,17 +58,17 @@ export async function needsYou(orgId: string, projects: ProjectWithAll[]) {
   for (const inv of invoices) {
     if (inv.status !== "open") continue
     const n = inv.due_on ? daysFromToday(inv.due_on) : 0
-    items.push({ kind: "invoice", urgency: n < 0 ? 0 : 10 + n, invoice: inv })
+    items.push({ kind: "invoice", urgency: Math.max(0, n), invoice: inv })
   }
   const today = todayUTC()
   for (const p of projects) {
     for (const s of p.shoot_periods) {
       if (s.end_date >= today && daysFromToday(s.start_date) <= 21) {
-        items.push({ kind: "shoot", urgency: 5 + daysFromToday(s.start_date), project: p, shoot: s })
+        items.push({ kind: "shoot", urgency: Math.max(1, daysFromToday(s.start_date)), project: p, shoot: s })
       }
     }
     for (const f of p.deliverables) {
-      if (!f.delivered_at && f.review_url) items.push({ kind: "review", urgency: 3, project: p, film: f })
+      if (!f.delivered_at && f.review_url) items.push({ kind: "review", urgency: 2, project: p, film: f })
     }
   }
   return items.sort((a, b) => a.urgency - b.urgency)

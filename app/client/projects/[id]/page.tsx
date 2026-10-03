@@ -73,6 +73,9 @@ export default async function ProjectPage({ params }: { params: { id: string } }
                             {[f.version_label, duration(f.duration_s), f.delivered_at ? `Delivered ${day(f.delivered_at)}` : null].filter(Boolean).join(" · ")}
                           </p>
                           {f.description ? <p className="cs-film-desc">{f.description}</p> : null}
+                          {f.review_url && !f.delivered_at ? (
+                            <a className="cs-btn" style={{ marginTop: 14, width: "100%" }} href={f.review_url} target="_blank" rel="noopener">Review this cut</a>
+                          ) : null}
                           {downloads.length || f.watch_url ? (
                             <div className="cs-dl">
                               {f.watch_url && !f.file_path && !f.mux_playback_id ? (
@@ -182,7 +185,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
 }
 
 function FilmPlayer({ f, project, orgName }: {
-  f: { id: string; name: string; mux_playback_id: string | null; poster_time: number | null; file_path: string | null; poster_path: string | null; aspect: string | null; watch_url: string | null }
+  f: { id: string; name: string; mux_playback_id: string | null; poster_time: number | null; file_path: string | null; poster_path: string | null; aspect: string | null; watch_url: string | null; review_url: string | null }
   project: Parameters<typeof PosterImage>[0]["project"]
   orgName: string
 }) {
@@ -210,11 +213,12 @@ function FilmPlayer({ f, project, orgName }: {
       </div>
     )
   }
+  const link = f.watch_url ?? f.review_url
   return (
-    <a className="cs-poster" href={f.watch_url ?? undefined} target="_blank" rel="noopener" style={{ display: "block" }}>
+    <a className="cs-poster" href={link ?? undefined} target="_blank" rel="noopener" style={{ display: "block" }}>
       <PosterImage project={{ ...project, name: f.name }} orgName={orgName} />
-      {f.watch_url ? <span className="cs-poster-tag">Watch on Frame.io</span> : null}
-      {f.watch_url ? <span className="cs-play" aria-hidden><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></span> : null}
+      {link ? <span className="cs-poster-tag">{f.watch_url ? "Watch on Frame.io" : "Review on Frame.io"}</span> : null}
+      {link ? <span className="cs-play" aria-hidden><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></span> : null}
     </a>
   )
 }

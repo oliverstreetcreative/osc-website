@@ -20,13 +20,14 @@ export default async function CalendarPage() {
   const webcal = `webcal://${host}/calendar/${person!.calendar_token}.ics`
   const https = `${origin}/calendar/${person!.calendar_token}.ics`
   const google = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal)}`
-  const upcoming = (await eventsForPerson(ctx.user.id, ctx.user.is_staff)).filter((e) => e.date >= todayUTC()).slice(0, 8)
+  const upcoming = (await eventsForPerson(ctx.user.id, ctx.user.is_staff)).filter((e) => e.date > todayUTC() || (e.id.startsWith("shoot-") && e.date >= todayUTC()))
+    .slice(0, 8)
 
   return (
     <main className="cs-main">
       <p className="cs-eyebrow">Your calendar</p>
       <h1 className="cs-title" style={{ marginTop: 6 }}>Every date, in your calendar</h1>
-      <p className="cs-lede">Subscribe once. Filming days, call times and due dates show up in your own calendar, and change there when they change here. Each one links back to this site.</p>
+      <p className="cs-lede" style={{ marginTop: 12 }}>Subscribe once. Filming days, call times and due dates show up in your own calendar, and change there when they change here. Each one links back to this site.</p>
 
       <section className="cs-section" style={{ marginTop: 22 }}>
         <div className="cs-card cs-pad" style={{ display: "grid", gap: 10 }}>
