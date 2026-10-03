@@ -62,9 +62,31 @@ export function openLive(id: string): Promise<Live> {
   return p
 }
 
-/** Run `fn` with the script's live document, one call at a time per script. */
+/** Run `fn` with the script's live document, one call at a time per script. A script nobody is subscribed to (opened
+ *  only by an export, the hub, history) is evicted 10 minutes after its last use, like one everyone has left. */
 export async function withLive<T>(id: string, fn: (l: Live) => Promise<T>): Promise<T> {
   const l = await openLive(id)
+  const run = l.lock.then(() => fn(l))
+  l.lock = run.catch(() => undefined)
+  run.finally(() => scheduleEviction(l)).catch(() => undefined)
+  return run
+}
+
+function scheduleEviction(l: Live) {
+  if (l.subs.size) return
+  if (l.evict) clearTimeout(l.evict)
+  l.evict = setTimeout(() => {
+    withLiveRaw(l, async (x) => {
+      if (x.subs.size) return
+      await snapshot(x).catch(() => undefined)
+      if (x.subs.size) return // someone arrived while it saved: keep it (check and delete run with no await between)
+      registry.delete(x.id)
+    }).catch(() => undefined)
+  }, EVICT_AFTER_MS)
+}
+
+/** withLive on an entry already in hand, without re-arming its eviction (the eviction itself uses it). */
+function withLiveRaw<T>(l: Live, fn: (l: Live) => Promise<T>): Promise<T> {
   const run = l.lock.then(() => fn(l))
   l.lock = run.catch(() => undefined)
   return run
@@ -136,13 +158,7 @@ export function unsubscribe(l: Live, subId: string) {
     clearInterval(l.poll)
     l.poll = null
   }
-  l.evict = setTimeout(() => {
-    withLive(l.id, async (x) => {
-      if (x.subs.size) return
-      await snapshot(x).catch(() => undefined)
-      registry.delete(x.id)
-    }).catch(() => undefined)
-  }, EVICT_AFTER_MS)
+  scheduleEviction(l)
 }
 
 /** Everyone currently here (their latest awareness updates), for a newcomer. */
