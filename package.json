@@ -7,8 +7,7 @@
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start",
-    "postinstall": "prisma generate",
-    "publish:portal": "tsx scripts/publish.ts"
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@handlewithcare/prosemirror-suggest-changes": "0.1.8",

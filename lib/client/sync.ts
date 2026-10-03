@@ -328,5 +328,12 @@ export async function applyBook(book: Book) {
     await db.document.upsert({ where: { ext_key: ext }, create: { ext_key: ext, ...data }, update: data })
     keepDocs.push(ext)
   }
-  await db.document.updateMany({ where: { organization_id: org.id, ext_key: { notIn: keepDocs } }, data: { hidden: true } })
+  // Only rows the BOOK owns (ext_key "<org>/<key>") are hidden here: a document born in the portal (an approval
+  // receipt, a script export) has its own key and is never the sync's to touch (migration review 10/3: one writer per
+  // fact). Invoices and memberships are still book-owned whole families; when portal-born rows of either exist, give
+  // them the same treatment first.
+  await db.document.updateMany({
+    where: { organization_id: org.id, ext_key: { startsWith: prefix, notIn: keepDocs } },
+    data: { hidden: true },
+  })
 }
