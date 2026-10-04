@@ -374,8 +374,12 @@ def lint_item(key, content, org, items=None):
     return sorted(set(problems))
 
 
+FILM_ASKS = ("none", "notes", "ok")
+
+
 def film_problems(film, items):
-    """Who may approve a film is said by the book (gated), never inferred from a role."""
+    """Who may approve a film is said by the book (gated), never inferred from a role. SPEC §13 v4: a Review link
+    carries its asset id (versions are read live from Review), and asking for an OK needs approvers and that link."""
     out = []
     people = {k.split(":", 1)[1] for k in items if k.startswith("person:")}
     for e in film.get("approvers", []) or []:
@@ -383,6 +387,17 @@ def film_problems(film, items):
             out.append(f"approver {e} isn't one of this client's people in the book")
     if film.get("approval") not in (None, "any", "all"):
         out.append('approval must be "any" or "all"')
+    url = film.get("review_url") or ""
+    if url and REVIEW_SHARE.match(url) and not UUIDISH.match(str(film.get("review_asset_id", ""))):
+        out.append("a Review link needs its review_asset_id (the shared asset's id)")
+    ask = film.get("ask")
+    if ask is not None and ask not in FILM_ASKS:
+        out.append(f'ask must be one of {", ".join(FILM_ASKS)}')
+    if ask == "ok":
+        if not film.get("approvers"):
+            out.append('asking for an OK needs the film\'s approvers list')
+        if not REVIEW_SHARE.match(url):
+            out.append("asking for an OK needs the film's Review link (review_url)")
     return out
 
 

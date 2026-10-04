@@ -4,10 +4,11 @@
 // already drains; "picked up" = the file has left _new/.
 import { randomBytes } from "crypto"
 import { promises as fs } from "fs"
-import { dirname, join } from "path"
+import { join } from "path"
 import { db } from "@/lib/db"
 import { getDropboxAccessToken } from "@/lib/dropbox-auth"
 import { KINDS } from "@/lib/estimator/constants"
+import { asciiJson, writeNewFile } from "./dropbox-write"
 import type { ClientContext } from "./context"
 import { todayUTC } from "./format"
 import { IS_PRODUCTION } from "@/lib/site-env"
@@ -196,46 +197,7 @@ export async function createRequest(ctx: ClientContext, input: RequestInput): Pr
 // ---------------------------------------------------------------- delivery
 
 const queueName = (id: string, created: Date) => `${created.toISOString().slice(0, 10)}_start-a-project_${id.replace(/-/g, "")}.json`
-const asciiJson = (o: unknown) =>
-  JSON.stringify(o).replace(/[\u007f-￿]/g, (c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"))
-
-async function writeQueueFile(path: string, body: string): Promise<"written" | "exists" | string> {
-  const localRoot = process.env.DROPBOX_LOCAL_ROOT?.trim()
-  if (localRoot) {
-    const full = join(localRoot, path.replace(/^\//, ""))
-    try {
-      await fs.mkdir(dirname(full), { recursive: true })
-      await fs.writeFile(full, body, { flag: "wx" })
-      return "written"
-    } catch (e) {
-      return (e as NodeJS.ErrnoException)?.code === "EEXIST" ? "exists" : String((e as Error)?.message ?? e)
-    }
-  }
-  const token = await getDropboxAccessToken()
-  if (!token) return "Dropbox is not configured"
-  const prefix = process.env.DROPBOX_ROOT_PREFIX?.trim() ?? ""
-  try {
-    const res = await fetch("https://content.dropboxapi.com/2/files/upload", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        // A fixed name and no autorename: a retry after a timeout that actually landed can't duplicate it.
-        "Dropbox-API-Arg": asciiJson({ path: `${prefix}${path}`, mode: "add", autorename: false, mute: true, strict_conflict: false }),
-        "Content-Type": "application/octet-stream",
-      },
-      body,
-      cache: "no-store",
-      signal: AbortSignal.timeout(DROPBOX_TIMEOUT_MS),
-    })
-    if (res.ok) return "written"
-    const text = await res.text()
-    // Only "a FILE is already at this path" means it's there; folder conflicts and the rest are real errors.
-    if (res.status === 409 && /path\/conflict\/file/.test(text)) return "exists"
-    return `Dropbox ${res.status}: ${text.slice(0, 200)}`
-  } catch (e) {
-    return String((e as Error)?.message ?? e)
-  }
-}
+const writeQueueFile = writeNewFile // add-only, shared with the approvals ledger and script exports (dropbox-write.ts)
 
 /** true = still waiting in _new/, false = gone (picked up), null = couldn't tell. */
 async function stillInQueue(path: string): Promise<boolean | null> {

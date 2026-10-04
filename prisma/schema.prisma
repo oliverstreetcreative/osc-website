@@ -213,6 +213,12 @@ model Deliverable {
   version_label   String?
   watch_url       String?
   review_url      String?
+  // SPEC §13 v4: the Review share link's asset (versions are read live from Review), who approves, and what Sam asks
+  review_asset_id String?
+  approvers       Json? // emails (gated: book people only)
+  approval        String    @default("any") // any | all
+  ask             String    @default("none") // none | notes | ok
+  version_approvals VersionApproval[]
   downloads       Json?
   delivered_at    DateTime?
   sort            Int       @default(0)
@@ -758,6 +764,47 @@ model ProjectRequest {
   @@index([organization_id])
   @@index([status])
   @@map("project_requests")
+}
+
+// ---------------------------------------------------------------------------
+// The approval of record for a cut (SPEC §13 v4): FROZEN at the moment of
+// approval, bound to the exact Review version the client watched. Never
+// edited; withdrawing is Sam's explicit act (withdrawn_at). The ledger file in
+// Dropbox (_admin/client-site/ledger/approvals/) is what the publish gate's
+// lock reads; it is written after the row, retried until it lands.
+// ---------------------------------------------------------------------------
+model VersionApproval {
+  id                String      @id @default(uuid()) @db.Uuid
+  deliverable_id    String      @db.Uuid
+  organization_id   String      @db.Uuid
+  job               String?
+  film_key          String // the book's film key
+  film_title        String
+  review_asset_id   String
+  review_version_id String
+  review_version_n  Int
+  review_posted_at  DateTime?
+  version_label     String? // Sam's v-number from the book ("v4")
+  filename          String?
+  checksum          String?
+  person_id         String      @db.Uuid
+  name              String
+  email             String
+  org_name          String
+  member_role       String // their role with the client at the time
+  note              String?
+  how               String      @default("portal") // portal | email (recorded by staff)
+  ip                String?
+  user_agent        String?
+  approved_at       DateTime    @default(now())
+  ledger_path       String?
+  ledger_written_at DateTime?
+  withdrawn_at      DateTime?
+  deliverable       Deliverable @relation(fields: [deliverable_id], references: [id], onDelete: Restrict)
+
+  @@unique([deliverable_id, review_version_id, person_id])
+  @@index([organization_id])
+  @@map("version_approvals")
 }
 
 // ---------------------------------------------------------------------------

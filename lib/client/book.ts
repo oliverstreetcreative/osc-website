@@ -47,6 +47,11 @@ const Film = z.object({
   aspect: z.string().optional(), // "16/9" (default), "1820/580"
   watch_url: https.optional(),
   review_url: https.optional(),
+  // SPEC §13 v4: the Review link's asset (versions are read live from Review), who approves, what Sam asks for now.
+  review_asset_id: z.string().uuid().optional().catch(undefined),
+  approvers: z.array(z.string().email()).default([]).catch([]),
+  approval: z.enum(["any", "all"]).default("any").catch("any"),
+  ask: z.enum(["none", "notes", "ok"]).default("none").catch("none"),
   downloads: z.array(Download).default([]),
   description: z.string().optional(),
 })

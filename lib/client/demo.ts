@@ -137,6 +137,7 @@ export function demoBook(today = new Date()): Book {
             mux_playback_id: report.playbackId,
             poster_time: report.thumbTime,
             review_url: DEMO_LINK,
+            ask: "notes", // §13: a cut shows in Needs you only when Sam asks
             description: `Sample film: our ${report.title} for the ${report.clientName}, standing in for a cut in review.`,
           },
         ],

@@ -116,6 +116,10 @@ CREATE TABLE "deliverables" (
     "version_label" TEXT,
     "watch_url" TEXT,
     "review_url" TEXT,
+    "review_asset_id" TEXT,
+    "approvers" JSONB,
+    "approval" TEXT NOT NULL DEFAULT 'any',
+    "ask" TEXT NOT NULL DEFAULT 'none',
     "downloads" JSONB,
     "delivered_at" TIMESTAMP(3),
     "sort" INTEGER NOT NULL DEFAULT 0,
@@ -478,6 +482,38 @@ CREATE TABLE "project_requests" (
 );
 
 -- CreateTable
+CREATE TABLE "version_approvals" (
+    "id" UUID NOT NULL,
+    "deliverable_id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
+    "job" TEXT,
+    "film_key" TEXT NOT NULL,
+    "film_title" TEXT NOT NULL,
+    "review_asset_id" TEXT NOT NULL,
+    "review_version_id" TEXT NOT NULL,
+    "review_version_n" INTEGER NOT NULL,
+    "review_posted_at" TIMESTAMP(3),
+    "version_label" TEXT,
+    "filename" TEXT,
+    "checksum" TEXT,
+    "person_id" UUID NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "org_name" TEXT NOT NULL,
+    "member_role" TEXT NOT NULL,
+    "note" TEXT,
+    "how" TEXT NOT NULL DEFAULT 'portal',
+    "ip" TEXT,
+    "user_agent" TEXT,
+    "approved_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "ledger_path" TEXT,
+    "ledger_written_at" TIMESTAMP(3),
+    "withdrawn_at" TIMESTAMP(3),
+
+    CONSTRAINT "version_approvals_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "scripts" (
     "id" UUID NOT NULL,
     "organization_id" UUID,
@@ -794,6 +830,12 @@ CREATE INDEX "project_requests_organization_id_idx" ON "project_requests"("organ
 CREATE INDEX "project_requests_status_idx" ON "project_requests"("status");
 
 -- CreateIndex
+CREATE INDEX "version_approvals_organization_id_idx" ON "version_approvals"("organization_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "version_approvals_deliverable_id_review_version_id_person_i_key" ON "version_approvals"("deliverable_id", "review_version_id", "person_id");
+
+-- CreateIndex
 CREATE INDEX "scripts_organization_id_idx" ON "scripts"("organization_id");
 
 -- CreateIndex
@@ -939,6 +981,9 @@ ALTER TABLE "project_requests" ADD CONSTRAINT "project_requests_organization_id_
 
 -- AddForeignKey
 ALTER TABLE "project_requests" ADD CONSTRAINT "project_requests_person_id_fkey" FOREIGN KEY ("person_id") REFERENCES "people"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "version_approvals" ADD CONSTRAINT "version_approvals_deliverable_id_fkey" FOREIGN KEY ("deliverable_id") REFERENCES "deliverables"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "scripts" ADD CONSTRAINT "scripts_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE SET NULL ON UPDATE CASCADE;

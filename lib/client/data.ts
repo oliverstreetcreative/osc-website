@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { daysFromToday, todayUTC } from "./format"
 import { neededForJob, forClient, isDone, signingEnabled, type NeededSignature, type SignViewer } from "./sign"
 import { isDemoSlug } from "./demo"
+import { isApprover, reviewState } from "./approvals"
 
 const visible = { hidden: false } as const
 
@@ -114,6 +115,8 @@ export async function needsYou(
   projects: ProjectWithAll[],
   signatures: ClientPaper = { enabled: false, unavailable: new Set(), byProject: new Map() },
   personId?: string,
+  /** The signed-in client's email (undefined while staff view the site: they see every approver's asks). */
+  email?: string,
 ) {
   const items: NeedsItem[] = []
   // Scripts Sam marked ready for their notes or their OK (SPEC §14 phone moment 3).
@@ -144,8 +147,16 @@ export async function needsYou(
         items.push({ kind: "shoot", urgency: Math.max(1, daysFromToday(s.start_date)), project: p, shoot: s })
       }
     }
+    // A cut in review shows only when Sam asks (SPEC §13 v3): notes (everyone), or an OK (the film's approvers; staff
+    // viewing see it read-only), until the newest version is approved or this person has approved it.
     for (const f of p.deliverables) {
-      if (!f.delivered_at && f.review_url) items.push({ kind: "review", urgency: 2, project: p, film: f })
+      if (f.delivered_at || !f.review_url) continue
+      if (f.ask === "notes") items.push({ kind: "review", urgency: 2, project: p, film: f })
+      if (f.ask !== "ok" || (email && !isApprover(f, email))) continue
+      const st = await reviewState(f)
+      const mine = !!email && st.kind === "ok" && st.approvals.some((a) => a.version_id === st.newest.id && a.email === email.toLowerCase())
+      if (st.kind === "ok" && (st.newestApproved || mine)) continue
+      items.push({ kind: "review", urgency: 1, project: p, film: f })
     }
   }
   return items.sort((a, b) => a.urgency - b.urgency)

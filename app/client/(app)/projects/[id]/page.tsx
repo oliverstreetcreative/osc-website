@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { ChevronLeft, Download, ExternalLink, MapPin, Clock, Phone, MessageSquare, Mail, UserPlus } from "lucide-react"
 import { requireClientContext } from "@/lib/client/context"
 import { orgProject, clientSignatures, visibleScriptsWhere } from "@/lib/client/data"
+import { reviewState, type ReviewState } from "@/lib/client/approvals"
 import { db } from "@/lib/db"
 import { KIND_LABEL, isDone, type SignViewer } from "@/lib/client/sign"
 import { SignButton } from "@/app/client/sign-button"
@@ -49,6 +50,9 @@ export default async function ProjectPage({ params }: { params: { id: string } }
   const dates = (Array.isArray(p.dates) ? p.dates : []) as { label: string; date: string; note?: string }[]
   const team = teamOf(p.team)
   const today = todayUTC()
+  // Cuts in review: the newest version and its approvals, live from Review (SPEC §13 v4; 60 s cache).
+  const reviews = new Map<string, ReviewState>()
+  if (!demo) for (const f of p.deliverables) if (f.review_url && !f.delivered_at) reviews.set(f.id, await reviewState(f))
   // This project's scripts the person can open (SPEC §14: a Scripts section in each project).
   const scripts = await db.script.findMany({
     where: { ...visibleScriptsWhere(org.id, ctx.viewing ? undefined : ctx.user.id), project_id: p.id },
@@ -106,7 +110,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
                           {f.review_url && !f.delivered_at && demo ? (
                             <DemoOff label="Review this cut" style={{ marginTop: 14, width: "100%" }} />
                           ) : f.review_url && !f.delivered_at ? (
-                            <a className="cs-btn" style={{ marginTop: 14, width: "100%" }} href={f.review_url} target="_blank" rel="noopener">Review this cut</a>
+                            <FilmReview f={f} state={reviews.get(f.id) ?? { kind: "none" }} slug={p.slug} />
                           ) : null}
                           {downloads.length || f.watch_url ? (
                             <div className="cs-dl">
@@ -333,6 +337,35 @@ export default async function ProjectPage({ params }: { params: { id: string } }
         <HelpFooter />
       </main>
     </>
+  )
+}
+
+/** A cut in review (SPEC §13 v3 phone moments): newest version + posted date, approvals, and the one right button. */
+function FilmReview({ f, state, slug }: { f: { ext_key: string | null; review_url: string | null; ask: string }; state: ReviewState; slug: string | null }) {
+  const filmKey = f.ext_key?.split("/").pop() ?? ""
+  const approveHref = slug ? `/client/projects/${slug}/approve/${encodeURIComponent(filmKey)}` : null
+  const approvedNewest = state.kind === "ok" ? state.approvals.filter((a) => a.version_id === state.newest.id) : []
+  return (
+    <div style={{ marginTop: 14 }}>
+      {state.kind === "ok" ? (
+        <p className="cs-film-meta">
+          In review · Version {state.newest.n}
+          {state.newest.posted_at ? ` · posted ${day(new Date(state.newest.posted_at), { month: "short", day: "numeric" })}` : ""}
+          {approvedNewest.length ? ` · Approved by ${approvedNewest.map((a) => a.name.split(/\s+/)[0]).join(", ")} · ${day(approvedNewest[0].at, { month: "short", day: "numeric" })}` : ""}
+        </p>
+      ) : state.kind === "error" ? (
+        <p className="cs-film-meta">{state.words}</p>
+      ) : null}
+      {f.ask === "ok" && approveHref && state.kind !== "none" ? (
+        <Link className="cs-btn" style={{ marginTop: 10, width: "100%" }} href={approveHref}>
+          {state.kind === "ok" && state.newestApproved ? "See the approval" : "Watch and approve"}
+        </Link>
+      ) : (
+        <a className="cs-btn" style={{ marginTop: 10, width: "100%" }} href={f.review_url ?? "#"} target="_blank" rel="noopener">
+          Watch and comment
+        </a>
+      )}
+    </div>
   )
 }
 

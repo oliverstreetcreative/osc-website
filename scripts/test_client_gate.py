@@ -118,6 +118,25 @@ class GateTest(unittest.TestCase):
         r = self.gate("lint", "acme")
         self.assertEqual(r.returncode, 0, r.stdout)
 
+    # --- SPEC §13 v4: films read versions live from Review ---
+    def test_review_link_needs_asset_id(self):
+        self.write_draft(book(film_extra={"review_url": LINK}))
+        self.assertIn("needs its review_asset_id", self.gate("lint", "acme").stdout)
+        self.write_draft(book(film_extra={"review_url": LINK, "review_asset_id": A1}))
+        r = self.gate("lint", "acme")
+        self.assertEqual(r.returncode, 0, r.stdout)
+
+    def test_ask_values_and_ok_needs_approvers_and_link(self):
+        self.write_draft(book(film_extra={"ask": "approve-now"}))
+        self.assertIn("ask must be one of", self.gate("lint", "acme").stdout)
+        self.write_draft(book(approvers=(), film_extra={"ask": "ok", "review_url": LINK, "review_asset_id": A1}))
+        self.assertIn("asking for an OK needs the film's approvers list", self.gate("lint", "acme").stdout)
+        self.write_draft(book(film_extra={"ask": "ok"}))
+        self.assertIn("asking for an OK needs the film's Review link", self.gate("lint", "acme").stdout)
+        self.write_draft(book(film_extra={"ask": "ok", "review_url": LINK, "review_asset_id": A1}))
+        r = self.gate("lint", "acme")
+        self.assertEqual(r.returncode, 0, r.stdout)
+
     def test_lint_failure_blocks_approve(self):
         self.write_draft(book([version(1, version_id="nope")]))
         r = self.approve_all()

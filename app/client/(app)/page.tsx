@@ -24,7 +24,7 @@ export default async function Home({ searchParams }: { searchParams: { sign?: st
   // Sign Here contract v2: the viewer's own paper; staff viewing as the client read every member's (read-only).
   const viewer: SignViewer = ctx.viewing ? { staff: true } : { email: ctx.user.email }
   const signatures = await clientSignatures(ctx.org, projects, viewer)
-  const needs = await needsYou(ctx.org.id, projects, signatures, ctx.viewing ? undefined : ctx.user.id)
+  const needs = await needsYou(ctx.org.id, projects, signatures, ctx.viewing ? undefined : ctx.user.id, ctx.viewing ? undefined : ctx.user.email)
   const paperUnavailable = signatures.unavailable.size > 0
   const signNotice = searchParams.sign ? SIGN_NOTICE[searchParams.sign] ?? null : null
   const me = ctx.viewing ? "" : ctx.user.email.toLowerCase()
@@ -227,15 +227,23 @@ function NeedCard({ n, demo, me }: { n: NeedsItem; demo: boolean; me: string }) 
       </div>
     )
   }
+  const ok = n.film.ask === "ok"
+  const filmKey = n.film.ext_key?.split("/").pop() ?? ""
   return (
     <div className="cs-card cs-need">
       <div className="cs-need-top">
-        <span className="cs-eyebrow"><Clapperboard size={13} style={{ verticalAlign: -2, marginRight: 6 }} />Ready for your notes</span>
+        <span className="cs-eyebrow"><Clapperboard size={13} style={{ verticalAlign: -2, marginRight: 6 }} />{ok ? "Ready for your OK" : "Ready for your notes"}</span>
       </div>
       <h3>{n.film.name}{n.film.version_label ? ` · ${n.film.version_label}` : ""}</h3>
       <p>{n.project.name}</p>
       <div className="cs-need-act">
-        {demo ? <DemoOff label="Review the cut" /> : <a className="cs-btn" href={n.film.review_url!} target="_blank" rel="noopener">Review the cut</a>}
+        {demo ? (
+          <DemoOff label="Review the cut" />
+        ) : ok && n.project.slug ? (
+          <Link className="cs-btn" href={`/client/projects/${n.project.slug}/approve/${encodeURIComponent(filmKey)}`}>Watch and approve</Link>
+        ) : (
+          <a className="cs-btn" href={n.film.review_url!} target="_blank" rel="noopener">Watch and comment</a>
+        )}
       </div>
     </div>
   )

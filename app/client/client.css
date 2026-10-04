@@ -513,3 +513,8 @@ a.cs-row:hover { background: var(--zebra); }
 .cs-help { border: 1px solid var(--line); }
 /* The Directions link is a 44 px tap target (the site's global minimum is undone for inline links in .cs). */
 .cs .cs-directions { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; }
+/* An approval receipt (SPEC §13): label / value pairs. */
+.cs .cs-receipt { display: grid; grid-template-columns: max-content 1fr; gap: 10px 16px; margin: 0; }
+.cs .cs-receipt dt { color: var(--mut); font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding-top: 2px; }
+.cs .cs-receipt dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .cs .cs-receipt { grid-template-columns: 1fr; gap: 2px; } .cs .cs-receipt dd { margin-bottom: 10px; } }
