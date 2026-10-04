@@ -22,10 +22,9 @@ Usage (stdlib only; DROPBOX_LOCAL_ROOT overrides the Dropbox path):
                                           publish pending items (all by default); refuses if lint fails
   client_gate.py remove  <org> --items k1,k2 --by <who>
                                           take items down now (removal never needs approval)
-  client_gate.py auto    <org>            publish, WITHOUT a ticket, lint-clean changes of the kinds that never
-                                          need Sam (SPEC §11 kinds v2); everything else stays waiting
-  client_gate.py undo    <org> --at <log time> --by <who>
-                                          put back what one auto-publish changed (if nothing changed since)
+  client_gate.py auto    <org>            take down footage Stacks no longer offers (Sam's own un-pick), and LIST
+                                          the small lint-clean changes to propose to Sam. It publishes nothing new:
+                                          Sam's content doctrine (10/4) is "you'll suggest and ask permission"
   client_gate.py clear-contact --person "<name>" --value "<phone or email>" --by Sam --ticket <id> [--org <slug>]
                                           Sam clears one contact detail that isn't OSC's, for THAT person's team card
                                           (and only that client, with --org); the list is gate-owned
@@ -1342,6 +1341,11 @@ def auto_ok(key, before, after):
 
 
 def cmd_auto(a):
+    """Sam's content doctrine (10/4 10:50): "I will either tell you or you'll suggest and ask permission." So nothing
+    new goes up on its own. What still runs without a tap is TAKING DOWN footage Stacks no longer offers: that follows
+    Sam's own un-pick in Stacks, and leaving it up would show a client a clip Sam took back. The small lint-clean changes
+    that used to publish here (SPEC §11 kinds v2) are only LISTED, for a worker to propose to Sam (what, where, why
+    now); they publish through ticket/approve like everything else."""
     snap = diff(a.org)
     _, _, d, l, new, changed, removed = snap
     gone = footage_withdrawals(a.org, d, l)
@@ -1358,16 +1362,14 @@ def cmd_auto(a):
         if money and k not in held:
             held[k] = [f'mentions money ("{money}"): needs Sam\'s tap']
     # An org-level refusal (folder, slug) holds EVERYTHING: lint returned before checking the items one by one.
-    clean = [] if "org" in held else [k for k in candidates if k not in held]
-    if clean:
-        extra = {"previous": {k: l[k][1] for k in clean}, "after_digest": {k: digest(d[k][1]) for k in clean}}
-        publish(a.org, clean, "auto: lint clean", "auto", extra=extra)
-    for k in clean:
-        print(f"  AUTO     {k:48} {d[k][0]}")
+    small = [] if "org" in held else [k for k in candidates if k not in held]
+    for k in small:
+        print(f"  PROPOSE  {k:48} {d[k][0]}")
     for k, ps in held.items():
         print(f"  HELD     {k:48} {'; '.join(ps)}")
-    waiting = [k for k in new + changed if k not in clean]
-    print(f"{a.org}: {len(clean)} published automatically · {len(waiting)} waiting for Sam's tap")
+    waiting = [k for k in new + changed if k not in small]
+    print(f"{a.org}: 0 published automatically (Sam's content doctrine: propose, he OKs) · {len(small)} small "
+          f"change(s) to propose · {len(waiting)} other change(s) waiting for a ticket")
     return 0
 
 
@@ -1378,28 +1380,6 @@ def read_log(slug):
     with open(path, encoding="utf-8") as f:
         return [json.loads(line) for line in f if line.strip()]
 
-
-def cmd_undo(a):
-    entry = next((e for e in read_log(a.org) if e.get("at") == a.at and e.get("ticket") == "auto"), None)
-    if not entry or not entry.get("previous"):
-        raise SystemExit(f"no automatic publish at {a.at} in {a.org}'s log")
-    live = load(os.path.join(T(a.org).published, f"{a.org}.json"))
-    l = flatten(live)
-    items = dict(l)
-    put_back, moved_on = [], []
-    for k, prev in entry["previous"].items():
-        if k in l and digest(l[k][1]) == entry["after_digest"].get(k):
-            items[k] = (l[k][0], prev)
-            put_back.append(k)
-        else:
-            moved_on.append(k)  # changed again (or removed) since: undoing would clobber newer content
-    if put_back:
-        write_json(os.path.join(T(a.org).published, f"{a.org}.json"), assemble(live, items, list(l)))
-        log(a.org, {"by": a.by, "ticket": "undo", "undid": a.at, "published": put_back, "removed": []})
-        write_preview(a.org)
-    note = f"; left {len(moved_on)} that changed since: {', '.join(moved_on)}" if moved_on else ""
-    print(f"{a.org}: put back {len(put_back)} item(s){note}")
-    return 0
 
 def _contact_value(raw):
     return e164(raw) if "@" not in raw else raw.strip().lower()
@@ -1601,10 +1581,6 @@ def main():
     s.add_argument("--ticket")
     s = sub.add_parser("auto")
     s.add_argument("org")
-    s = sub.add_parser("undo")
-    s.add_argument("org")
-    s.add_argument("--at", required=True)
-    s.add_argument("--by", required=True)
     s = sub.add_parser("clear-contact")
     s.add_argument("--person", required=True)
     s.add_argument("--value", required=True)
@@ -1618,7 +1594,7 @@ def main():
     if getattr(a, "org", None) and not KEY_RE.match(a.org):
         raise SystemExit(f"not a client slug: {a.org!r}")
     rc = {"status": cmd_status, "lint": cmd_lint, "preview": cmd_preview, "ticket": cmd_ticket,
-          "approve": cmd_approve, "remove": cmd_remove, "auto": cmd_auto, "undo": cmd_undo,
+          "approve": cmd_approve, "remove": cmd_remove, "auto": cmd_auto,
           "clear-contact": cmd_clear_contact, "withdraw-contact": cmd_withdraw_contact}[a.cmd](a)
     sys.exit(rc or 0)
 

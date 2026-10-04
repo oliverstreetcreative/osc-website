@@ -247,14 +247,18 @@ class GateTest(GateBase):
         self.assertEqual(self.approve_all().returncode, 0)
         return b
 
-    def test_auto_publishes_a_clean_status_change(self):
+    def test_auto_only_proposes_a_clean_status_change(self):
+        """Sam's content doctrine (10/4): nothing new goes up without his OK. A small clean change is LISTED to propose."""
         b = self.live_with_status()
         b["projects"][0]["status_line"] = "Cut 2 is ready."
         self.write_draft(b)
         r = self.gate("auto", "acme")
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertIn("1 published automatically", r.stdout)
-        self.assertEqual(self.published()["projects"][0]["status_line"], "Cut 2 is ready.")
+        self.assertIn("0 published automatically", r.stdout)
+        self.assertIn("1 small change(s) to propose", r.stdout)
+        self.assertIn("PROPOSE  project:", r.stdout)
+        self.assertEqual(self.published()["projects"][0]["status_line"], "Shooting next week.")
+        self.assertNotIn("undo", self.gate("--help").stdout)  # nothing automatic is published, so nothing to undo
 
     def test_auto_never_publishes_new_things(self):
         b = self.live_with_status()
@@ -287,21 +291,10 @@ class GateTest(GateBase):
         self.assertIn("0 published automatically", self.gate("auto", "acme").stdout)
         b["projects"][0]["films"][0]["ask"] = "notes"
         self.write_draft(b)
-        self.assertIn("1 published automatically", self.gate("auto", "acme").stdout)
-
-    def test_undo_puts_back_one_auto_publish_unless_changed_since(self):
-        b = self.live_with_status()
-        b["projects"][0]["status_line"] = "Cut 2 is ready."
-        self.write_draft(b)
-        self.gate("auto", "acme")
-        with open(os.path.join(self.site, "published", "_log", "acme.jsonl")) as f:
-            at = [json.loads(x) for x in f if x.strip()][-1]["at"]
-        r = self.gate("undo", "acme", "--at", at, "--by", "Sam")
-        self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertIn("put back 1", r.stdout)
-        self.assertEqual(self.published()["projects"][0]["status_line"], "Shooting next week.")
-        # A second undo finds the item changed since (it's back to the old text): nothing is clobbered.
-        self.assertIn("put back 0", self.gate("undo", "acme", "--at", at, "--by", "Sam").stdout)
+        out = self.gate("auto", "acme").stdout
+        self.assertIn("0 published automatically", out)
+        self.assertIn("1 small change(s) to propose", out)
+        self.assertNotEqual(self.published()["projects"][0]["films"][0].get("ask"), "notes")
 
     # --- team contacts (SPEC §21 v2): OSC's details or cleared by Sam; the +1 form is caught ---
     def team_book(self, member, status=None):
