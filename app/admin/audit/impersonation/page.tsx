@@ -1,17 +1,11 @@
 import { redirect } from 'next/navigation'
-import { requirePortalUser } from '@/lib/portal-auth'
+import { getStaffUser } from '@/lib/portal-auth'
 import { db } from '@/lib/db'
 
 export const metadata = { title: 'Impersonation Audit | OSC Admin' }
 
 export default async function ImpersonationAuditPage() {
-  let user
-  try {
-    user = await requirePortalUser()
-  } catch {
-    redirect('/login')
-  }
-  if (!user.is_staff) redirect('/login')
+  if (!(await getStaffUser())) redirect('/login')
 
   const events = await db.portalEvent.findMany({
     where: {

@@ -5,6 +5,7 @@
 import type { NextRequest } from "next/server"
 import * as Y from "yjs"
 import { roleOf, sessionFacts } from "@/lib/scripts/server/access"
+import { sessionStillLive } from "@/lib/auth/require-session"
 import { b64, catchUp, fromB64, openLive, presenceNow, subscribe, unsubscribe, withLive } from "@/lib/scripts/server/registry"
 
 export const runtime = "nodejs"
@@ -78,9 +79,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       // after backgrounding) and reconnect
       ping = setInterval(() => send("ping", {}), 20_000)
       recheck = setInterval(() => {
-        roleOf(id, facts)
-          .then((a) => {
-            if (!a) {
+        // The script access AND the session: signing out (or "everywhere") ends an open stream within a minute.
+        Promise.all([roleOf(id, facts), sessionStillLive(facts.sid)])
+          .then(([a, live]) => {
+            if (!a || !live) {
               send("revoked", {})
               close()
             }

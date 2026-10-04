@@ -2,14 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 import { VILLAGE_COOKIE_NAME, verifyVillageCookie } from '@/app/village/lib'
 import { IS_STAGING } from '@/lib/site-env'
+import { scopeAllows, type Scope } from '@/lib/auth/paths'
+import { edgeSession, type EdgeSession } from '@/lib/auth/session-rules'
 
-const SESSION_COOKIE_NAME = 'osc_session'
+// SPEC §27 P0 v2: `__Host-osc_session` wherever the site is served over https (no subdomain's domain-wide cookie can
+// override it); plain `osc_session` on http localhost. Both are read; the __Host- one wins.
+const SESSION_COOKIE_SECURE = '__Host-osc_session'
+const SESSION_COOKIE_PLAIN = 'osc_session'
+const sessionCookie = (req: NextRequest) =>
+  req.cookies.get(SESSION_COOKIE_SECURE)?.value ?? req.cookies.get(SESSION_COOKIE_PLAIN)?.value
 const VIEW_AS_ALLOWED_WRITES = new Set([
   '/client/view-as/start',
   '/client/view-as/exit',
   '/client/signout',
+  '/client/account/revoke', // staff signing their OWN devices out
   '/api/auth/logout',
-  '/api/admin/impersonate/stop',
 ])
 
 /** The host this request was made to (Railway's proxy sets x-forwarded-host). */
@@ -28,6 +35,8 @@ function sameOrigin(req: NextRequest): boolean {
     return false
   }
 }
+// Identity headers are only ever set here (from a verified token); a browser's own copies are stripped. The legacy
+// impersonation's names stay on the list so a forged one can never reach a handler.
 const IDENTITY_HEADERS = [
   'x-user-id',
   'x-user-email',
@@ -38,7 +47,6 @@ const IDENTITY_HEADERS = [
   'x-impersonator-id',
   'x-impersonation-target-name',
 ]
-const IMPERSONATION_COOKIE_NAME = 'osc_impersonating'
 const LOGIN_HOST = process.env.LOGIN_HOST ?? 'login.oliverstreetcreative.com'
 
 const PUBLIC_PATHS = new Set([
@@ -114,15 +122,14 @@ function demoMayRequest(req: NextRequest): boolean {
   return true
 }
 
-/** A demo session that is no longer valid: sign it out (host-only cookie, plus the shared-domain copy if any). */
+/** A demo session that is no longer valid: sign it out (both cookie names) with the "demo ended" note. */
 function endDemoSession(req: NextRequest): NextResponse {
   const url = req.nextUrl.clone()
   url.pathname = '/login'
   url.search = '?demo_ended=1'
   const res = NextResponse.redirect(url)
-  res.headers.append('Set-Cookie', `${SESSION_COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`)
-  const domain = process.env.SESSION_COOKIE_DOMAIN?.trim()
-  if (domain) res.headers.append('Set-Cookie', `${SESSION_COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Domain=${domain}`)
+  res.headers.append('Set-Cookie', `${SESSION_COOKIE_SECURE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`)
+  res.headers.append('Set-Cookie', `${SESSION_COOKIE_PLAIN}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`)
   return res
 }
 
@@ -137,35 +144,27 @@ function getSubdomain(host: string): 'login' | 'client' | 'crew' | 'village' | n
   return null
 }
 
-async function verifySession(req: NextRequest) {
-  const token = req.cookies.get(SESSION_COOKIE_NAME)?.value
-  if (!token) return null
-
+/** The session token's verified claims, or null. Signature and expiry only: the Edge has no database, so the ROW is
+ *  checked on the server (lib/auth/require-session.ts). A token without a `sid` is no session (SPEC §27 P0 v2). */
+async function tokenClaims(req: NextRequest): Promise<Record<string, unknown> | null> {
+  const token = sessionCookie(req)
   const secret = process.env.SESSION_JWT_SECRET
-  if (!secret) return null
-
+  if (!token || !secret) return null
   try {
-    const { payload } = await jwtVerify(
-      token,
-      new TextEncoder().encode(secret)
-    )
-    if (payload.purpose === 'magic_link') return null
-    return {
-      id: String(payload.id ?? ''),
-      email: String(payload.email ?? ''),
-      role: String(payload.role ?? ''),
-      is_staff: payload.is_staff === true,
-      // The staging demo (SPEC §19): the token's fingerprint, checked against the CURRENT token on every request.
-      demo: payload.demo === undefined ? undefined : String(payload.demo),
-      // A staging preview sign-in (the screenshot harness): scripts treat it as read-only (SPEC §14 v4 #11).
-      preview: payload.preview === true,
-    }
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), { algorithms: ['HS256'] })
+    return payload as Record<string, unknown>
   } catch {
     return null
   }
 }
 
-function setUserHeaders(res: NextResponse, user: { id: string; email: string; role: string; is_staff: boolean; preview?: boolean }) {
+async function verifySession(req: NextRequest): Promise<EdgeSession | null> {
+  return edgeSession(await tokenClaims(req))
+}
+
+function setUserHeaders(res: NextResponse, user: EdgeSession) {
+  // A script invite's session is never "the person" to a handler: no identity headers at all.
+  if (user.scope) return res
   res.headers.set('x-user-id', user.id)
   res.headers.set('x-user-email', user.email)
   res.headers.set('x-user-role', user.role)
@@ -174,65 +173,27 @@ function setUserHeaders(res: NextResponse, user: { id: string; email: string; ro
   return res
 }
 
-interface ImpersonationPayload {
-  impersonator_person_id: string
-  target_person_id: string
-  target_role: string
-  target_name: string
-  target_email: string
-}
-
-async function applyImpersonation(
-  req: NextRequest,
-  res: NextResponse,
-  realUser: { id: string; is_staff: boolean },
-  pathname: string,
-): Promise<NextResponse> {
-  // Do not apply impersonation on the stop endpoint — it needs the real user context
-  if (pathname === '/api/admin/impersonate/stop') {
-    return res
-  }
-
-  const impToken = req.cookies.get(IMPERSONATION_COOKIE_NAME)?.value
-  if (!impToken) return res
-
-  // Real user must be staff to impersonate
-  if (!realUser.is_staff) {
-    // Silently clear the cookie — non-staff cannot impersonate
-    res.cookies.set(IMPERSONATION_COOKIE_NAME, '', { maxAge: 0, path: '/' })
-    return res
-  }
-
-  const secret = process.env.SESSION_JWT_SECRET
-  if (!secret) return res
-
-  try {
-    const { payload } = await jwtVerify(
-      impToken,
-      new TextEncoder().encode(secret),
-    )
-    const imp = payload as unknown as ImpersonationPayload
-
-    // Override user headers to reflect the impersonation target
-    res.headers.set('x-user-id', imp.target_person_id)
-    res.headers.set('x-user-email', imp.target_email)
-    res.headers.set('x-user-role', imp.target_role)
-    res.headers.set('x-user-is-staff', 'false')
-    res.headers.set('x-impersonating', 'true')
-    res.headers.set('x-impersonator-id', realUser.id)
-    res.headers.set('x-impersonation-target-name', imp.target_name)
-  } catch {
-    // Expired or invalid — clear silently
-    res.cookies.set(IMPERSONATION_COOKIE_NAME, '', { maxAge: 0, path: '/' })
-  }
-
-  return res
+/** A script invite's session asking for anything but its own script: a real sign-in, keeping where they were going. */
+function scopedElsewhere(req: NextRequest, scope: Scope, appPath: string): NextResponse | null {
+  if (scopeAllows(scope, appPath)) return null
+  if (appPath.startsWith('/api/')) return NextResponse.json({ error: 'Sign in' }, { status: 401 })
+  const url = req.nextUrl.clone()
+  url.pathname = '/login'
+  url.search = `?redirect=${encodeURIComponent(appPath)}`
+  return NextResponse.redirect(url)
 }
 
 function redirectToLogin(req: NextRequest): NextResponse {
   const subdomain = getSubdomain(req.headers.get('host') ?? '')
   const returnPath = req.nextUrl.pathname
 
+  // Crew sign in on crew.* itself (SPEC §27 P0 v2: the device cookie lands where crew links point).
+  if (subdomain === 'crew') {
+    const url = req.nextUrl.clone()
+    url.pathname = '/login'
+    url.search = `?redirect=${encodeURIComponent(returnPath)}`
+    return NextResponse.redirect(url)
+  }
   if (subdomain && subdomain !== 'login') {
     const url = new URL(`https://${LOGIN_HOST}/login`)
     url.searchParams.set('redirect', req.nextUrl.href)
@@ -262,26 +223,21 @@ export async function middleware(req: NextRequest) {
   }
   const isWrite = !['GET', 'HEAD', 'OPTIONS'].includes(req.method)
 
-  // The staging demo: valid only while it matches the current token; read-only everywhere (SPEC §19 v2).
+  // The staging demo: valid only while it matches the current token; read-only everywhere (SPEC §19 v2). A demo token
+  // from before the session rows (no `sid`) ends here too, with the "demo ended" note (SPEC §27 P0 v2).
   // /demo/<token> itself is exempt, so a NEW link replaces an old (rotated) demo session instead of bouncing to /login.
-  if (req.cookies.get(SESSION_COOKIE_NAME)?.value && !pathMatches(req.nextUrl.pathname, '/demo')) {
-    const session = await verifySession(req)
-    if (session?.demo !== undefined) {
+  if (sessionCookie(req) && !pathMatches(req.nextUrl.pathname, '/demo')) {
+    const claims = await tokenClaims(req)
+    if (claims && claims.demo !== undefined) {
       const fingerprint = await demoFingerprintEdge()
-      if (!fingerprint || session.demo !== fingerprint) return endDemoSession(req)
+      if (!fingerprint || String(claims.demo) !== fingerprint || !claims.sid) return endDemoSession(req)
       if (!demoMayRequest(req)) return new NextResponse(null, { status: 404 })
     }
   }
 
-  // Staff looking at a client's site is READ-ONLY, in BOTH staff modes: the
-  // client site's "View as client" (cs_view) and the older admin impersonation
-  // (osc_impersonating, which swaps the identity to the client). While either
-  // cookie exists, refuse every write except the few that end the view or sign out.
-  if (
-    isWrite &&
-    (req.cookies.get('cs_view')?.value || req.cookies.get(IMPERSONATION_COOKIE_NAME)?.value) &&
-    !VIEW_AS_ALLOWED_WRITES.has(req.nextUrl.pathname)
-  ) {
+  // Staff looking at a client's site is READ-ONLY: while the "View as client" cookie (cs_view) exists, refuse every
+  // write except the few that end the view or sign out. (The older admin impersonation is retired, SPEC §27 P0 v2.)
+  if (isWrite && req.cookies.get('cs_view')?.value && !VIEW_AS_ALLOWED_WRITES.has(req.nextUrl.pathname)) {
     return new NextResponse('Read-only: you are viewing the site as a client. Exit the view to make changes.', {
       status: 403,
       headers: { 'content-type': 'text/plain; charset=utf-8' },
@@ -294,7 +250,7 @@ export async function middleware(req: NextRequest) {
   // same-SITE for cookies, so SameSite alone can't stop it, but it is never the
   // same ORIGIN. Writes without a session cookie (public intake forms, the
   // sign-in request) aren't affected.
-  if (isWrite && req.cookies.get(SESSION_COOKIE_NAME)?.value && !sameOrigin(req)) {
+  if (isWrite && sessionCookie(req) && !sameOrigin(req)) {
     return new NextResponse('This request came from another site and was refused.', {
       status: 403,
       headers: { 'content-type': 'text/plain; charset=utf-8' },
@@ -342,30 +298,34 @@ async function route(req: NextRequest): Promise<NextResponse> {
     if (!pathMatches(pathname, '/client') && !pathname.startsWith('/api/')) {
       const url = req.nextUrl.clone()
       url.pathname = pathname === '/' ? '/client' : `/client${pathname}`
-      const res = setUserHeaders(NextResponse.rewrite(url), user)
-      return applyImpersonation(req, res, user, pathname)
+      if (user.scope) {
+        const away = scopedElsewhere(req, user.scope, url.pathname)
+        if (away) return away
+      }
+      return setUserHeaders(NextResponse.rewrite(url), user)
     }
 
-    const res = setUserHeaders(NextResponse.next(), user)
-    return applyImpersonation(req, res, user, pathname)
+    if (user.scope) {
+      const away = scopedElsewhere(req, user.scope, pathname)
+      if (away) return away
+    }
+    return setUserHeaders(NextResponse.next(), user)
   }
 
   // --- Subdomain: crew.* ---
   if (subdomain === 'crew') {
-    if (isPortalInfraPath(pathname)) return NextResponse.next()
+    if (isPortalInfraPath(pathname) || pathname === '/login') return NextResponse.next()
 
     const user = await verifySession(req)
-    if (!user) return redirectToLogin(req)
+    if (!user || user.scope) return redirectToLogin(req)
 
     if (!pathMatches(pathname, '/crew') && !pathname.startsWith('/api/')) {
       const url = req.nextUrl.clone()
       url.pathname = pathname === '/' ? '/crew' : `/crew${pathname}`
-      const res = setUserHeaders(NextResponse.rewrite(url), user)
-      return applyImpersonation(req, res, user, pathname)
+      return setUserHeaders(NextResponse.rewrite(url), user)
     }
 
-    const res = setUserHeaders(NextResponse.next(), user)
-    return applyImpersonation(req, res, user, pathname)
+    return setUserHeaders(NextResponse.next(), user)
   }
 
   // --- Subdomain: village.* ---
@@ -414,8 +374,7 @@ async function route(req: NextRequest): Promise<NextResponse> {
       if (!user || (!user.is_staff && user.role !== 'STAFF')) {
         return new NextResponse(null, { status: 404 })
       }
-      const res = setUserHeaders(NextResponse.next(), user)
-      return applyImpersonation(req, res, user, pathname)
+      return setUserHeaders(NextResponse.next(), user)
     }
 
     return NextResponse.next()
@@ -465,6 +424,11 @@ async function route(req: NextRequest): Promise<NextResponse> {
     }
     return redirectToLogin(req)
   }
+  // A script invite's session reaches its own script and nothing else (SPEC §27 P0 v2).
+  if (user.scope) {
+    const away = scopedElsewhere(req, user.scope, pathname)
+    if (away) return away
+  }
 
   if (pathMatches(pathname, '/admin') && !user.is_staff && user.role !== 'STAFF') {
     return new NextResponse(null, { status: 404 })
@@ -479,8 +443,7 @@ async function route(req: NextRequest): Promise<NextResponse> {
     return new NextResponse(null, { status: 404 })
   }
 
-  const res = setUserHeaders(NextResponse.next(), user)
-  return applyImpersonation(req, res, user, pathname)
+  return setUserHeaders(NextResponse.next(), user)
 }
 
 export const config = {

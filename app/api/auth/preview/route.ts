@@ -3,10 +3,10 @@
 // The key lives in Keychain "osc-client-preview-key"; only its sha256 is here.
 import { NextRequest, NextResponse } from "next/server"
 import { createHash, timingSafeEqual } from "crypto"
-import { SignJWT } from "jose"
 import { db } from "@/lib/db"
 import { IS_STAGING } from "@/lib/site-env"
 import { cookieDomainFor, isSecure, publicOrigin } from "@/lib/client/host"
+import { startSession } from "@/lib/auth/session"
 import { VIEW_COOKIE } from "@/lib/client/context"
 import { logViewAs, mintViewCookie, VIEW_TTL_SECONDS } from "@/lib/client/view-as"
 
@@ -23,12 +23,6 @@ export async function GET(req: NextRequest) {
   const person = await db.person.findUnique({ where: { email: as } })
   if (!person || !person.portal_allowed) return new NextResponse("No such person on staging.", { status: 404 })
 
-  const expires = new Date(Date.now() + 12 * 3600_000)
-  const jwt = await new SignJWT({ id: person.id, email: person.email, role: person.role, is_staff: person.is_staff, preview: true })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime(Math.floor(expires.getTime() / 1000))
-    .sign(new TextEncoder().encode(secret))
   const next = req.nextUrl.searchParams.get("next") ?? "/client"
   const frames = req.nextUrl.searchParams.get("frames")
   // Screenshots of both appearances (SPEC §20): &theme=dark|light is stored the portal's own way (localStorage
@@ -40,7 +34,6 @@ export async function GET(req: NextRequest) {
         headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
       })
     : NextResponse.redirect(`${publicOrigin(req)}${next.startsWith("/") ? next : "/client"}`, 303)
-  res.cookies.set("osc_session", jwt, { domain: cookieDomainFor(req), path: "/", httpOnly: true, sameSite: "lax", secure: isSecure(req), expires })
   res.cookies.set("cs_org", "", { path: "/", maxAge: 0 })
   // Staff only: &view=<org-slug> opens "View as client" directly (for screenshots), logged like a real start.
   const view = req.nextUrl.searchParams.get("view")
@@ -53,6 +46,9 @@ export async function GET(req: NextRequest) {
   } else {
     res.cookies.set(VIEW_COOKIE, "", { domain: cookieDomainFor(req), path: "/", maxAge: 0 })
   }
+  // A preview session has a row like any other (SPEC §27 P0 v2), 12 hours, marked `preview` (read-only everywhere).
+  // Minted last: it's the one cookie that must survive.
+  await startSession(req, res, person, { kind: "preview", claims: { preview: true } })
   return res
 }
 

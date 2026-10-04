@@ -2,7 +2,10 @@
 """Rehearse the client portal on STAGING as the rehearsal client (client-website SPEC §25 v2), at the protocol level,
 with a real sign-in. Proves what each step returns; the phone frames are a separate pass.
 
-  python3 scripts/rehearse_portal.py <base-url> <magic-link-token> proposal <document-key> [report.md]
+  python3 scripts/rehearse_portal.py <base-url> <email>:<6-digit code> proposal <document-key> [report.md]
+
+Sign-in (SPEC §27 P0 v2): ask for a link as the rehearsal person, read the CODE from that email, pass email:code. A
+link signs in only the browser that asked for it, so a driver uses the code.
 
 `proposal` (SPEC §24 v2): Needs you card → proposal page → the frozen PDF (hash-checked) → a stale Accept is refused
 → Accept → receipt → the card is gone → Documents rows → a second Accept returns the same record. The ledger file is
@@ -68,9 +71,10 @@ def text(b):
     return _html.unescape(re.sub(r"<!-- -->", "", b.decode("utf-8", "replace")))
 
 
-# ---- sign in (a real magic-link token for the rehearsal person)
-s, h, b = call("/api/auth/verify", "POST", body={"token": TOKEN})
-if not step(s == 200 and any(c.name == "osc_session" for c in jar), "sign in as the rehearsal person", f"{s}"):
+# ---- sign in with the code from the rehearsal person's sign-in email (SPEC §27 P0 v2)
+EMAIL, _, CODE = TOKEN.partition(":")
+s, h, b = call("/api/auth/code", "POST", body={"email": EMAIL, "code": CODE})
+if not step(s == 200 and any(c.name in ("__Host-osc_session", "osc_session") for c in jar), "sign in as the rehearsal person", f"{s}"):
     sys.exit(1)
 
 s, h, home = call("/client")

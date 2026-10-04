@@ -3,7 +3,9 @@
 // the same library code the editor uses (suggest mode, accept, the sync protocol) and checks what every session sees.
 // No secrets on disk: the two one-time sign-in tokens come as arguments and the sessions live only in memory.
 //
-//   node --conditions=import --import tsx scripts/rehearse_scripts.ts <base-url> <suggester-token> <editor-token> [report.md]
+//   node --conditions=import --import tsx scripts/rehearse_scripts.ts <base-url> <suggester email:code> <editor email:code> [report.md]
+// Sign-in (SPEC §27 P0 v2): ask for each person's link, read the CODE from each email, pass email:code (a link signs
+// in only the browser that asked for it, so a driver uses the code).
 //
 // Leaves the script as it found it (restores the imported version at the end; the rehearsal's versions and one
 // resolved comment stay in history, labelled "Rehearsal").
@@ -21,7 +23,7 @@ import { scriptSchema } from "../lib/scripts/schema"
 
 const [base, suggesterToken, editorToken, reportPath] = process.argv.slice(2)
 if (!base || !suggesterToken || !editorToken) {
-  console.error("usage: rehearse_scripts.ts <base-url> <suggester-token> <editor-token> [report.md]")
+  console.error("usage: rehearse_scripts.ts <base-url> <suggester email:code> <editor email:code> [report.md]")
   process.exit(2)
 }
 
@@ -45,12 +47,17 @@ async function until(pred: () => boolean, ms = 8000) {
 const b64 = (u: Uint8Array) => Buffer.from(u).toString("base64")
 const fromB64 = (s: string) => new Uint8Array(Buffer.from(s, "base64"))
 
-async function signIn(token: string): Promise<string> {
-  const res = await fetch(`${base}/api/auth/verify`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token }) })
+async function signIn(cred: string): Promise<string> {
+  const i = cred.indexOf(":")
+  const res = await fetch(`${base}/api/auth/code`, {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: base, referer: `${base}/login` },
+    body: JSON.stringify({ email: cred.slice(0, i), code: cred.slice(i + 1) }),
+  })
   const set = res.headers.get("set-cookie") ?? ""
-  const m = /osc_session=([^;]+)/.exec(set)
+  const m = /((?:__Host-)?osc_session)=([^;]+)/.exec(set)
   if (!res.ok || !m) throw new Error(`sign-in failed: ${res.status}`)
-  return `osc_session=${m[1]}`
+  return `${m[1]}=${m[2]}`
 }
 
 class Session {

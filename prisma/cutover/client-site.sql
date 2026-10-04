@@ -62,6 +62,33 @@ ALTER COLUMN "source_bible_id" DROP NOT NULL,
 ALTER COLUMN "source_bible_table" DROP NOT NULL,
 ALTER COLUMN "published_at" SET DEFAULT CURRENT_TIMESTAMP;
 
+-- AlterTable
+ALTER TABLE "portal_invites" ADD COLUMN     "code_hash" TEXT,
+ADD COLUMN     "code_tries" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "device_hash" TEXT,
+ADD COLUMN     "redirect" TEXT;
+
+-- AlterTable
+ALTER TABLE "portal_sessions" ADD COLUMN     "device_hash" TEXT,
+ADD COLUMN     "device_label" TEXT,
+ADD COLUMN     "ip_hash" TEXT,
+ADD COLUMN     "kind" TEXT NOT NULL DEFAULT 'person',
+ADD COLUMN     "revoked_at" TIMESTAMP(3),
+ADD COLUMN     "scope" TEXT;
+
+-- CreateTable
+CREATE TABLE "auth_events" (
+    "id" UUID NOT NULL,
+    "kind" TEXT NOT NULL,
+    "email_hash" TEXT,
+    "ip_hash" TEXT,
+    "device_hash" TEXT,
+    "known" BOOLEAN NOT NULL DEFAULT false,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "auth_events_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateTable
 CREATE TABLE "organizations" (
     "id" UUID NOT NULL,
@@ -485,6 +512,15 @@ CREATE TABLE "support_attachments" (
 );
 
 -- CreateIndex
+CREATE INDEX "auth_events_kind_email_hash_created_at_idx" ON "auth_events"("kind", "email_hash", "created_at");
+
+-- CreateIndex
+CREATE INDEX "auth_events_kind_ip_hash_created_at_idx" ON "auth_events"("kind", "ip_hash", "created_at");
+
+-- CreateIndex
+CREATE INDEX "auth_events_kind_created_at_idx" ON "auth_events"("kind", "created_at");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "organizations_slug_key" ON "organizations"("slug");
 
 -- CreateIndex
@@ -619,6 +655,15 @@ CREATE UNIQUE INDEX "deliverables_ext_key_key" ON "deliverables"("ext_key");
 -- CreateIndex
 CREATE UNIQUE INDEX "shoot_periods_ext_key_key" ON "shoot_periods"("ext_key");
 
+-- CreateIndex
+CREATE INDEX "portal_invites_person_id_accepted_at_idx" ON "portal_invites"("person_id", "accepted_at");
+
+-- CreateIndex
+CREATE INDEX "portal_sessions_person_id_revoked_at_idx" ON "portal_sessions"("person_id", "revoked_at");
+
+-- CreateIndex
+CREATE INDEX "portal_sessions_person_id_device_hash_idx" ON "portal_sessions"("person_id", "device_hash");
+
 -- AddForeignKey
 ALTER TABLE "projects" ADD CONSTRAINT "projects_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
@@ -717,3 +762,4 @@ ALTER TABLE "support_tickets" ADD CONSTRAINT "support_tickets_organization_id_fk
 
 -- AddForeignKey
 ALTER TABLE "support_attachments" ADD CONSTRAINT "support_attachments_ticket_id_fkey" FOREIGN KEY ("ticket_id") REFERENCES "support_tickets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

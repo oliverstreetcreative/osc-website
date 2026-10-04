@@ -20,6 +20,12 @@ test("production: staff sign in where they asked (the admin on login.*, View as 
   assert.equal(magicLinkOrigin({ isProduction: true, requestOrigin: APEX, role: "CLIENT", isStaff: true }), APEX)
 })
 
+test("production: a staff link never points at a host this app doesn't serve", () => {
+  for (const from of ["https://blog.oliverstreetcreative.com", "https://review.oliverstreetcreative.com", "https://evil.example"])
+    assert.equal(magicLinkOrigin({ isProduction: true, requestOrigin: from, role: "STAFF", isStaff: true }), APEX)
+  assert.equal(magicLinkOrigin({ isProduction: true, requestOrigin: CREW, role: "STAFF", isStaff: true }), CREW)
+})
+
 test("staging and local keep the host they asked from", () => {
   const staging = "https://osc-website-staging.up.railway.app"
   assert.equal(magicLinkOrigin({ isProduction: false, requestOrigin: staging, role: "CLIENT", isStaff: false }), staging)

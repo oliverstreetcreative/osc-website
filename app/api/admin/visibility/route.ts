@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { db } from '@/lib/db'
-import { isImpersonating } from '@/lib/auth/impersonation'
 import { getStaffUser } from '@/lib/portal-auth'
+import { getPortalUser } from '@/lib/portal-auth'
 
 // ---------------------------------------------------------------------------
 // Allowed tables and their Prisma delegate keys
@@ -32,17 +32,9 @@ interface VisibilityBody {
 // ---------------------------------------------------------------------------
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  // Impersonation check — read-only mode
-  if (await isImpersonating()) {
-    return NextResponse.json(
-      { error: 'Impersonation mode is read-only. Stop impersonating to take actions.' },
-      { status: 403 },
-    )
-  }
-
   // 1. Auth
   const headersList = await headers()
-  const userId    = headersList.get('x-user-id')
+  const userId    = (await getPortalUser())?.id ?? null
 
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

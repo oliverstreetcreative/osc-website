@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import type { Prisma } from '@/generated/prisma'
 import { db } from '@/lib/db'
-import { isImpersonating } from '@/lib/auth/impersonation'
+import { getPortalUser } from '@/lib/portal-auth'
 
 const VALID_EVENT_TYPES = [
   'deliverable_approved',
@@ -52,16 +52,8 @@ function buildSummary(eventType: EventType, personName: string): string {
 }
 
 export async function POST(req: NextRequest) {
-  // Impersonation check — read-only mode
-  if (await isImpersonating()) {
-    return NextResponse.json(
-      { error: 'Impersonation mode is read-only. Stop impersonating to take actions.' },
-      { status: 403 },
-    )
-  }
-
   const hdrs = await headers()
-  const userId = hdrs.get('x-user-id')
+  const userId = (await getPortalUser())?.id ?? null
   if (!userId) {
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 })
   }

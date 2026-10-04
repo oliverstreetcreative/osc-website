@@ -1,16 +1,22 @@
 import type { NextRequest } from "next/server"
+import { IS_PRODUCTION } from "@/lib/site-env"
 
-// Only these hosts may appear in links we email or redirect to. Anything else
-// (a forged X-Forwarded-Host) falls back to the login host.
+// Only these hosts may appear in links we email or redirect to. Anything else (a forged X-Forwarded-Host) falls back
+// to the login host. Production: EXACTLY the hosts this app serves, never "any subdomain" (SPEC §27 P0 v2 #8), and
+// never the staging host or localhost.
+const SERVED = new Set([
+  "oliverstreetcreative.com",
+  "www.oliverstreetcreative.com",
+  "client.oliverstreetcreative.com",
+  "crew.oliverstreetcreative.com",
+  "login.oliverstreetcreative.com",
+  "village.oliverstreetcreative.com",
+])
 function allowedHost(host: string) {
   const h = host.split(":")[0].toLowerCase()
-  return (
-    h === "oliverstreetcreative.com" ||
-    h.endsWith(".oliverstreetcreative.com") ||
-    h === "osc-website-staging.up.railway.app" ||
-    h === "localhost" ||
-    h === "127.0.0.1"
-  )
+  if (SERVED.has(h)) return true
+  if (IS_PRODUCTION) return false
+  return h.endsWith(".oliverstreetcreative.com") || h === "osc-website-staging.up.railway.app" || h === "localhost" || h === "127.0.0.1"
 }
 function originFrom(fwdHost: string | null, host: string | null, fwdProto: string | null) {
   const raw = (fwdHost ?? host ?? "").split(",")[0].trim()

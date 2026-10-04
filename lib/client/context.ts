@@ -84,19 +84,12 @@ export async function getClientContext(): Promise<ClientContext | null> {
   const roles = new Map(ms.map((m) => [m.organization.id, m.role]))
   const wanted = (await cookies()).get(ORG_COOKIE)?.value
   const org = orgs.find((o) => o.slug === wanted) ?? orgs[0]
-  // The older admin impersonation swaps the identity to this client. Inside the
-  // client site it is treated exactly like View as client: read-only, with the bar.
-  const impersonated = (await headers()).get("x-impersonating") === "true"
   return {
     user: me,
     org,
     orgs,
     role: roles.get(org.id)!,
-    viewing: impersonated
-      ? { orgName: org.short_name ?? org.name, preview: false, legacy: true }
-      : demoVisitor
-        ? { orgName: org.short_name ?? org.name, preview: false, demo: true }
-        : null,
+    viewing: demoVisitor ? { orgName: org.short_name ?? org.name, preview: false, demo: true } : null,
   }
 }
 

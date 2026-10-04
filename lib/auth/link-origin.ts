@@ -6,10 +6,13 @@
 // Pure, so it's tested without a server.
 export const APEX = "https://oliverstreetcreative.com"
 export const CREW = "https://crew.oliverstreetcreative.com"
+/** The hosts this app serves sign-in on, as constants (SPEC §27 P0 v2 #8): a forged Host or X-Forwarded-Host can never
+ *  send a real sign-in link to blog.*, review.* or a dangling subdomain. */
+export const SIGNIN_HOSTS = new Set([APEX, CREW, "https://client.oliverstreetcreative.com", "https://login.oliverstreetcreative.com"])
 
 export function magicLinkOrigin(opts: { isProduction: boolean; requestOrigin: string; role: string | null | undefined; isStaff: boolean }): string {
   if (!opts.isProduction) return opts.requestOrigin
-  if (opts.isStaff || opts.role === "STAFF") return opts.requestOrigin
+  if (opts.isStaff || opts.role === "STAFF") return SIGNIN_HOSTS.has(opts.requestOrigin) ? opts.requestOrigin : APEX
   if (opts.role === "CREW") return CREW
   return APEX
 }

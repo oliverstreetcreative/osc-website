@@ -29,6 +29,9 @@ export async function boot() {
     await writePendingHearts().catch((err) => console.error("client-site: hearts ledger failed", err))
     // "Something's wrong?" (SPEC §29 v2): sanitized summaries out to Majordomo's intake (retrying any the report's own
     // write missed); status-only files back in.
+    // The front door (SPEC §27 P0 v2): counts older than 3 days; session rows that ended more than 90 days ago.
+    const { cleanUpFrontDoor } = await import("../auth/door")
+    await cleanUpFrontDoor().catch((err) => console.error("sign-in: clean-up failed", err))
     const { mirrorTickets, applyStatusUpdates } = await import("../support/mirror")
     await mirrorTickets().catch((err) => console.error("support: mirror failed", err))
     await applyStatusUpdates().catch((err) => console.error("support: status pickup failed", err))

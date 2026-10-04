@@ -3,9 +3,9 @@
 // CLIENT_DEMO_TOKEN, a wrong token. The session's JWT carries the token's fingerprint, and middleware checks it
 // against the CURRENT token on every request, so rotating the variable (and redeploying) ends every demo session.
 import { NextRequest, NextResponse } from "next/server"
-import { SignJWT } from "jose"
 import { db } from "@/lib/db"
-import { clearCookies, cookieDomainFor, isSecure, publicOrigin } from "@/lib/client/host"
+import { clearCookies, publicOrigin } from "@/lib/client/host"
+import { startSession } from "@/lib/auth/session"
 import { clientIp } from "@/lib/client/ip"
 import { DEMO_EMAIL, DEMO_ORG_SLUG, DEMO_TTL_SECONDS, demoFingerprint, demoOn, demoTokenMatches } from "@/lib/client/demo"
 
@@ -33,12 +33,6 @@ export async function GET(req: NextRequest, { params }: { params: { token: strin
     })
   }
 
-  const expires = new Date(Date.now() + DEMO_TTL_SECONDS * 1000)
-  const jwt = await new SignJWT({ id: person.id, email: person.email, role: person.role, is_staff: false, demo: fingerprint })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime(Math.floor(expires.getTime() / 1000))
-    .sign(new TextEncoder().encode(secret))
 
   // Logged like any sign-in. A link preview (iMessage, Slack) fetching the URL shows up here too.
   await db.portalEvent
@@ -58,13 +52,11 @@ export async function GET(req: NextRequest, { params }: { params: { token: strin
 
   const res = NextResponse.redirect(`${publicOrigin(req)}/client`, 303)
   for (const [k, v] of Object.entries(QUIET)) res.headers.set(k, v)
-  res.cookies.set("osc_session", jwt, {
-    domain: cookieDomainFor(req),
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax",
-    secure: isSecure(req),
-    expires,
+  // A demo session has a row like any other (SPEC §27 P0 v2), carrying the token's fingerprint for the middleware.
+  await startSession(req, res, { id: person.id, email: person.email, role: person.role, is_staff: false }, {
+    kind: "demo",
+    ttlSeconds: DEMO_TTL_SECONDS,
+    claims: { demo: fingerprint },
   })
   // A staff view or the older impersonation in this browser ends here: the demo is its own session.
   // AFTER res.cookies.set: Next's cookie API rewrites the whole Set-Cookie header (one entry per name), and

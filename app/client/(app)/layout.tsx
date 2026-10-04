@@ -2,7 +2,6 @@ import { requireClientContext } from "@/lib/client/context"
 import { visibleScriptsWhere } from "@/lib/client/data"
 import { seesMoney } from "@/lib/client/money"
 import { db } from "@/lib/db"
-import { ImpersonationBanner } from "@/components/ImpersonationBanner"
 import { Wordmark } from "@/app/client/ui"
 import { Nav, Tabs } from "@/app/client/nav"
 import { ThemeSwitch } from "@/app/client/theme-switch"
@@ -18,7 +17,6 @@ export default async function ClientShell({ children }: { children: React.ReactN
 
   return (
     <>
-      <ImpersonationBanner />
       <div className="cs-sticky">
       {ctx.viewing?.demo ? (
         <div className="cs-viewing demo" role="status">
@@ -34,19 +32,10 @@ export default async function ClientShell({ children }: { children: React.ReactN
             )}
           </span>
           <span className="cs-viewing-act">
-            {ctx.viewing.legacy ? (
-              // The older admin impersonation ends at its own route.
-              <form action="/api/admin/impersonate/stop" method="post">
-                <button>Exit</button>
-              </form>
-            ) : (
-              <>
-                <a href="/client/view-as">Switch</a>
-                <form action="/client/view-as/exit" method="post">
-                  <button>Exit</button>
-                </form>
-              </>
-            )}
+            <a href="/client/view-as">Switch</a>
+            <form action="/client/view-as/exit" method="post">
+              <button>Exit</button>
+            </form>
           </span>
         </div>
       ) : null}
@@ -77,9 +66,7 @@ export default async function ClientShell({ children }: { children: React.ReactN
                     {ctx.viewing?.demo ? "Demo account" : ctx.viewing ? `OSC staff · viewing ${ctx.viewing.orgName}` : ctx.user.email}
                   </small>
                 </div>
-                {ctx.viewing?.demo ? null : ctx.viewing?.legacy ? (
-                  <form action="/api/admin/impersonate/stop" method="post"><button>Stop viewing</button></form>
-                ) : ctx.viewing ? (
+                {ctx.viewing?.demo ? null : ctx.viewing ? (
                   <>
                     <a href="/client/view-as">View another client</a>
                     <form action="/client/view-as/exit" method="post"><button>Stop viewing</button></form>
@@ -88,6 +75,7 @@ export default async function ClientShell({ children }: { children: React.ReactN
                   <a href="/client/calendar">Calendar feed</a>
                 )}
                 <ThemeSwitch />
+                {ctx.viewing?.demo ? null : <a href="/client/account">Your devices</a>}
                 {ctx.viewing ? null : <a href="/client/support">Your reports</a>}
                 {ctx.viewing ? null : <ReportLink className="cs-menu-btn" />}
                 <form action="/client/signout" method="post"><button>Sign out</button></form>

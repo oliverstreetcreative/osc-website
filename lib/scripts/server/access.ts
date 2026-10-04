@@ -4,9 +4,9 @@
 //   only once Sam has shared the script (audience no longer "office").
 // The session facts are read ONCE per request (sessionFacts); roleOf() is pure database, so a long-lived event
 // stream can re-check access every minute after the request scope is gone.
-import { cookies, headers } from "next/headers"
+import { cookies } from "next/headers"
 import { db } from "@/lib/db"
-import { getPortalUser } from "@/lib/portal-auth"
+import { sessionUser } from "@/lib/auth/require-session"
 import { personCode } from "../marks"
 
 export type ScriptRole = "viewer" | "commenter" | "suggester" | "editor"
@@ -17,6 +17,10 @@ const isRole = (r: string): r is ScriptRole => r in RANK
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export type SessionFacts = {
+  /** The session row (the live stream re-checks it: "Sign out everywhere" ends a stream within a minute). */
+  sid: string
+  /** A script invite's session (SPEC §27 P0 v2): it opens THIS script and nothing else. */
+  scopeScriptId: string | null
   person: { id: string; name: string; email: string; code: string }
   /** OSC staff acting as staff (not viewing the site as a client). */
   staff: boolean
@@ -27,16 +31,19 @@ export type SessionFacts = {
 }
 
 export async function sessionFacts(): Promise<SessionFacts | null> {
-  const user = await getPortalUser()
-  if (!user) return null
-  const h = await headers()
+  const s = await sessionUser()
+  if (!s) return null
+  const user = s.person
   const jar = await cookies()
-  const viewingAs = !!jar.get("cs_view")?.value || h.get("x-impersonating") === "true"
-  const preview = h.get("x-user-preview") === "true"
+  const viewingAs = !!jar.get("cs_view")?.value
+  const preview = s.preview || s.kind === "preview"
+  const scoped = !!s.scope
   return {
+    sid: s.sid,
+    scopeScriptId: s.scope?.id ?? null,
     person: { id: user.id, name: user.name, email: user.email, code: personCode(user.id) },
-    staff: user.is_staff && !viewingAs,
-    realStaff: user.is_staff,
+    staff: user.is_staff && !viewingAs && !scoped,
+    realStaff: user.is_staff && !scoped,
     readOnly: preview ? "This is a preview sign-in: it can read scripts, not change them." : viewingAs ? "You're viewing the site as a client: read-only." : null,
   }
 }
@@ -46,6 +53,7 @@ export type ScriptAccessInfo = { role: ScriptRole; readOnly: string | null }
 /** The role `facts` has on the script, or null for no access at all. Database only. */
 export async function roleOf(scriptId: string, facts: SessionFacts): Promise<ScriptAccessInfo | null> {
   if (!UUID.test(scriptId)) return null
+  if (facts.scopeScriptId && facts.scopeScriptId !== scriptId.toLowerCase()) return null
   const script = await db.script.findUnique({ where: { id: scriptId }, select: { audience: true, archived_at: true, read_only: true } })
   if (!script) return null
   const scriptReadOnly = script.archived_at

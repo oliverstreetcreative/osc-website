@@ -554,10 +554,17 @@ model PortalInvite {
   expires_at      DateTime
   accepted_at     DateTime?
   created_at      DateTime  @default(now())
+  // SPEC §27 P0 v2: the link signs in only the browser that asked (its osc_device cookie, hashed); the code is the way
+  // in from anywhere else (an HMAC bound to this invite; tries reserved before comparing); where it lands after.
+  device_hash     String?
+  code_hash       String?
+  code_tries      Int       @default(0)
+  redirect        String?
 
   // Relations
   person Person @relation(fields: [person_id], references: [id], onDelete: Cascade)
 
+  @@index([person_id, accepted_at])
   @@map("portal_invites")
 }
 
@@ -569,14 +576,39 @@ model PortalSession {
   id             String    @id @default(uuid()) @db.Uuid
   person_id      String    @db.Uuid
   token_hash     String    @unique
-  expires_at     DateTime
+  expires_at     DateTime // SPEC §27 P0 v2: the ABSOLUTE end; idle 30 days is checked against last_active_at
   last_active_at DateTime?
   created_at     DateTime  @default(now())
+  revoked_at     DateTime?
+  kind           String    @default("person") // person | preview | demo | script
+  scope          String? // script:<uuid> for a script invite's session
+  device_hash    String? // the browser's osc_device cookie, hashed (the new-device notice; the devices page)
+  device_label   String? // enums only: "iPhone · Safari"
+  ip_hash        String?
 
   // Relations
   person Person @relation(fields: [person_id], references: [id], onDelete: Cascade)
 
+  @@index([person_id, revoked_at])
+  @@index([person_id, device_hash])
   @@map("portal_sessions")
+}
+
+/// The front door's counts (SPEC §27 P0 v2): link requests, sends, code failures. Hashes only (no address, no IP), kept
+/// three days. Counted inside one advisory-lock transaction so a parallel burst can't read stale counts.
+model AuthEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  kind        String // link_request | link_sent | code_fail | code_ok | link_ok | alarm
+  email_hash  String?
+  ip_hash     String?
+  device_hash String?
+  known       Boolean  @default(false) // the address belongs to someone who may sign in
+  created_at  DateTime @default(now())
+
+  @@index([kind, email_hash, created_at])
+  @@index([kind, ip_hash, created_at])
+  @@index([kind, created_at])
+  @@map("auth_events")
 }
 
 // ---------------------------------------------------------------------------

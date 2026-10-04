@@ -1,99 +1,67 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { randomBytes, createHash } from 'crypto'
-import { db } from '@/lib/db'
-import { IS_PRODUCTION, IS_STAGING } from '@/lib/site-env'
-import { publicOrigin } from '@/lib/client/host'
-import { magicLinkOrigin } from '@/lib/auth/link-origin'
+// POST /api/auth/request-magic-link {email, redirect?}: "Email me a sign-in link" (SPEC §27 P0 v2).
+// - Same origin only, and the answer is ALWAYS {ok: true}: nothing says whether the address exists or was limited.
+// - This browser gets its device cookie (osc_device); the invite keeps its hash, so the link signs in only this
+//   browser. Anywhere else, the 6-digit code in the same email.
+// - Counted under one lock (lib/auth/door.ts): per address, per network; a browser that has signed in as this person
+//   before skips the per-address caps; global numbers only raise an alarm.
+// - A new request ends the person's older unspent invites (one live code at a time). The email goes AFTER the answer.
+import { NextRequest, NextResponse } from "next/server"
+import { randomBytes, createHash, randomUUID } from "crypto"
+import { db } from "@/lib/db"
+import { IS_PRODUCTION } from "@/lib/site-env"
+import { publicOrigin } from "@/lib/client/host"
+import { magicLinkOrigin } from "@/lib/auth/link-origin"
+import { codeHash, newCode, safeRedirect } from "@/lib/auth/front-door"
+import { decideLink, ensureDevice, hashesFor, mayEmail, raiseAlarm, sendSignIn } from "@/lib/auth/door"
+import { readJsonCapped, sameOrigin } from "@/lib/support/http"
 
-const MAGIC_LINK_TTL_MINUTES = 15
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
 
-async function sendEmail(to: string, subject: string, html: string) {
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) throw new Error('RESEND_API_KEY not configured')
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: 'Oliver Street Creative <portal@send.oliverstreetcreative.com>',
-      to: [to],
-      subject,
-      html,
-    }),
-  })
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '')
-    throw new Error(`Resend ${res.status}: ${body}`)
-  }
-}
+const TTL_MINUTES = 15
 
 export async function POST(req: NextRequest) {
-  let email: string
-  try {
-    const body = await req.json()
-    email = String(body?.email ?? '').trim().toLowerCase()
-  } catch {
-    return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
+  if (!sameOrigin(req)) return NextResponse.json({ error: "origin" }, { status: 403 })
+  const read = await readJsonCapped(req, 4000)
+  if (!read.ok) return NextResponse.json({ error: "bad_request" }, { status: 400 })
+  const email = String(read.body.email ?? "").trim().toLowerCase()
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+    return NextResponse.json({ error: "Invalid email" }, { status: 400 })
   }
+  const res = NextResponse.json({ ok: true })
+  const deviceId = ensureDevice(req, res)
+  const secret = process.env.SESSION_JWT_SECRET
+  if (!secret) return res // misconfigured: the same answer, nothing sent (logged by whatever needs the secret)
 
-  if (!email || !email.includes('@')) {
-    return NextResponse.json({ error: 'Invalid email' }, { status: 400 })
-  }
+  const person = await db.person.findUnique({ where: { email }, select: { id: true, portal_allowed: true, role: true, is_staff: true } })
+  // Who may get a link: a portal-allowed person, and on staging only OSC addresses (staging never emails a client).
+  const eligible = person && person.portal_allowed && mayEmail(email) ? person : null
+  const h = hashesFor(req, email, deviceId)
+  const { send, alarm } = await decideLink(h, eligible?.id ?? null)
+  if (alarm) raiseAlarm(alarm)
+  if (!send || !eligible) return res
 
-  const person = await db.person.findUnique({
-    where: { email },
-    select: { id: true, portal_allowed: true, role: true, is_staff: true },
+  // One live invite per person: older unspent ones end now.
+  await db.portalInvite.updateMany({
+    where: { person_id: eligible.id, accepted_at: null, expires_at: { gt: new Date() } },
+    data: { expires_at: new Date() },
   })
-
-  // Always respond 200 so we don't leak whether an email is registered.
-  if (!person || !person.portal_allowed) {
-    return NextResponse.json({ ok: true })
-  }
-
-  // STAGING NEVER EMAILS A CLIENT. Staging holds real client records for
-  // preview, so a sign-in link only goes to an OSC address there.
-  if (IS_STAGING && !email.endsWith('@oliverstreetcreative.com')) {
-    console.log('magic-link: staging, not emailing non-OSC address')
-    return NextResponse.json({ ok: true })
-  }
-
-  const rawToken = randomBytes(32).toString('hex')
-  const tokenHash = createHash('sha256').update(rawToken).digest('hex')
-  const expiresAt = new Date(Date.now() + MAGIC_LINK_TTL_MINUTES * 60 * 1000)
-
+  const id = randomUUID()
+  const token = randomBytes(32).toString("hex")
+  const code = newCode()
   await db.portalInvite.create({
     data: {
-      person_id: person.id,
-      magic_link_hash: tokenHash,
-      expires_at: expiresAt,
+      id,
+      person_id: eligible.id,
+      magic_link_hash: createHash("sha256").update(token).digest("hex"),
+      expires_at: new Date(Date.now() + TTL_MINUTES * 60_000),
+      device_hash: h.device,
+      code_hash: codeHash(id, code, secret),
+      redirect: safeRedirect(read.body.redirect),
     },
   })
-
-  // Session cookies are host-only, so the link points at the host the person will USE (SPEC §26 v2): in production a
-  // client signs in on the apex, crew on crew.*, staff where they asked from; elsewhere, the host they asked from.
-  const origin = magicLinkOrigin({ isProduction: IS_PRODUCTION, requestOrigin: publicOrigin(req), role: person.role, isStaff: person.is_staff })
-  const link = `${origin}/magic?token=${rawToken}`
-  const html = `
-    <div style="font-family: -apple-system, system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #1a1a1a;">
-      <p>Here is your link to sign in to Oliver Street Creative. This link expires in ${MAGIC_LINK_TTL_MINUTES} minutes and can only be used once.</p>
-      <p style="margin: 24px 0;">
-        <a href="${link}" style="display: inline-block; background: #1a1a1a; color: #fff; text-decoration: none; padding: 12px 20px; border-radius: 6px;">Sign in</a>
-      </p>
-      <p style="color: #666; font-size: 13px;">If you didn't request this, you can safely ignore this email.</p>
-      <p style="color: #666; font-size: 13px;">If the button doesn't work, paste this URL into your browser:<br/><span style="word-break: break-all;">${link}</span></p>
-    </div>
-  `
-
-  try {
-    await sendEmail(email, 'Your Oliver Street Creative sign-in link', html)
-  } catch (err) {
-    console.error('magic-link send failed:', err)
-    return NextResponse.json({ error: 'Email delivery failed' }, { status: 500 })
-  }
-
-  return NextResponse.json({ ok: true })
+  // The link points at the host the person will use (fixed hosts in production, SPEC §26 v2 / §27 P0 #8).
+  const origin = magicLinkOrigin({ isProduction: IS_PRODUCTION, requestOrigin: publicOrigin(req), role: eligible.role, isStaff: eligible.is_staff })
+  sendSignIn(email, `${origin}/magic?token=${token}`, code, TTL_MINUTES)
+  return res
 }

@@ -8,10 +8,11 @@ type Props = {
 }
 
 export function InviteActions({ inviteId, status }: Props) {
-  const [busy, setBusy] = useState<'resend' | 'revoke' | null>(null)
+  const [busy, setBusy] = useState<'revoke' | null>(null)
   const [done, setDone] = useState<string | null>(null)
 
-  async function act(action: 'resend' | 'revoke') {
+  // Resend is retired (SPEC §27 P0 v2 #9: it revived used tokens); a fresh link is the person asking on /login.
+  async function act(action: 'revoke') {
     setBusy(action)
     try {
       const res = await fetch(`/api/admin/invites/${action}`, {
@@ -20,7 +21,7 @@ export function InviteActions({ inviteId, status }: Props) {
         body: JSON.stringify({ invite_id: inviteId }),
       })
       if (!res.ok) throw new Error('Failed')
-      setDone(action === 'resend' ? 'Sent' : 'Revoked')
+      setDone('Revoked')
     } catch {
       setDone('Error')
     } finally {
@@ -55,15 +56,6 @@ export function InviteActions({ inviteId, status }: Props) {
 
   return (
     <div style={{ display: 'flex', gap: '6px' }}>
-      {status !== 'Accepted' && (
-        <button
-          onClick={() => act('resend')}
-          disabled={!!busy}
-          style={btnStyle}
-        >
-          {busy === 'resend' ? '…' : 'Resend'}
-        </button>
-      )}
       {status !== 'Accepted' && (
         <button
           onClick={() => act('revoke')}

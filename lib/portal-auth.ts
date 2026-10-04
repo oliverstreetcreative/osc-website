@@ -1,5 +1,4 @@
-import { headers } from 'next/headers'
-import { db } from './db'
+import { sessionUser } from './auth/require-session'
 
 export type PortalUser = {
   id: string
@@ -11,33 +10,21 @@ export type PortalUser = {
 }
 
 /**
- * Reads the authenticated user from request headers (set by middleware).
- * Returns null if there is no session or the person is not portal-allowed.
+ * The signed-in person, from the SESSION ROW (lib/auth/require-session.ts, SPEC §27 P0 v2): never from a header.
+ * Null with no live session, for a person who isn't portal-allowed, and for a script invite's session (it opens one
+ * script, through the Scripts access check only, and is never "the person" anywhere else).
  */
 export async function getPortalUser(): Promise<PortalUser | null> {
-  const hdrs = await headers()
-  const userId = hdrs.get('x-user-id')
-  if (!userId) return null
-
-  const person = await db.person.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      is_staff: true,
-      portal_allowed: true,
-    },
-  })
-
-  return person?.portal_allowed ? person : null
+  const s = await sessionUser()
+  if (!s || s.scope) return null
+  const p = s.person
+  return p.portal_allowed ? { id: p.id, name: p.name, email: p.email, role: p.role, is_staff: p.is_staff, portal_allowed: true } : null
 }
 
 /**
- * For staff-only API routes: the signed-in person, only when the DATABASE says they are
- * staff. The session token's is_staff flag (x-user-is-staff) can be up to 30 days stale:
- * someone taken off staff.json keeps it until their token expires.
+ * For staff-only pages and API routes: the signed-in person, only when the DATABASE says they are staff (the token's
+ * claim is only the middleware's pre-filter). Pages call this themselves: a layout doesn't re-run on client-side
+ * navigation (SPEC §27 P0 v2 review).
  */
 export async function getStaffUser(): Promise<PortalUser | null> {
   const user = await getPortalUser()

@@ -2,13 +2,12 @@
 // NOT be public. Gate, in order:
 //   1. Production: never (until Sam rules otherwise). 404.
 //   2. Local `next dev`: open (it's Sam's/Claude's own machine).
-//   3. Staging: a staff portal session (osc_session JWT with is_staff / STAFF),
+//   3. Staging: a staff portal session (its row, lib/auth/require-session.ts),
 //      OR the desk key: env QUOTE_DESK_KEY, presented once as ?key=... which
 //      sets an httpOnly cookie. No key set = only staff sessions get in.
-// Checked without the database, so it works on staging's empty portal DB.
 
 import { cookies } from "next/headers"
-import { jwtVerify } from "jose"
+import { sessionUser } from "@/lib/auth/require-session"
 import { IS_STAGING } from "@/lib/site-env"
 
 export const DESK_COOKIE = "osc_quote_desk"
@@ -30,14 +29,7 @@ export async function deskAllowed(): Promise<boolean> {
   if (!IS_STAGING) return false
   const jar = cookies()
   if (deskKeyOk(jar.get(DESK_COOKIE)?.value)) return true
-  const token = jar.get("osc_session")?.value
-  const secret = process.env.SESSION_JWT_SECRET
-  if (!token || !secret) return false
-  try {
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret))
-    if (payload.purpose === "magic_link") return false
-    return payload.is_staff === true || payload.role === "STAFF"
-  } catch {
-    return false
-  }
+  // A staff session's ROW (SPEC §27 P0 v2): a signed-out or pre-row token no longer opens the desk.
+  const s = await sessionUser()
+  return !!s && !s.scope && (s.person.is_staff || s.person.role === "STAFF")
 }

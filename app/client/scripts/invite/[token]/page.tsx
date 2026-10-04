@@ -3,6 +3,7 @@
 // the script. A used or expired link offers "Send me a new link".
 import type { Metadata } from "next"
 import { readInvite } from "@/lib/scripts/server/invites"
+import { sessionUser } from "@/lib/auth/require-session"
 import { Wordmark } from "@/app/client/ui"
 import "../../scripts.css"
 
@@ -15,8 +16,11 @@ const masked = (email?: string | null) => {
   return `${u.slice(0, 1)}${"•".repeat(Math.max(1, Math.min(6, u.length - 1)))}@${d}`
 }
 
-export default async function InvitePage({ params, searchParams }: { params: { token: string }; searchParams: { sent?: string } }) {
+export default async function InvitePage({ params, searchParams }: { params: { token: string }; searchParams: { sent?: string; switch?: string } }) {
   const inv = await readInvite(params.token)
+  // Someone else is signed in on this browser: ask before the invite swaps who's signed in (SPEC §27 P0 v2 #6).
+  const current = inv.ok && searchParams.switch ? await sessionUser() : null
+  const other = current && inv.ok && current.person.id !== inv.person.id ? current.person : null
   return (
     <div className="sc-page">
       <header className="cs-top">
@@ -30,11 +34,18 @@ export default async function InvitePage({ params, searchParams }: { params: { t
             <p className="cs-eyebrow">A script for you</p>
             <h1 className="cs-title">{inv.title}</h1>
             <p className="cs-lede">{inv.sharer} at Oliver Street Creative shared this script with you. Open it to read it, and to suggest changes if you&rsquo;ve been asked to.</p>
+            {other ? (
+              <p className="cs-lede" style={{ marginTop: 12 }}>
+                You&rsquo;re signed in here as <b>{other.first_name ?? other.name}</b>. Opening this invite signs this device in as the
+                person it was sent to instead.
+              </p>
+            ) : null}
             <form method="post" action="/api/scripts/invite/accept" style={{ marginTop: 20 }}>
               <input type="hidden" name="token" value={params.token} />
-              <button className="cs-btn">Open the script</button>
+              {other ? <input type="hidden" name="confirm" value="1" /> : null}
+              <button className="cs-btn">{other ? "Open it anyway" : "Open the script"}</button>
             </form>
-            <p className="sc-loading" style={{ marginTop: 16 }}>This signs you in on this device. No password.</p>
+            <p className="sc-loading" style={{ marginTop: 16 }}>This opens this one script on this device. No password.</p>
           </>
         ) : searchParams.sent ? (
           <>

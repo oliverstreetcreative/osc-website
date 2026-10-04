@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { clearCookies } from '@/lib/client/host'
+import { revokeSession, sessionUser } from '@/lib/auth/require-session'
+import { SESSION_COOKIE_PLAIN, SESSION_COOKIE_SECURE } from '@/lib/auth/session'
 
 export const dynamic = 'force-dynamic'
 
+// Sign out from a fetch (SPEC §27 P0 v2): the session's row ends, then the cookies (both names; any domain-wide copy).
 export async function POST(req: NextRequest) {
+  const s = await sessionUser()
+  if (s) await revokeSession(s.sid)
   const res = NextResponse.json({ ok: true })
-  // Sessions are host-only since 10/3; older ones were domain-wide. Clear both.
-  clearCookies(res, req, ['osc_session', 'osc_impersonating', 'cs_view'])
+  clearCookies(res, req, [SESSION_COOKIE_SECURE, SESSION_COOKIE_PLAIN, 'osc_impersonating', 'cs_view'])
   return res
 }

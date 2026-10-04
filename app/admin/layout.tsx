@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { requirePortalUser } from '@/lib/portal-auth'
 import { SignOutButton } from '@/app/client/components/SignOutButton'
-import { ImpersonationBanner } from '@/components/ImpersonationBanner'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   let user
@@ -26,7 +25,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         flexDirection: 'column',
       }}
     >
-      <ImpersonationBanner />
       <header
         style={{
           position: 'sticky',
@@ -96,7 +94,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <NavLink href="/admin/uploads">Uploads</NavLink>
           <NavLink href="/admin/tasks">Tasks</NavLink>
           <NavLink href="/admin/support">Support</NavLink>
-          <NavLink href="/admin/impersonate">Impersonate</NavLink>
+          <NavLink href="/client/view-as">View as client</NavLink>
         </nav>
 
         <main

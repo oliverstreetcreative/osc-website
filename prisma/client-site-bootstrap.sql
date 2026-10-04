@@ -331,6 +331,10 @@ CREATE TABLE "portal_invites" (
     "expires_at" TIMESTAMP(3) NOT NULL,
     "accepted_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "device_hash" TEXT,
+    "code_hash" TEXT,
+    "code_tries" INTEGER NOT NULL DEFAULT 0,
+    "redirect" TEXT,
 
     CONSTRAINT "portal_invites_pkey" PRIMARY KEY ("id")
 );
@@ -343,8 +347,27 @@ CREATE TABLE "portal_sessions" (
     "expires_at" TIMESTAMP(3) NOT NULL,
     "last_active_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "revoked_at" TIMESTAMP(3),
+    "kind" TEXT NOT NULL DEFAULT 'person',
+    "scope" TEXT,
+    "device_hash" TEXT,
+    "device_label" TEXT,
+    "ip_hash" TEXT,
 
     CONSTRAINT "portal_sessions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "auth_events" (
+    "id" UUID NOT NULL,
+    "kind" TEXT NOT NULL,
+    "email_hash" TEXT,
+    "ip_hash" TEXT,
+    "device_hash" TEXT,
+    "known" BOOLEAN NOT NULL DEFAULT false,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "auth_events_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -920,7 +943,25 @@ CREATE INDEX "idx_portal_events_source_bible" ON "portal_events"("source_bible_i
 CREATE UNIQUE INDEX "portal_invites_magic_link_hash_key" ON "portal_invites"("magic_link_hash");
 
 -- CreateIndex
+CREATE INDEX "portal_invites_person_id_accepted_at_idx" ON "portal_invites"("person_id", "accepted_at");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "portal_sessions_token_hash_key" ON "portal_sessions"("token_hash");
+
+-- CreateIndex
+CREATE INDEX "portal_sessions_person_id_revoked_at_idx" ON "portal_sessions"("person_id", "revoked_at");
+
+-- CreateIndex
+CREATE INDEX "portal_sessions_person_id_device_hash_idx" ON "portal_sessions"("person_id", "device_hash");
+
+-- CreateIndex
+CREATE INDEX "auth_events_kind_email_hash_created_at_idx" ON "auth_events"("kind", "email_hash", "created_at");
+
+-- CreateIndex
+CREATE INDEX "auth_events_kind_ip_hash_created_at_idx" ON "auth_events"("kind", "ip_hash", "created_at");
+
+-- CreateIndex
+CREATE INDEX "auth_events_kind_created_at_idx" ON "auth_events"("kind", "created_at");
 
 -- CreateIndex
 CREATE INDEX "portal_error_reports_reporter_id_idx" ON "portal_error_reports"("reporter_id");
