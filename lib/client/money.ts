@@ -1,6 +1,33 @@
 // Money between OSC, a client and a third-party payer (a campaign): SPEC §28 v2. Pure: no database, no fetch
 // (tested in money.test.ts). Ordinary invoices stay in the book's invoices[]; a `money` block exists only for jobs
 // where someone else pays (the campaign), and it never guesses: an unknown leg reads "to confirm".
+import { Money } from "./book"
+
+/** A project's stored money block, re-checked on every read (the column is Json): null when missing or malformed. */
+export function moneyOf(json: unknown): MoneyBlock | null {
+  if (!json) return null
+  const r = Money.safeParse(json)
+  return r.success ? (r.data as MoneyBlock) : null
+}
+
+/** The client's invoices as the money model reads them (one source per debt). */
+export function invoiceFacts(
+  invoices: { number: string; amount: unknown; status: string; issued_on?: Date | null; paid_on?: Date | null }[],
+): Map<string, InvoiceFact> {
+  const iso = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : undefined)
+  return new Map(
+    invoices.map((i) => [
+      i.number,
+      {
+        number: i.number,
+        amount: Number(String(i.amount)),
+        status: (i.status === "paid" || i.status === "void" ? i.status : "open") as InvoiceFact["status"],
+        issued_on: iso(i.issued_on),
+        paid_on: iso(i.paid_on),
+      },
+    ]),
+  )
+}
 
 export type Party = "campaign" | "client" | "osc"
 export type LegStatus =

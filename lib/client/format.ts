@@ -10,6 +10,18 @@ export const PHASE_STEPS: { key: Phase; label: string }[] = [
   { key: "paid", label: "Paid" },
 ]
 
+/** Who has signed an agreement so far, in the client's words (SPEC §28 v2). Null when the book says nothing. */
+export function signatureWords(sig: unknown): string | null {
+  if (!sig || typeof sig !== "object") return null
+  const s = sig as { osc?: unknown; client?: unknown }
+  const ok = (x: unknown): x is string => typeof x === "string" && /^\d{4}-\d{2}-\d{2}$/.test(x)
+  const d = (x: string) => new Date(`${x}T12:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" })
+  if (ok(s.osc) && ok(s.client)) return `Signed by both · ${d(s.client)}`
+  if (ok(s.osc)) return `Signed by OSC ${d(s.osc)} · needs your signature`
+  if (ok(s.client)) return `Signed by you ${d(s.client)} · OSC signs next`
+  return null
+}
+
 export function phaseIndex(phase: string | null | undefined) {
   const i = PHASE_STEPS.findIndex((p) => p.key === phase)
   return i < 0 ? 0 : i

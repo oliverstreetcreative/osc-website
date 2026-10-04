@@ -1,7 +1,7 @@
 // Shared building blocks for the client site. Server components; no client JS.
 import Link from "next/link"
 import { Check, ChevronRight, Download, ExternalLink, Play, FileText, FileSignature, Receipt, Clapperboard, Shield, Map, CalendarPlus } from "lucide-react"
-import { PHASE_STEPS, phaseIndex, muxThumb, DOC_KIND_LABEL } from "@/lib/client/format"
+import { PHASE_STEPS, phaseIndex, muxThumb, DOC_KIND_LABEL, signatureWords } from "@/lib/client/format"
 
 /** The staging demo (SPEC §19): any button that would DO something shows this instead, for the demo org. */
 export function DemoOff({ label, className = "", style }: { label: string; className?: string; style?: React.CSSProperties }) {
@@ -84,7 +84,7 @@ export function DocIcon({ kind }: { kind: string }) {
 }
 
 export function DocRow({ doc, showProject = true }: {
-  doc: { id: string; kind: string; title: string; dated_on: Date | null; signed_by?: string | null; url?: string | null; project?: { name: string } | null; description?: string | null }
+  doc: { id: string; kind: string; title: string; dated_on: Date | null; signed_by?: string | null; url?: string | null; project?: { name: string } | null; description?: string | null; signatures?: unknown }
   showProject?: boolean
 }) {
   // A proposal opens its own page (read + accept), never the raw file (SPEC §24 v2).
@@ -112,12 +112,15 @@ export function DocRow({ doc, showProject = true }: {
     showProject && doc.project ? doc.project.name : doc.description ?? null,
     doc.dated_on ? doc.dated_on.toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }) : null,
   ].filter(Boolean)
+  // SPEC §28 v2: an agreement says who has signed so far ("Signed by OSC Jan 12 · needs your signature").
+  const signed = doc.kind === "agreement" ? signatureWords(doc.signatures) : null
   return (
     <a className="cs-row" href={href} target="_blank" rel="noopener">
       <DocIcon kind={doc.kind} />
       <span className="cs-row-main">
         <strong>{doc.title}</strong>
         <small>{bits.join(" · ")}</small>
+        {signed ? <small className={signed.includes("needs your signature") ? "cs-sign-needed" : undefined}>{signed}</small> : null}
       </span>
       <span className="cs-row-end" aria-hidden style={{ color: "var(--mut)" }}>
         {doc.url ? <ExternalLink size={18} /> : <Download size={18} />}

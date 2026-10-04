@@ -3,11 +3,13 @@ import { headers } from "next/headers"
 import { notFound } from "next/navigation"
 import { ChevronLeft, Download, ExternalLink, MapPin, Clock, Phone, MessageSquare, Mail, UserPlus } from "lucide-react"
 import { requireClientContext } from "@/lib/client/context"
-import { orgProject, clientSignatures, visibleScriptsWhere } from "@/lib/client/data"
+import { orgProject, orgInvoices, clientSignatures, visibleScriptsWhere } from "@/lib/client/data"
 import { labelFor, reviewState, type ReviewState } from "@/lib/client/approvals"
 import { dayRange } from "@/lib/client/library"
 import { roleIn, seesProposals } from "@/lib/client/proposals"
-import { MONEY_DOC_KINDS } from "@/lib/client/money"
+import { MONEY_DOC_KINDS, moneyOf } from "@/lib/client/money"
+import { MoneySection } from "@/app/client/money-section"
+import { todayEastern } from "@/lib/client/proposals"
 import { signingReady, stillUrl } from "@/lib/client/mux-sign"
 import { db } from "@/lib/db"
 import { KIND_LABEL, isDone, signedNotCleared, type SignViewer } from "@/lib/client/sign"
@@ -71,6 +73,10 @@ export default async function ProjectPage({ params }: { params: { id: string } }
   // the phase on.
   const seesMoney = seesProposals((await roleIn(ctx, org.id)) ?? "VIEWER")
   const files = p.documents.filter((d) => seesMoney || !MONEY_DOC_KINDS.includes(d.kind))
+  // SPEC §28 v2: a job with a third-party payer shows who pays whom (only to someone who sees money). A client→OSC leg
+  // reads its invoice, which may sit on another of the org's jobs, so the org's invoices are loaded.
+  const moneyBlock = seesMoney ? moneyOf(p.money) : null
+  const orgInvs = moneyBlock ? await orgInvoices(org.id) : []
   const accepted = seesMoney
     ? await db.proposalAcceptance.findFirst({ where: { project_id: p.id, withdrawn_at: null }, orderBy: { accepted_at: "desc" }, select: { name: true, accepted_at: true } })
     : null
@@ -133,6 +139,39 @@ export default async function ProjectPage({ params }: { params: { id: string } }
       <main className="cs-main" style={{ paddingTop: 8 }}>
         <div className="cs-cols">
           <div>
+            {/* Where it stands (SPEC §28 v2): what's next, right under what's happening (the hero line). */}
+            {p.next_step ? (
+              <div className="cs-card cs-pad" style={{ marginTop: 14 }}>
+                <p style={{ fontSize: 15 }}>
+                  <b>Next</b> · {p.next_step}
+                </p>
+              </div>
+            ) : null}
+
+            {/* Scripts first when the job has them (SPEC §28 v2: the scripting tool front and center). */}
+            {scripts.length ? (
+              <section className="cs-section">
+                <SectionTitle>{scripts.length > 1 ? "Scripts" : "Script"}</SectionTitle>
+                <div className="cs-rows">
+                  {scripts.map((s) => (
+                    <Link key={s.id} href={`/client/scripts/${s.id}`} className="cs-row">
+                      <span className="cs-row-main">
+                        <b>{s.title}</b>
+                        {s.target_seconds ? <span className="cs-status"> · :{s.target_seconds}</span> : null}
+                      </span>
+                      {s.status === "ready_for_notes" ? (
+                        <span className="cs-pill now">Ready for your notes</span>
+                      ) : s.status === "ready_for_ok" ? (
+                        <span className="cs-pill now">Ready for your OK</span>
+                      ) : s.status === "approved" ? (
+                        <span className="cs-pill done">Approved</span>
+                      ) : null}
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
             {p.deliverables.length ? (
               <section className="cs-section">
                 <SectionTitle>{p.deliverables.length > 1 ? "Films" : "Film"}</SectionTitle>
@@ -208,29 +247,6 @@ export default async function ProjectPage({ params }: { params: { id: string } }
               </section>
             ) : null}
 
-            {scripts.length ? (
-              <section className="cs-section">
-                <SectionTitle>{scripts.length > 1 ? "Scripts" : "Script"}</SectionTitle>
-                <div className="cs-rows">
-                  {scripts.map((s) => (
-                    <Link key={s.id} href={`/client/scripts/${s.id}`} className="cs-row">
-                      <span className="cs-row-main">
-                        <b>{s.title}</b>
-                        {s.target_seconds ? <span className="cs-status"> · :{s.target_seconds}</span> : null}
-                      </span>
-                      {s.status === "ready_for_notes" ? (
-                        <span className="cs-pill now">Ready for your notes</span>
-                      ) : s.status === "ready_for_ok" ? (
-                        <span className="cs-pill now">Ready for your OK</span>
-                      ) : s.status === "approved" ? (
-                        <span className="cs-pill done">Approved</span>
-                      ) : null}
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
             {p.summary ? (
               <section className="cs-section">
                 <SectionTitle>About this project</SectionTitle>
@@ -274,6 +290,10 @@ export default async function ProjectPage({ params }: { params: { id: string } }
                   })}
                 </div>
               </section>
+            ) : null}
+
+            {seesMoney && moneyBlock ? (
+              <MoneySection block={moneyBlock} invoices={orgInvs} today={todayEastern()} projectId={p.id} />
             ) : null}
 
             {seesMoney && p.invoices.length ? (

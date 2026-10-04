@@ -5,7 +5,11 @@ import { orgInvoices, orgDocuments } from "@/lib/client/data"
 import { money, day, relativeDue, daysFromToday } from "@/lib/client/format"
 import { DocRow, HelpFooter, SectionTitle, DemoOff } from "@/app/client/ui"
 import { isDemoSlug } from "@/lib/client/demo"
-import { seesMoney } from "@/lib/client/money"
+import { moneyOf, seesMoney } from "@/lib/client/money"
+import { BetweenUs } from "@/app/client/money-section"
+import { todayEastern } from "@/lib/client/proposals"
+import { db } from "@/lib/db"
+import { Prisma } from "@/generated/prisma"
 
 export const metadata = { title: "Billing" }
 
@@ -34,11 +38,23 @@ export default async function Billing() {
   const balance = open.reduce((s, i) => s + Number(i.amount.toString()), 0)
   const paidTotal = paid.reduce((s, i) => s + Number(i.amount.toString()), 0)
   const onlyPay = open.length === 1 ? open[0] : null
+  // SPEC §28 v2: jobs where a third party (a campaign) pays carry a money block: who pays whom, both directions.
+  const moneyJobs = (
+    await db.project.findMany({
+      where: { organization_id: ctx.org.id, hidden: false, NOT: { money: { equals: Prisma.DbNull } } },
+      select: { id: true, name: true, slug: true, money: true },
+      orderBy: [{ sort_date: "desc" }],
+    })
+  )
+    .map((p) => ({ id: p.id, name: p.name, slug: p.slug, block: moneyOf(p.money) }))
+    .filter((j): j is { id: string; name: string; slug: string | null; block: NonNullable<ReturnType<typeof moneyOf>> } => !!j.block)
 
   return (
     <main className="cs-main">
       <p className="cs-eyebrow">{ctx.org.name}</p>
       <h1 className="cs-title" style={{ marginTop: 6 }}>Billing</h1>
+
+      <BetweenUs jobs={moneyJobs} invoices={invoices} today={todayEastern()} />
 
       <section className="cs-section" style={{ marginTop: 20 }}>
         {open.length ? (

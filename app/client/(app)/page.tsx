@@ -11,6 +11,11 @@ import { PosterImage, HelpFooter, PlayBadge, SectionTitle, DemoOff } from "@/app
 import { isDemoSlug } from "@/lib/client/demo"
 import { ProjectCard } from "@/app/client/project-card"
 import { shareToken } from "@/lib/client/review"
+import { glanceHome } from "@/lib/client/glance"
+import { GlanceSections } from "@/app/client/glance"
+import { orgInvoices } from "@/lib/client/data"
+import { seesMoney } from "@/lib/client/money"
+import { todayEastern } from "@/lib/client/proposals"
 
 export const metadata = { title: "Home" }
 
@@ -41,6 +46,10 @@ export default async function Home({ searchParams }: { searchParams: { sign?: st
         .flatMap((p) => p.deliverables.filter((f) => f.delivered_at || f.mux_playback_id).map((f) => ({ f, p })))
         .sort((a, b) => (b.f.delivered_at?.getTime() ?? 0) - (a.f.delivered_at?.getTime() ?? 0))[0]
   const finished = projects.filter((p) => (p.phase === "paid" || p.phase === "delivered") && p.id !== latest?.p.id)
+  // SPEC §28 v2: the one-glance Home, on for its clients first (lib/client/glance.ts).
+  const glance = glanceHome(ctx.org.slug)
+  const money = seesMoney(ctx.role)
+  const invoices = glance && money ? await orgInvoices(ctx.org.id) : []
 
   return (
     <main className="cs-main">
@@ -82,7 +91,11 @@ export default async function Home({ searchParams }: { searchParams: { sign?: st
         )}
       </section>
 
-      {latest ? (
+      {glance ? (
+        <GlanceSections projects={projects} needs={needs} invoices={invoices} money={money} today={todayEastern()} />
+      ) : null}
+
+      {!glance && latest ? (
         <section className="cs-section">
           <SectionTitle>Your latest film</SectionTitle>
           <Link href={`/client/projects/${latest.p.slug}`} className="cs-card cs-pcard">
@@ -103,14 +116,14 @@ export default async function Home({ searchParams }: { searchParams: { sign?: st
         </section>
       ) : null}
 
-      {active.length ? (
+      {!glance && active.length ? (
         <section className="cs-section">
           <SectionTitle href="/client/projects">In progress</SectionTitle>
           <div className="cs-grid">{active.map((p) => <ProjectCard key={p.id} p={p} orgName={orgName} logo={ctx.org.logo_path} />)}</div>
         </section>
       ) : null}
 
-      {finished.length ? (
+      {!glance && finished.length ? (
         <section className="cs-section">
           <SectionTitle href="/client/projects">{active.length || latest ? "Earlier work" : "Your projects"}</SectionTitle>
           <div className="cs-grid">{finished.map((p) => <ProjectCard key={p.id} p={p} orgName={orgName} logo={ctx.org.logo_path} />)}</div>

@@ -50,12 +50,26 @@ export async function orgDocuments(orgId: string) {
 }
 
 export type NeedsItem =
-  | { kind: "script"; urgency: number; script: { id: string; title: string; status: string } }
+  | { kind: "script"; urgency: number; script: { id: string; title: string; status: string; project_id: string | null } }
   | { kind: "invoice"; urgency: number; invoice: Awaited<ReturnType<typeof orgInvoices>>[number] }
   | { kind: "shoot"; urgency: number; project: ProjectWithAll; shoot: ProjectWithAll["shoot_periods"][number] }
   | { kind: "review"; urgency: number; project: ProjectWithAll; film: ProjectWithAll["deliverables"][number]; version_n?: number }
-  | { kind: "sign"; urgency: number; project: { name: string; slug: string | null; job_number: string | null }; item: NeededSignature }
-  | { kind: "proposal"; urgency: number; doc: { id: string; title: string; good_until: Date | null }; project: { name: string } | null }
+  | { kind: "sign"; urgency: number; project: { id: string; name: string; slug: string | null; job_number: string | null }; item: NeededSignature }
+  | { kind: "proposal"; urgency: number; doc: { id: string; title: string; good_until: Date | null }; project: { id: string; name: string } | null }
+
+/** Which job a Needs-you item belongs to (SPEC §28 v2: "1 thing for you" on a job's row), or null. */
+export function needsProjectId(n: NeedsItem): string | null {
+  switch (n.kind) {
+    case "script":
+      return n.script.project_id
+    case "proposal":
+      return n.project?.id ?? null
+    case "invoice":
+      return n.invoice.project_id ?? null
+    default:
+      return n.project.id
+  }
+}
 
 /** The client's paperwork, live from Sign Here (never stored here): per project, or "unavailable". */
 export type ClientPaper = {
@@ -127,7 +141,7 @@ export async function needsYou(
   // Scripts Sam marked ready for their notes or their OK (SPEC §14 phone moment 3).
   const scripts = await db.script.findMany({
     where: { ...visibleScriptsWhere(orgId, personId), status: { in: ["ready_for_notes", "ready_for_ok"] } },
-    select: { id: true, title: true, status: true },
+    select: { id: true, title: true, status: true, project_id: true },
     orderBy: { updated_at: "desc" },
   })
   for (const s of scripts) items.push({ kind: "script", urgency: s.status === "ready_for_ok" ? 1 : 2, script: s })
@@ -144,7 +158,7 @@ export async function needsYou(
   // until it's accepted or past its good-until date.
   const proposals = role === "VIEWER" ? [] : await db.document.findMany({
     where: { organization_id: orgId, hidden: false, kind: "proposal", ask: "accept", sha256: { not: null }, acceptance: null, OR: [{ project_id: null }, { project: { hidden: false } }] },
-    select: { id: true, title: true, good_until: true, acceptors: true, project: { select: { name: true } } },
+    select: { id: true, title: true, good_until: true, acceptors: true, project: { select: { id: true, name: true } } },
   })
   const todayET = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" })
   for (const d of proposals) {
