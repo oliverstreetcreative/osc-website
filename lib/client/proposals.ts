@@ -8,12 +8,14 @@ import { db } from "@/lib/db"
 import type { ClientContext } from "./context"
 import { download } from "./dropbox"
 import { writeAcceptanceLedger } from "./ledger"
+import { seesMoney } from "./money"
 
 export const FROZEN = "/_admin/client-site/frozen"
 const SHA = /^[0-9a-f]{64}$/
 
-/** VIEWERs see no money (SPEC §10.5b); a proposal is billing-scope (§0.2). Staff viewing see what the client sees. */
-export const seesProposals = (role: string) => role === "OWNER" || role === "APPROVER" || role === "BILLING" || role === "STAFF"
+/** VIEWERs see no money (SPEC §10.5b); a proposal is billing-scope (§0.2). Staff viewing see what the client sees.
+ *  The same rule as every other money surface (lib/client/money.ts seesMoney, SPEC §28 v2). */
+export const seesProposals = (role: string) => seesMoney(role)
 
 /** The frozen bytes of a proposal, verified against the hash the gate froze; null when missing or different. */
 export async function frozenPdf(sha256: string | null | undefined): Promise<Uint8Array | null> {

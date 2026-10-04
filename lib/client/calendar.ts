@@ -6,6 +6,7 @@
 // Event ids are stable: shoot-<shootId>, due-<invoiceId>, date-<projectId>-<n>.
 import { db } from "@/lib/db"
 import { day } from "./format"
+import { seesMoney } from "./money"
 
 export type CalEvent = {
   uid: string
@@ -91,7 +92,21 @@ export async function eventsForPerson(personId: string, isStaff = false): Promis
       ).map((m) => m.organization_id)
   if (!orgIds.length) return []
   const projects = await db.project.findMany({ where: { organization_id: { in: orgIds }, hidden: false }, include: projectInclude })
-  const invoices = await db.invoice.findMany({ where: { organization_id: { in: orgIds }, hidden: false, status: "open" } })
+  // Invoice due dates carry amounts: only for orgs where this person sees money (a VIEWER doesn't: SPEC §10.5b,
+  // §28 v2). Staff feeds see every org's.
+  const moneyOrgIds = isStaff
+    ? orgIds
+    : (
+        await db.membership.findMany({
+          where: { person_id: personId, hidden: false, organization_id: { in: orgIds } },
+          select: { organization_id: true, role: true },
+        })
+      )
+        .filter((m) => seesMoney(m.role))
+        .map((m) => m.organization_id)
+  const invoices = moneyOrgIds.length
+    ? await db.invoice.findMany({ where: { organization_id: { in: moneyOrgIds }, hidden: false, status: "open" } })
+    : []
   return [
     ...projects.flatMap((p) => projectEvents(p as any)),
     ...invoices.map(invoiceEvent).filter((e): e is CalEvent => !!e),

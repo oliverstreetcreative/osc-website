@@ -6,6 +6,7 @@ import { DOC_KIND_LABEL } from "@/lib/client/format"
 import { DocRow, HelpFooter } from "@/app/client/ui"
 import { db } from "@/lib/db"
 import { seesProposals } from "@/lib/client/proposals"
+import { MONEY_DOC_KINDS } from "@/lib/client/money"
 
 export const metadata = { title: "Documents" }
 
@@ -16,7 +17,7 @@ export default async function Documents({ searchParams }: { searchParams: { q?: 
   const ctx = await requireClientContext()
   // Proposals are money: never for a VIEWER (SPEC §10.5b, §24 v2); nor their acceptances.
   const money = seesProposals(ctx.role)
-  const all = (await orgDocuments(ctx.org.id)).filter((d) => money || d.kind !== "proposal")
+  const all = (await orgDocuments(ctx.org.id)).filter((d) => money || !MONEY_DOC_KINDS.includes(d.kind))
   // Cut approvals are records of their own (SPEC §13): read from the approvals table, never a synced Document.
   const approvals = await db.versionApproval.findMany({
     where: { organization_id: ctx.org.id },

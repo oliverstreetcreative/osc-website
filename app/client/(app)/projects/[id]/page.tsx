@@ -7,6 +7,7 @@ import { orgProject, clientSignatures, visibleScriptsWhere } from "@/lib/client/
 import { labelFor, reviewState, type ReviewState } from "@/lib/client/approvals"
 import { dayRange } from "@/lib/client/library"
 import { roleIn, seesProposals } from "@/lib/client/proposals"
+import { MONEY_DOC_KINDS } from "@/lib/client/money"
 import { signingReady, stillUrl } from "@/lib/client/mux-sign"
 import { db } from "@/lib/db"
 import { KIND_LABEL, isDone, signedNotCleared, type SignViewer } from "@/lib/client/sign"
@@ -69,7 +70,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
   // Proposals are money (SPEC §24 v2): never listed for a VIEWER; an acceptance shows as "accepted" until Sam moves
   // the phase on.
   const seesMoney = seesProposals((await roleIn(ctx, org.id)) ?? "VIEWER")
-  const files = p.documents.filter((d) => seesMoney || d.kind !== "proposal")
+  const files = p.documents.filter((d) => seesMoney || !MONEY_DOC_KINDS.includes(d.kind))
   const accepted = seesMoney
     ? await db.proposalAcceptance.findFirst({ where: { project_id: p.id, withdrawn_at: null }, orderBy: { accepted_at: "desc" }, select: { name: true, accepted_at: true } })
     : null
@@ -275,7 +276,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
               </section>
             ) : null}
 
-            {p.invoices.length ? (
+            {seesMoney && p.invoices.length ? (
               <section className="cs-section">
                 <SectionTitle href="/client/billing" link="All billing">Billing</SectionTitle>
                 <div className="cs-rows">

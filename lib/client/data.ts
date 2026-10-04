@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { daysFromToday, todayUTC } from "./format"
 import { neededForJob, forClient, needsSigning, signOrgFor, signingEnabled, type NeededSignature, type SignViewer } from "./sign"
 import { isApprover, reviewState } from "./approvals"
+import { seesMoney } from "./money"
 
 const visible = { hidden: false } as const
 
@@ -152,7 +153,8 @@ export async function needsYou(
     if (email && !list.includes(email.toLowerCase())) continue
     items.push({ kind: "proposal", urgency: 1, doc: { id: d.id, title: d.title, good_until: d.good_until }, project: d.project })
   }
-  const invoices = await orgInvoices(orgId)
+  // Invoices are money: never in a VIEWER's list (SPEC §10.5b, §28 v2: one rule, seesMoney).
+  const invoices = seesMoney(role) ? await orgInvoices(orgId) : []
   for (const inv of invoices) {
     if (inv.status !== "open") continue
     const n = inv.due_on ? daysFromToday(inv.due_on) : 0

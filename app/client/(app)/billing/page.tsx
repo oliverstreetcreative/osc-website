@@ -5,11 +5,27 @@ import { orgInvoices, orgDocuments } from "@/lib/client/data"
 import { money, day, relativeDue, daysFromToday } from "@/lib/client/format"
 import { DocRow, HelpFooter, SectionTitle, DemoOff } from "@/app/client/ui"
 import { isDemoSlug } from "@/lib/client/demo"
+import { seesMoney } from "@/lib/client/money"
 
 export const metadata = { title: "Billing" }
 
 export default async function Billing() {
   const ctx = await requireClientContext()
+  // Billing is money: a VIEWER sees none of it, not even a total (SPEC §10.5b, §28 v2). No data is read for them.
+  if (!seesMoney(ctx.role)) {
+    return (
+      <main className="cs-main">
+        <p className="cs-eyebrow">{ctx.org.name}</p>
+        <h1 className="cs-title" style={{ marginTop: 6 }}>Billing</h1>
+        <section className="cs-section" style={{ marginTop: 20 }}>
+          <div className="cs-card cs-pad">
+            <p>Billing is shared with the people who handle payments for {ctx.org.short_name ?? ctx.org.name}.</p>
+          </div>
+        </section>
+        <HelpFooter />
+      </main>
+    )
+  }
   const demo = isDemoSlug(ctx.org.slug) // the staging demo (SPEC §19): placeholder links, buttons off
   const invoices = await orgInvoices(ctx.org.id)
   const vendorDocs = (await orgDocuments(ctx.org.id)).filter((d) => d.kind === "w9" || d.kind === "coi")

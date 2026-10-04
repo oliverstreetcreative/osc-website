@@ -1,5 +1,6 @@
 import { requireClientContext } from "@/lib/client/context"
 import { visibleScriptsWhere } from "@/lib/client/data"
+import { seesMoney } from "@/lib/client/money"
 import { db } from "@/lib/db"
 import { ImpersonationBanner } from "@/components/ImpersonationBanner"
 import { Wordmark } from "@/app/client/ui"
@@ -11,6 +12,8 @@ export default async function ClientShell({ children }: { children: React.ReactN
   const scripts = (await db.script.count({ where: visibleScriptsWhere(ctx.org.id, ctx.viewing ? undefined : ctx.user.id) })) > 0
   const initials = (ctx.user.first_name ?? ctx.user.name ?? "?").trim().slice(0, 1).toUpperCase()
   const showOrgs = !ctx.viewing && ctx.orgs.length > 1
+  // Billing is money: no tab for a VIEWER (SPEC §10.5b, §28 v2).
+  const money = seesMoney(ctx.role)
 
   return (
     <>
@@ -49,7 +52,7 @@ export default async function ClientShell({ children }: { children: React.ReactN
       <header className="cs-top">
         <div className="cs-top-in">
           <a href="/client" aria-label="Home"><Wordmark /></a>
-          <Nav scripts={scripts} />
+          <Nav scripts={scripts} money={money} />
           <div className="cs-top-r">
             {showOrgs ? (
               <details className="cs-menu">
@@ -92,7 +95,7 @@ export default async function ClientShell({ children }: { children: React.ReactN
       </header>
       </div>
       {children}
-      <Tabs scripts={scripts} />
+      <Tabs scripts={scripts} money={money} />
     </>
   )
 }

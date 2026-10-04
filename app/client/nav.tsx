@@ -8,11 +8,13 @@ const ITEMS = [
   { href: "/client", label: "Home", Icon: Home, exact: true },
   { href: "/client/projects", label: "Projects", Icon: Clapperboard },
   { href: "/client/scripts", label: "Scripts", Icon: ScrollText, scriptsOnly: true },
-  { href: "/client/billing", label: "Billing", Icon: Receipt },
+  { href: "/client/billing", label: "Billing", Icon: Receipt, moneyOnly: true },
   { href: "/client/documents", label: "Documents", Icon: FileText },
 ]
-// The Scripts tab shows only for someone who has a script shared with them (SPEC §14 phone moment 3).
-const itemsFor = (scripts: boolean) => ITEMS.filter((i) => scripts || !i.scriptsOnly)
+// The Scripts tab shows only for someone who has a script shared with them (SPEC §14 phone moment 3); Billing only for
+// someone who sees money (a VIEWER doesn't: SPEC §10.5b, §28 v2).
+const itemsFor = (scripts: boolean, money: boolean) =>
+  ITEMS.filter((i) => (scripts || !i.scriptsOnly) && (money || !i.moneyOnly))
 
 function useActive() {
   const raw = usePathname() ?? "/client"
@@ -21,11 +23,11 @@ function useActive() {
   return (href: string, exact?: boolean) => (exact ? path === href : path === href || path.startsWith(`${href}/`))
 }
 
-export function Nav({ scripts = false }: { scripts?: boolean }) {
+export function Nav({ scripts = false, money = true }: { scripts?: boolean; money?: boolean }) {
   const active = useActive()
   return (
     <nav className="cs-nav" aria-label="Main">
-      {itemsFor(scripts).map(({ href, label, exact }) => (
+      {itemsFor(scripts, money).map(({ href, label, exact }) => (
         <Link key={href} href={href} aria-current={active(href, exact) ? "page" : undefined}>
           {label}
         </Link>
@@ -34,11 +36,11 @@ export function Nav({ scripts = false }: { scripts?: boolean }) {
   )
 }
 
-export function Tabs({ scripts = false }: { scripts?: boolean }) {
+export function Tabs({ scripts = false, money = true }: { scripts?: boolean; money?: boolean }) {
   const active = useActive()
   return (
     <nav className="cs-tabs" aria-label="Main">
-      {itemsFor(scripts).map(({ href, label, Icon, exact }) => (
+      {itemsFor(scripts, money).map(({ href, label, Icon, exact }) => (
         <Link key={href} href={href} aria-current={active(href, exact) ? "page" : undefined}>
           <Icon />
           {label}
