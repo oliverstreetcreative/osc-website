@@ -196,7 +196,7 @@ async function main() {
   step(!!id, "the Harmon script is in the editor's Scripts list", id ?? "not found")
   if (!id) return
 
-  const phone1 = new Session("phone 1 (suggester)", suggesterCookie, id)
+  let phone1 = new Session("phone 1 (suggester)", suggesterCookie, id)
   const phone2 = new Session("phone 2 (suggester, second device)", suggesterCookie, id)
   const desk = new Session("desktop (editor)", editorCookie, id)
   await Promise.all([phone1.connect(), phone2.connect(), desk.connect()])
@@ -223,6 +223,11 @@ async function main() {
   step(tamper.status === 409 && tamper.body.refused === true, "a direct (tampered) edit from the suggester is refused", `HTTP ${tamper.status}: ${tamper.body.why ?? ""}`)
   await sleep(1500)
   step(baseText(desk) === before, "and nobody else ever sees it")
+  // what the editor does on a refusal (sync.ts): drop the local copy and start again from the server's
+  phone1.close()
+  phone1 = new Session("phone 1 (suggester, after the refusal)", suggesterCookie, id)
+  await phone1.connect()
+  step(baseText(phone1) === before, "the refused phone starts again from the server's copy (its tampered words gone)")
 
   // the editor accepts the suggestion
   const sugId = listSuggestions(desk.pm()).find((x) => x.owner === phone1.me.code)?.id
@@ -247,7 +252,8 @@ async function main() {
   const r = await desk.api(`/api/scripts/${id}/versions/1/restore`, { method: "POST" })
   step(r.status === 200, "the editor restores version 1 (the import)", `HTTP ${r.status} → v${r.body.n}`)
   await until(() => baseText(phone1) === imported && baseText(phone2) === imported && baseText(desk) === imported)
-  step(baseText(phone1) === imported && baseText(phone2) === imported, "both phones get the restored words at once")
+  const off = [phone1, phone2, desk].filter((s) => baseText(s) !== imported).map((s) => `${s.label}: ${JSON.stringify(baseText(s).slice(0, 60))}`)
+  step(!off.length, "both phones and the desktop get the restored words at once", off.join(" | "))
   const versions = await desk.api(`/api/scripts/${id}/versions`)
   const names = (versions.body.versions ?? []).map((v: any) => v.name ?? v.kind)
   step(names.includes("Rehearsal checkpoint") && names.some((n: string) => /^Restored version 1$/.test(n)), "history keeps every step (nothing lost)", names.slice(0, 5).join(" · "))
