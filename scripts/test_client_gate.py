@@ -912,6 +912,15 @@ class RehearsalTest(GateBase):
         self.assertIn("+rehearsal OSC addresses only", self.gate("lint", "rehearsal-osc").stdout)
         self.write_rbook(rbook(people=("sam+client-test@oliverstreetcreative.com",)))
         self.assertIn("+rehearsal OSC addresses only", self.gate("lint", "rehearsal-osc").stdout)
+        self.write_rbook(rbook(job="26-001"))
+        self.assertIn("job_number is 99-NNN", self.gate("lint", "rehearsal-osc").stdout)
+        self.write_rbook(rbook(invoices=[{"number": "26-0999", "title": "x", "amount": 1, "issued_on": "2026-10-01",
+                                          "status": "open", "audience": "client"}]))
+        self.assertIn("no invoices in a rehearsal book", self.gate("lint", "rehearsal-osc").stdout)
+        b = rbook()
+        b["org"]["folder"] = "/Clients/Acme"
+        self.write_rbook(b)
+        self.assertIn("a rehearsal client's folder is", self.gate("lint", "rehearsal-osc").stdout)
 
     def test_the_signing_twin_alone_may_name_sign_heres_test_person(self):
         """SPEC §22 v2.1: Sign Here staging's test person, only in the twin's own book; nobody else new."""
@@ -940,20 +949,13 @@ class RehearsalTest(GateBase):
 
     def test_the_twin_constant_is_the_same_in_the_gate_and_the_site(self):
         here = os.path.dirname(os.path.abspath(__file__))
-        ts = open(os.path.join(here, "..", "lib", "client", "rehearsal.ts"), encoding="utf-8").read()
-        py = open(GATE, encoding="utf-8").read()
+        with open(os.path.join(here, "..", "lib", "client", "rehearsal.ts"), encoding="utf-8") as f:
+            ts = f.read()
+        with open(GATE, encoding="utf-8") as f:
+            py = f.read()
         for k, v in TWIN.items():
             self.assertRegex(ts, rf'{k}:\s*"{re.escape(v)}"', k)
             self.assertRegex(py, rf'"{k}":\s*"{re.escape(v)}"', k)
-        self.write_rbook(rbook(job="26-001"))
-        self.assertIn("job_number is 99-NNN", self.gate("lint", "rehearsal-osc").stdout)
-        self.write_rbook(rbook(invoices=[{"number": "26-0999", "title": "x", "amount": 1, "issued_on": "2026-10-01",
-                                          "status": "open", "audience": "client"}]))
-        self.assertIn("no invoices in a rehearsal book", self.gate("lint", "rehearsal-osc").stdout)
-        b = rbook()
-        b["org"]["folder"] = "/Clients/Acme"
-        self.write_rbook(b)
-        self.assertIn("a rehearsal client's folder is", self.gate("lint", "rehearsal-osc").stdout)
 
     def test_a_rehearsal_never_reuses_a_real_clients_review_link(self):
         self.write_draft(book(film_extra={"review_url": RLINK, "review_asset_id": A1}))

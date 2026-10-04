@@ -38,8 +38,9 @@ export async function startSession(req: NextRequest, res: NextResponse, person: 
 /** Where a client goes after signing in: the portal, or, for someone whose only business with us is a script
  *  (an invitee with no organization: Mike, a freelancer), their scripts (SPEC §14 phone moment 2). */
 export async function clientHome(personId: string): Promise<string> {
-  // Only memberships getClientContext would honour: a hidden org (a retired book) or a rehearsal org off staging
-  // counts for nothing, so a script-only person still lands on their scripts (SPEC §22 v2.1 review).
+  // A hidden org (a retired book) or a rehearsal org off staging counts for nothing (as in getClientContext; demo
+  // orgs are hidden by the sync wherever the demo is off), so a script-only person still lands on their scripts
+  // (SPEC §22 v2.1 review).
   const orgs = await db.membership.count({
     where: {
       person_id: personId,

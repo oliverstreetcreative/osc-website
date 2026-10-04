@@ -58,7 +58,8 @@ export type NeedsItem =
 
 /** The client's paperwork, live from Sign Here (never stored here): per project, or "unavailable". */
 export type ClientPaper = {
-  /** False while signing is dormant (no env) or for orgs with no published book (the demo, previews). */
+  /** False while signing is dormant (no env), or for orgs that don't ask Sign Here (signOrgFor: the demo, previews,
+   *  rehearsals; and on staging every org but the signing twin). */
   enabled: boolean
   /** Project ids whose read failed (503 = signing isn't set up for this org, a timeout, a bad shape). */
   unavailable: Set<string>
@@ -129,11 +130,11 @@ export async function needsYou(
     orderBy: { updated_at: "desc" },
   })
   for (const s of scripts) items.push({ kind: "script", urgency: s.status === "ready_for_ok" ? 1 : 2, script: s })
-  // Paper waiting for this person (the engine already returned only their own; staff viewing see every member's):
-  // Sign Here's rule, `status !== "signed"`, and only what they can start now (SPEC §22 v2.1).
+  // Paper waiting for this person (the engine already returned only their own; staff viewing, who pass no email, see
+  // every member's): Sign Here's rule, `status !== "signed"`; for the client, only what they can start now (§22 v2.1).
   for (const p of projects) {
     for (const s of signatures.byProject.get(p.id) ?? []) {
-      if (needsSigning(s)) {
+      if (needsSigning(s, !email)) {
         items.push({ kind: "sign", urgency: s.overdue ? 0 : 1, project: p, item: s })
       }
     }

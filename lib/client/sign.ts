@@ -152,9 +152,12 @@ export const isDone = (s: NeededSignature) => (s.satisfied ?? s.status === "sign
  *  `state: "signed"` with `satisfied: false`, and refuses a second start. A signed SAMPLE has its own state. */
 export const signedNotCleared = (s: NeededSignature) => !isDone(s) && (s.state ? s.state === "signed" : s.status === "signed")
 
-/** For "Needs you" (Sign Here's rule for front-ends: `status !== "signed"`): not signed yet, not cleared, and startable
- *  now. Paper OSC still has to set up (`can_start: false`) stays on the project page, off the to-do list. */
-export const needsSigning = (s: NeededSignature) => s.status !== "signed" && !isDone(s) && s.can_start
+/** For "Needs you" (Sign Here's rule for front-ends: `status !== "signed"`): not signed yet and not cleared. For the
+ *  client, also startable now: paper OSC still has to set up (`can_start: false`) stays on the project page, off their
+ *  to-do list. Staff viewing as the client always get `can_start: false` from the engine (read-only), so for them
+ *  it's the engine's rule alone: they see what the client still owes, and Home never tells them "all set" over it. */
+export const needsSigning = (s: NeededSignature, staff = false) =>
+  s.status !== "signed" && !isDone(s) && (staff || s.can_start)
 
 export type StartResult = { ok: true; sign_url: string } | { ok: false; reason: "office" | "unavailable" }
 

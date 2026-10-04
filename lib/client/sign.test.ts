@@ -72,6 +72,13 @@ test("Needs you = not signed, not cleared, and startable now (Sign Here: status 
   assert.equal(needsSigning(item({ state: "on_file", status: "missing", satisfied: true })), false) // cleared another way
 })
 
+test("staff viewing as the client see what the client still owes (the engine sends staff can_start: false)", () => {
+  assert.equal(needsSigning(item({ state: "missing", status: "missing", can_start: false }), true), true)
+  assert.equal(needsSigning(item({ state: "sent", status: "sent", can_start: false }), true), true)
+  assert.equal(needsSigning(item({ state: "signed", status: "signed", satisfied: false, can_start: false }), true), false)
+  assert.equal(needsSigning(item({ state: "signed", status: "signed", satisfied: true, can_start: false }), true), false)
+})
+
 test("signed but not cleared: the engine's plain 'signed' with satisfied false; a signed sample has its own words", () => {
   assert.equal(signedNotCleared(item({ state: "signed", status: "signed", satisfied: false })), true)
   assert.equal(signedNotCleared(item({ status: "signed", satisfied: false })), true) // no state: the v1 view

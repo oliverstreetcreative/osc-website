@@ -331,8 +331,8 @@ export default async function ProjectPage({ params }: { params: { id: string } }
                               ) : null}
                             </>
                           ) : s.state === "signed_sample" ? (
-                            // Only ever on staging (samples reach a client only there, SPEC §22 v2.1): the sample's own copy
-                            // proves the receipt path; the engine serves it to its signer alone.
+                            // A client sees a signed sample only on staging (SPEC §22 v2.1; staff viewing see samples,
+                            // marked, anywhere). Its own copy proves the receipt path; the engine serves it to its signer alone.
                             <>
                               <span className="cs-status">Sample signed (doesn&rsquo;t count)</span>
                               {mine && s.agreement_id ? (
