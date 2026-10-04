@@ -58,6 +58,7 @@ model Person {
   portal_events         PortalEvent[]
   portal_invites        PortalInvite[]
   portal_sessions       PortalSession[]
+  support_tickets       SupportTicket[]
   testimonials          Testimonial[]
   trips                 Trip[]
   assigned_tasks        Task[]
@@ -669,6 +670,7 @@ model Organization {
   documents     Document[]
   requests      ProjectRequest[]
   scripts       Script[]
+  support_tickets SupportTicket[]
   script_access ScriptAccess[]
 
   @@map("organizations")
@@ -1132,4 +1134,49 @@ model ScriptNotice {
 
   @@index([person_id, sent_at])
   @@map("script_notices")
+}
+
+// "Something's wrong?" (SPEC §29 v2): a client's report, UNTRUSTED DATA. Kept private here; only a sanitized summary
+// (lib/support/safety.ts) ever leaves for the machines, and the screenshot is for Sam's eyes only (staff page).
+model SupportTicket {
+  id              String              @id @default(uuid()) @db.Uuid
+  number          Int                 @unique @default(autoincrement())
+  env             String // production | staging | local
+  person_id       String?             @db.Uuid
+  organization_id String?             @db.Uuid
+  role            String? // their role in the org, or STAFF; null = signed out
+  reporter_email  String? // signed out only: what they typed, unverified, never emailed by the site
+  surface         String              @default("portal")
+  route           String // a route TEMPLATE (never the real path: paths carry tokens)
+  message         String
+  context         Json? // private: viewport, device, redacted errors and failed requests (capped)
+  has_screenshot  Boolean             @default(false)
+  ip_hash         String? // HMAC of the last-hop IP (IPv6 by /64), for limits only
+  status          String              @default("open") // open | working | fixed | wont_fix
+  status_at       DateTime?
+  client_note     String? // published through the gate (a book's support_notes), plain text
+  mirrored_at     DateTime? // when its sanitized summary reached Dropbox
+  created_at      DateTime            @default(now())
+  updated_at      DateTime            @updatedAt
+  person          Person?             @relation(fields: [person_id], references: [id], onDelete: SetNull)
+  organization    Organization?       @relation(fields: [organization_id], references: [id], onDelete: SetNull)
+  attachments     SupportAttachment[]
+
+  @@index([person_id, created_at])
+  @@index([ip_hash, created_at])
+  @@index([created_at])
+  @@map("support_tickets")
+}
+
+model SupportAttachment {
+  id         String        @id @default(uuid()) @db.Uuid
+  ticket_id  String        @db.Uuid
+  mime       String // image/jpeg only
+  bytes      Bytes
+  size       Int
+  created_at DateTime      @default(now())
+  ticket     SupportTicket @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+
+  @@index([ticket_id])
+  @@map("support_attachments")
 }

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { Barlow_Condensed, Lobster } from "next/font/google"
 import { LOOK_SCRIPT } from "@/lib/client/theme"
+import { DIAG_SCRIPT } from "@/lib/support/recorder"
 import { LookApplier } from "./look"
 import "./client.css"
 
@@ -24,6 +25,8 @@ export default function ClientFrame({ children }: { children: React.ReactNode })
   return (
     <div className={`cs cs-app ${barlow.variable} ${lobster.variable}`}>
       <script dangerouslySetInnerHTML={{ __html: LOOK_SCRIPT }} />
+      {/* "Something's wrong?" (SPEC §29 v2): the page's recent errors, recorded from the start. */}
+      <script dangerouslySetInnerHTML={{ __html: DIAG_SCRIPT }} />
       <LookApplier />
       {children}
     </div>

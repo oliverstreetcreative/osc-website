@@ -56,6 +56,7 @@ export function failClosed(book: Book, dropped: string[]): Book {
     })),
     invoices: keep("invoice", book.invoices, (i) => ({ ...i, memo: undefined })),
     documents: keep("document", book.documents),
+    support_notes: book.support_notes ? keep("support note", book.support_notes.filter((n) => !!n)) : undefined,
   }
 }
 // OSC staff who may sign in and use "View as client". Same allowlist idea as the
@@ -447,5 +448,19 @@ export async function applyBook(book: Book) {
   await db.document.updateMany({
     where: { organization_id: org.id, ext_key: { startsWith: prefix, notIn: keepDocs } },
     data: { hidden: true },
+  })
+
+  // SPEC §29 v2: Sam's notes under this client's own reports. The organization_id in every where keeps a note from
+  // ever landing on another client's report; a note gone from the book comes down.
+  const notes = (book.support_notes ?? []).filter((n): n is NonNullable<typeof n> => !!n)
+  for (const n of notes) {
+    await db.supportTicket.updateMany({
+      where: { id: n.ticket.toLowerCase(), organization_id: org.id, OR: [{ client_note: null }, { client_note: { not: n.note } }] },
+      data: { client_note: n.note },
+    })
+  }
+  await db.supportTicket.updateMany({
+    where: { organization_id: org.id, client_note: { not: null }, id: { notIn: notes.map((n) => n.ticket.toLowerCase()) } },
+    data: { client_note: null },
   })
 }

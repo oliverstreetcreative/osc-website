@@ -6,6 +6,7 @@ import { ImpersonationBanner } from "@/components/ImpersonationBanner"
 import { Wordmark } from "@/app/client/ui"
 import { Nav, Tabs } from "@/app/client/nav"
 import { ThemeSwitch } from "@/app/client/theme-switch"
+import { ReportLink, ReportSheet } from "@/app/client/report-sheet"
 
 export default async function ClientShell({ children }: { children: React.ReactNode }) {
   const ctx = await requireClientContext()
@@ -87,6 +88,8 @@ export default async function ClientShell({ children }: { children: React.ReactN
                   <a href="/client/calendar">Calendar feed</a>
                 )}
                 <ThemeSwitch />
+                {ctx.viewing ? null : <a href="/client/support">Your reports</a>}
+                {ctx.viewing ? null : <ReportLink className="cs-menu-btn" />}
                 <form action="/client/signout" method="post"><button>Sign out</button></form>
               </div>
             </details>
@@ -95,6 +98,14 @@ export default async function ClientShell({ children }: { children: React.ReactN
       </header>
       </div>
       {children}
+      {/* "Something's wrong?" on every page (SPEC §29 v2): in the shell, not page by page. Staff viewing as a client
+          report as themselves, outside View as. */}
+      {ctx.viewing && !ctx.viewing.demo ? null : (
+        <p className="cs-report-foot">
+          <ReportLink />
+        </p>
+      )}
+      <ReportSheet demo={!!ctx.viewing?.demo} />
       <Tabs scripts={scripts} money={money} />
     </>
   )

@@ -546,3 +546,20 @@ a.cs-row:hover { background: var(--zebra); }
 .cs .cs-money-balance { font-size: 17px; font-weight: 600; margin: 0 0 6px; font-variant-numeric: tabular-nums; }
 .cs .cs-money-job { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
 .cs .cs-sign-needed { color: var(--accent); font-weight: 500; }
+/* "Something's wrong?" (SPEC §29 v2): a quiet link in the shell; a bottom sheet on a phone, a card on a desktop. */
+.cs .cs-report-foot { text-align: center; margin: 4px 0 96px; font-size: 13px; }
+@media (min-width: 720px) { .cs .cs-report-foot { margin-bottom: 32px; } }
+.cs .cs-report-foot .cs-link, .cs .cs-menu-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--mut); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.cs .cs-menu-btn { display: block; width: 100%; text-align: left; padding: 10px 14px; text-decoration: none; color: var(--ink); }
+.cs .cs-sheet-wrap { position: fixed; inset: 0; z-index: 80; background: rgba(0, 0, 0, 0.45); display: flex; align-items: flex-end; justify-content: center; }
+.cs .cs-sheet-wrap[hidden] { display: none; }
+.cs .cs-sheet { width: 100%; max-width: 560px; background: var(--bg); color: var(--ink); border-radius: 18px 18px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); max-height: 90vh; overflow: auto; box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.25); }
+@media (min-width: 720px) { .cs .cs-sheet-wrap { align-items: center; } .cs .cs-sheet { border-radius: 18px; } }
+.cs .cs-sheet h2 { margin: 0 0 8px; font-size: 20px; }
+.cs .cs-sheet textarea { width: 100%; margin-top: 8px; font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--zone); color: var(--ink); resize: vertical; }
+.cs .cs-sheet-shot { margin-top: 10px; display: flex; gap: 10px; align-items: flex-start; }
+.cs .cs-sheet-shot img { width: 96px; border-radius: 8px; border: 1px solid var(--line); }
+.cs .cs-sheet-note { font-size: 13px; color: var(--mut); margin: 8px 0 0; }
+.cs .cs-sheet-error { font-size: 14px; color: var(--red-ink, #b3261e); margin: 8px 0 0; }
+.cs .cs-sheet-act { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 12px; }
+.cs .cs-sheet-act .cs-link { background: none; border: 0; font: inherit; color: var(--mut); cursor: pointer; }

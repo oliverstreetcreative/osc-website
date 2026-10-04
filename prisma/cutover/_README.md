@@ -9,10 +9,12 @@ transaction, after a backup and a drift check, never `db push`.
 
 **`client-site.sql`** was generated from `origin/main`'s `prisma/schema.prisma` to this branch's (`prisma migrate
 diff --from-schema-datamodel … --to-schema-datamodel … --script`). What it does:
-- creates 21 tables (organizations, memberships, invoices, documents, project requests, version approvals, proposal
-  acceptances and views, libraries, library clips and hearts, and the ten Scripts tables) and one enum (`MemberRole`);
+- creates 23 tables (organizations, memberships, invoices, documents, project requests, version approvals, proposal
+  acceptances and views, libraries, library clips and hearts, the ten Scripts tables, and `support_tickets` +
+  `support_attachments` for "Something's wrong?", SPEC §29) and one enum (`MemberRole`);
 - adds columns to existing tables (`people`, `projects`, `deliverables`, `shoot_periods`): every new NOT NULL column
-  has a constant default, so it's a metadata-only change on a filled table;
+  has a constant default, so it's a metadata-only change on a filled table. `projects.money` (§28) is a nullable
+  JSONB column;
 - relaxes `NOT NULL` on the retired Bible columns (`source_bible_id`, `source_bible_table`; 8 lines) — the only
   "DROP" in the file;
 - adds indexes and foreign keys only on new tables or new columns.

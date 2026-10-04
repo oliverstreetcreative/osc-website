@@ -72,6 +72,43 @@ export async function listJsonEntries(folder: string): Promise<{ path: string; r
   }
 }
 
+/**
+ * Like listJsonEntries, but follows Dropbox's pages (list_folder/continue) up to `maxPages`, so a folder that only
+ * grows (support status files, SPEC §29 v2) is never cut off at one page. [] when the folder doesn't exist; null when
+ * any page failed or there were more pages than allowed (then act on nothing rather than a partial listing).
+ */
+export async function listJsonEntriesAll(folder: string, maxPages = 20): Promise<{ path: string; rev: string }[] | null> {
+  if (localRoot()) return listJsonEntries(folder)
+  const wanted = (n: string) => n.endsWith(".json") && !n.startsWith(".") && !n.startsWith("_")
+  const token = await getDropboxAccessToken()
+  if (!token) return null
+  const call = (endpoint: string, body: unknown) =>
+    fetch(`https://api.dropboxapi.com/2/files/${endpoint}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    })
+  type Page = { entries: { ".tag": string; name: string; rev?: string }[]; has_more?: boolean; cursor?: string }
+  const out: { path: string; rev: string }[] = []
+  try {
+    let res = await call("list_folder", { path: `${prefix()}${folder}` })
+    if (res.status === 409 && /not_found/.test(await res.clone().text())) return []
+    for (let page = 0; page < maxPages; page++) {
+      if (!res.ok) return null
+      const body = (await res.json()) as Page
+      for (const e of body.entries) if (e[".tag"] === "file" && wanted(e.name)) out.push({ path: `${folder}/${e.name}`, rev: e.rev ?? "" })
+      if (!body.has_more) return out
+      if (!body.cursor) return null
+      res = await call("list_folder/continue", { cursor: body.cursor })
+    }
+    return null // more pages than allowed: never treat a partial listing as the whole
+  } catch {
+    return null
+  }
+}
+
 export async function readText(path: string): Promise<string> {
   if (localRoot()) return fs.readFile(join(localRoot(), path.replace(/^\//, "")), "utf8")
   const res = await download(path)

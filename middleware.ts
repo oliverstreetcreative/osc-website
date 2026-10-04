@@ -63,6 +63,8 @@ function isPublicPath(pathname: string): boolean {
   // Script invites (client-website SPEC §14 v4 #10): the link's page and its tap work signed out; the token is the key.
   if (pathname.startsWith('/client/scripts/invite/')) return true
   if (pathname === '/api/scripts/invite/accept' || pathname === '/api/scripts/invite/renew') return true
+  // "Trouble signing in?" (client-website SPEC §29 v2): no session by definition; the route checks its own origin.
+  if (pathname === '/support/signin-trouble') return true
   if (pathname.startsWith('/f/')) return true
   if (pathname.startsWith('/_next/') || pathname.startsWith('/favicon')) return true
   return false
@@ -76,6 +78,8 @@ function isPortalInfraPath(pathname: string): boolean {
   // The page that redeems a sign-in link: links are minted on the host the person will use (crew.* for crew; SPEC
   // §26 v2), so it must load there before any session exists.
   if (pathname === '/magic') return true
+  // "Trouble signing in?" (SPEC §29 v2) works before any session, on the portal subdomains too.
+  if (pathname === '/support/signin-trouble') return true
   if (pathname.startsWith('/_next/') || pathname.startsWith('/favicon')) return true
   return false
 }

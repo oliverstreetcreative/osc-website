@@ -163,6 +163,14 @@ const Document = z.object({
   frozen_sha256: z.string().regex(/^[0-9a-f]{64}$/).optional().catch(undefined),
 })
 
+// SPEC §29 v2: Sam's note under one of this client's reports ("Fixed: the play button works on iPhone now."). Client-
+// facing words, so it publishes through the gate; the sync only ever writes it onto THIS org's ticket.
+const SupportNote = z.object({
+  ticket: z.string().uuid(),
+  note: z.string().min(1).max(400),
+})
+export type BookSupportNote = z.infer<typeof SupportNote>
+
 export const Book = z.object({
   version: z.literal(1),
   org: z.object({
@@ -177,6 +185,8 @@ export const Book = z.object({
   projects: z.array(Project).default([]),
   invoices: z.array(Invoice).default([]),
   documents: z.array(Document).default([]),
+  // A bad note is dropped on its own; it never takes the book down.
+  support_notes: z.array(SupportNote.nullable().catch(null)).optional().catch(undefined),
 })
 
 export type Book = z.infer<typeof Book>

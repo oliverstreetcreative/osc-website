@@ -349,6 +349,8 @@ def proposed(book):
         p["shoots"] = [s for s in p.get("shoots", []) if keep(s)]
     b["invoices"] = [i for i in b.get("invoices", []) if keep(i)]
     b["documents"] = [d for d in b.get("documents", []) if keep(d)]
+    if b.get("support_notes"):
+        b["support_notes"] = [n for n in b["support_notes"] if keep(n)]
     return b
 
 
@@ -382,6 +384,12 @@ def flatten(book):
         out[f"invoice:{i['number']}"] = (f"Invoice {i['number']}: {i['title']}", i)
     for d in book.get("documents", []):
         out[f"document:{d['key']}"] = (f"Document: {d['title']}", d)
+    # SPEC §29 v2: Sam's note under a client's report: client-facing words, so it publishes like everything else.
+    for n in book.get("support_notes", []):
+        ticket = str(n.get("ticket") or "").lower()
+        s = support_summary(ticket) if UUIDISH.match(ticket) else None
+        num = s and s.get("number")
+        out[f"support_note:{ticket}"] = (f"Note on report #{num}" if num else "Note on a report", n)
     return out
 
 
@@ -423,6 +431,8 @@ def assemble(meta, items, order):
             book["invoices"].append(content)
         elif kind == "document":
             book["documents"].append(content)
+        elif kind == "support_note":
+            book.setdefault("support_notes", []).append(content)
     return book
 
 
@@ -527,7 +537,7 @@ TEAM_FRAMEIO = re.compile(r"app\.frame\.io/(projects|player)/", re.I)
 
 SKIP_KEYS = ("path", "url", "watch_url", "review_url", "pay_url", "logo", "poster", "file", "email", "key", "slug",
              "project_key", "share_url", "asset_id", "version_id", "master_sha256", "approvers", "review_asset_id",
-             "version_review_id", "acceptors", "good_until", "frozen_sha256")
+             "version_review_id", "acceptors", "good_until", "frozen_sha256", "ticket")
 # Footage packages only (library:/clip: items): ids, slugs and stamps, never words a client reads. Kept out of the
 # book's list so a future book field named "job" or "format" is still linted.
 FOOTAGE_SKIP_KEYS = SKIP_KEYS + ("sam_event", "mux_playback_id", "mux_asset_id", "format", "made_at", "made_by",
@@ -690,6 +700,8 @@ def lint_item(key, content, org, items=None):
         problems += library_problems(key, content, org or {}, items or {})
     if key.startswith("clip:"):
         problems += clip_problems(key, content, items or {})
+    if key.startswith("support_note:"):
+        problems += support_note_problems(key, content, org or {})
     return sorted(set(problems))
 
 
@@ -706,6 +718,49 @@ def reader_problem():
     if dt.datetime.now(dt.timezone.utc) - when > dt.timedelta(days=2):
         return "not now: Majordomo's reader of client acceptances hasn't checked in for two days"
     return None
+
+
+SUPPORT_NOTE_MAX = 400
+
+
+def support_summary(ticket):
+    """A report's mirrored summary (the site writes support-<env>/<uuid>.md, SPEC §29 v2): {env, number, client}, or
+    None. Only the header and the validated `- client:` line are read; the client's own words never are."""
+    for env in ("production", "staging"):
+        path = os.path.join(SITE, f"support-{env}", f"{ticket}.md")
+        if not os.path.exists(path):
+            continue
+        with open(path, encoding="utf-8") as f:
+            text = f.read(4000)
+        num = re.search(r"^# Support report #(\d+) ", text, re.M)
+        client = re.search(r"^- client: ([a-z0-9][a-z0-9-]*)$", text, re.M)
+        return {"env": env, "number": int(num.group(1)) if num else None, "client": client.group(1) if client else None}
+    return None
+
+
+def support_note_problems(key, n, org):
+    """SPEC §29 v2: a plain note under one of THIS client's reports ("Fixed: the play button works on iPhone now.")."""
+    ticket = str(n.get("ticket") or "")
+    if not UUIDISH.match(ticket) or key != f"support_note:{ticket.lower()}":
+        return ["a support note names its report by the report's id (a uuid)"]
+    out = []
+    if set(n) - {"ticket", "note", "audience"}:
+        out.append('a support note is just {"ticket", "note"}')
+    note = n.get("note")
+    if not isinstance(note, str) or not note.strip():
+        out.append("a support note needs its words")
+    elif len(note) > SUPPORT_NOTE_MAX:
+        out.append(f"a support note is at most {SUPPORT_NOTE_MAX} characters")
+    elif re.search(r"https?://|www\.", note, re.I):
+        out.append("no links in a support note (say where to tap instead)")
+    s = support_summary(ticket.lower())
+    slug = re.sub(r"--preview$", "", str((org or {}).get("slug") or ""))
+    if s is None:
+        out.append("no such report here: its summary isn't in support-production/ or support-staging/")
+    elif s["client"] != slug:
+        out.append("that report isn't this client's")
+    out += free_money_problems(n, ("note",))
+    return out
 
 
 def document_problems(key, doc, org, items):
@@ -1663,6 +1718,9 @@ def cmd_ticket(a):
             labels.append(("New: " if k in new else "Changed: ") + d[k][0] + f" (as of {d[k][1].get('as_of')}; seen by "
                           + (", ".join(seers) or "no one yet") + (f"; {unknown} to confirm" if unknown else "") + ")")
             labels += [f"    {line}" for line in money_lines(d[k][1], d)]
+        elif k.startswith("support_note:"):
+            # SPEC §29 v2: the exact words the client will read under their report.
+            labels.append(("New: " if k in new else "Changed: ") + d[k][0] + ": " + json.dumps(d[k][1].get("note", ""), ensure_ascii=False))
         else:
             labels.append(("New: " if k in new else "Changed: ") + d[k][0])
     for lib, n in clips.items():

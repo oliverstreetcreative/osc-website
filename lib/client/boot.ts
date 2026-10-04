@@ -27,6 +27,11 @@ export async function boot() {
     await writePendingAcceptances().catch((err) => console.error("client-site: acceptance ledger retry failed", err))
     // Footage hearts (SPEC §23 v2): portal-shaped records for Stacks to import as its client layer.
     await writePendingHearts().catch((err) => console.error("client-site: hearts ledger failed", err))
+    // "Something's wrong?" (SPEC §29 v2): sanitized summaries out to Majordomo's intake (retrying any the report's own
+    // write missed); status-only files back in.
+    const { mirrorTickets, applyStatusUpdates } = await import("../support/mirror")
+    await mirrorTickets().catch((err) => console.error("support: mirror failed", err))
+    await applyStatusUpdates().catch((err) => console.error("support: status pickup failed", err))
     // Scripts (SPEC §14): STAGING picks up import files from Dropbox (the rehearsal; production imports through the
     // staff endpoint once Sam puts Scripts on the live site).
     if (IS_STAGING) {
