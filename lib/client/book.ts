@@ -131,6 +131,13 @@ const Document = z.object({
   url: https.optional(),
   signed_by: z.string().optional(),
   signed_on: date.optional(),
+  // SPEC §24 v2, proposals only: Sam asks the named acceptors for a yes to exactly this file. The gate freezes the PDF
+  // (frozen/<sha256>.pdf) and writes frozen_sha256; `total` is office-side (record, ledger, Sam's ticket), never shown.
+  ask: z.enum(["none", "accept"]).default("none").catch("none"),
+  acceptors: z.array(z.string().email()).default([]).catch([]),
+  good_until: date.optional().catch(undefined),
+  total: z.number().positive().optional().catch(undefined),
+  frozen_sha256: z.string().regex(/^[0-9a-f]{64}$/).optional().catch(undefined),
 })
 
 export const Book = z.object({

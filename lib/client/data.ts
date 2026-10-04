@@ -55,6 +55,7 @@ export type NeedsItem =
   | { kind: "shoot"; urgency: number; project: ProjectWithAll; shoot: ProjectWithAll["shoot_periods"][number] }
   | { kind: "review"; urgency: number; project: ProjectWithAll; film: ProjectWithAll["deliverables"][number]; version_n?: number }
   | { kind: "sign"; urgency: number; project: { name: string; slug: string | null; job_number: string | null }; item: NeededSignature }
+  | { kind: "proposal"; urgency: number; doc: { id: string; title: string; good_until: Date | null }; project: { name: string } | null }
 
 /** The client's paperwork, live from Sign Here (never stored here): per project, or "unavailable". */
 export type ClientPaper = {
@@ -133,6 +134,19 @@ export async function needsYou(
         items.push({ kind: "sign", urgency: s.overdue ? 0 : 1, project: p, item: s })
       }
     }
+  }
+  // A proposal waiting for this person's yes (SPEC §24 v2): its named acceptors only (staff viewing see them, read-only),
+  // until it's accepted or past its good-until date.
+  const proposals = await db.document.findMany({
+    where: { organization_id: orgId, hidden: false, kind: "proposal", ask: "accept", sha256: { not: null }, acceptance: null, OR: [{ project_id: null }, { project: { hidden: false } }] },
+    select: { id: true, title: true, good_until: true, acceptors: true, project: { select: { name: true } } },
+  })
+  const todayET = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" })
+  for (const d of proposals) {
+    if (d.good_until && d.good_until.toISOString().slice(0, 10) < todayET) continue
+    const list = Array.isArray(d.acceptors) ? d.acceptors.filter((e): e is string => typeof e === "string").map((e) => e.toLowerCase()) : []
+    if (email && !list.includes(email.toLowerCase())) continue
+    items.push({ kind: "proposal", urgency: 1, doc: { id: d.id, title: d.title, good_until: d.good_until }, project: d.project })
   }
   const invoices = await orgInvoices(orgId)
   for (const inv of invoices) {

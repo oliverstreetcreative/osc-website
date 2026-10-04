@@ -97,13 +97,57 @@ CLIP_KEY = re.compile(r"^([0-9a-f]{16}-\d+)@(\d+)-(\d+)$")  # <stacks clip id = 
 STACKS_EVENT_ID = re.compile(r"^[0-9a-f]{12}-[0-9a-f]{8}$")
 MUX_ID = re.compile(r"^[A-Za-z0-9]{10,80}$")
 MAX_CLIPS = 2000
-MAX_CLIPS_PER_TICKET = int(os.environ.get("GATE_MAX_CLIPS_PER_TICKET", "300"))  # (override for tests only)
-# Where Stacks' own rules and marks live (read-only here; the website never reads them).
+DURATION_SLACK = 0.15  # seconds: a few frames, so no more than that sits outside Sam's range
+# Test-only overrides are honoured only in a sandbox (DROPBOX_LOCAL_ROOT set), never on the real Dropbox.
+SANDBOX = bool(os.environ.get("DROPBOX_LOCAL_ROOT"))
+MAX_CLIPS_PER_TICKET = int(os.environ.get("GATE_MAX_CLIPS_PER_TICKET", "300")) if SANDBOX else 300
+# Where Stacks' own rules and marks live (read-only here; the website never reads them). The live Dropbox root is
+# found the way Stacks finds it (engine/stacks/paths.py DROPBOX_ROOTS: the one that holds Matters/), so the gate
+# reads the same copy of the marks Stacks writes.
 STACKS_ENGINE = os.environ.get("STACKS_ENGINE") or os.path.expanduser("~/code/stacks/engine")
-STACKS_EVENTS = [p for p in (os.environ.get("STACKS_EVENTS_DIR"),
-                             os.path.expanduser("~/Library/CloudStorage/Dropbox/Vault Archive Records/events"),
-                             os.path.expanduser("~/Dropbox (Personal)/Vault Archive Records/events"),
-                             "/Volumes/dropbox-sam/Vault Archive Records/events") if p]
+STACKS_EVENTS = [os.environ["STACKS_EVENTS_DIR"]] if os.environ.get("STACKS_EVENTS_DIR") else [
+    os.path.join(r, "Vault Archive Records", "events")
+    for r in ("/Volumes/dropbox-sam", os.path.expanduser("~/Dropbox (Personal)"), os.path.expanduser("~/Dropbox"),
+              os.path.expanduser("~/Library/CloudStorage/Dropbox"))
+    if os.path.isdir(os.path.join(r, "Matters"))]
+TOMBSTONE_NOTE = "previously removed by Sam: publish only by naming it in --items"
+
+# ---------------------------------------------------------------- proposals (SPEC §24 v2)
+# A proposal the client may accept is frozen: on publish its PDF is copied (add-only) to frozen/<sha256>.pdf and the
+# published document carries frozen_sha256; the site serves ONLY that copy, hash-checked. An accepted proposal (the
+# portal's ledger/acceptances/) can't change or disappear. No `ask: accept` publishes until Majordomo reads that
+# ledger and tickets Sam (it writes ledger/acceptances/_reader.json), so a client's yes never lands unheard.
+FROZEN = os.path.join(SITE, "frozen")
+ACCEPTANCES = os.path.join(SITE, "ledger", "acceptances")
+ACCEPT_READER = os.path.join(ACCEPTANCES, "_reader.json")
+DOC_ASKS = ("none", "accept")
+
+
+def file_sha256(path):
+    full = os.path.join(ROOT, path.lstrip("/"))
+    if not os.path.isfile(full):
+        return None
+    h = hashlib.sha256()
+    with open(full, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def accepted_documents(slug):
+    """Document keys of `slug` a client has accepted (not withdrawn), from the portal's ledger files."""
+    out = set()
+    if not os.path.isdir(ACCEPTANCES):
+        return out
+    for name in os.listdir(ACCEPTANCES):
+        if name.endswith(".json") and not name.startswith((".", "_")):
+            try:
+                rec = load(os.path.join(ACCEPTANCES, name)) or {}
+            except Exception:
+                continue
+            if rec.get("org") == slug and rec.get("document") and not rec.get("withdrawn"):
+                out.add(rec["document"])
+    return out
 
 
 def read_packages(base, slug):
@@ -132,9 +176,9 @@ def flatten_libraries(pkgs):
     out = {}
     for fkey, pkg in pkgs.items():
         clips = pkg.get("clips") if isinstance(pkg.get("clips"), list) else []
+        # The count lives in the label only: a clip's own add or removal is its own item, never a library change.
         meta = {k: v for k, v in pkg.items() if k != "clips"}
-        meta["clip_count"] = len(clips)  # so a ticket line can say how many, and the count is part of the item
-        out[f"library:{fkey}"] = (f"Footage: {pkg.get('title') or fkey} ({len(clips)} clips)", meta)
+        out[f"library:{fkey}"] = (f"Footage: {pkg.get('title') or fkey} ({len(clips)} clip{'s' if len(clips) != 1 else ''})", meta)
         for c in clips:
             ck = c.get("key") if isinstance(c, dict) else None
             out[f"clip:{fkey}/{ck}"] = (f"Clip: {(c or {}).get('title') or ck} ({pkg.get('title') or fkey})", c)
@@ -149,7 +193,7 @@ def assemble_libraries(items, order):
             continue
         kind, _, rest = key.partition(":")
         if kind == "library":
-            meta = {k: v for k, v in copy.deepcopy(items[key][1]).items() if k != "clip_count"}
+            meta = copy.deepcopy(items[key][1])
             meta["clips"] = []
             libs[rest] = meta
         elif kind == "clip":
@@ -272,6 +316,13 @@ def diff(slug):
     else:
         not_ready = []
     l.update(flatten_libraries(read_packages(LIBRARY_LIVE, slug)[0]))
+    # Proposals are bound to their bytes (SPEC §24 v2): the draft's file hash is part of the item, so a PDF
+    # re-rendered at the same path shows up as CHANGED and needs Sam's tap.
+    for k, (_, content) in d.items():
+        if k.startswith("document:") and content.get("kind") == "proposal" and content.get("path"):
+            sha = file_sha256(content["path"]) if plain_path(content["path"]) else None
+            if sha:
+                content["frozen_sha256"] = sha
     # A package that's mid-write or online-only is NOT READY: it neither changes nor disappears.
     for name in not_ready:
         for k, v in l.items():
@@ -340,22 +391,26 @@ BAD_FILENAME = re.compile(r"prelim|internal|\bbid\b|_bid|bid_|packet|editor-brie
 TEAM_FRAMEIO = re.compile(r"app\.frame\.io/(projects|player)/", re.I)
 
 
-def strings(obj):
+SKIP_KEYS = ("path", "url", "watch_url", "review_url", "pay_url", "logo", "poster", "file", "email", "key", "slug",
+             "project_key", "share_url", "asset_id", "version_id", "master_sha256", "approvers", "review_asset_id",
+             "version_review_id", "acceptors", "good_until", "frozen_sha256")
+# Footage packages only (library:/clip: items): ids, slugs and stamps, never words a client reads. Kept out of the
+# book's list so a future book field named "job" or "format" is still linted.
+FOOTAGE_SKIP_KEYS = SKIP_KEYS + ("sam_event", "mux_playback_id", "mux_asset_id", "format", "made_at", "made_by",
+                                 "taken_on", "job", "org", "project", "aspect")
+
+
+def strings(obj, skip=SKIP_KEYS):
     if isinstance(obj, str):
         yield obj
     elif isinstance(obj, dict):
         for k, v in obj.items():
-            if k in ("path", "url", "watch_url", "review_url", "pay_url", "logo", "poster", "file", "email", "key", "slug",
-                     "project_key", "share_url", "asset_id", "version_id", "master_sha256", "approvers",
-                     "review_asset_id", "version_review_id",
-                     # footage packages: ids, slugs and stamps, never words a client reads
-                     "sam_event", "mux_playback_id", "mux_asset_id", "format", "made_at", "made_by", "taken_on", "job",
-                     "org", "project", "aspect"):
+            if k in skip:
                 continue
-            yield from strings(v)
+            yield from strings(v, skip)
     elif isinstance(obj, list):
         for v in obj:
-            yield from strings(v)
+            yield from strings(v, skip)
 
 
 def paths(obj):
@@ -452,7 +507,8 @@ def lint_item(key, content, org, items=None):
     problems = []
     folder = (org or {}).get("folder")
     domains = {x.lower() for x in (org or {}).get("domains", [])}
-    for s in strings(content):
+    skip = FOOTAGE_SKIP_KEYS if key.startswith(("library:", "clip:")) else SKIP_KEYS
+    for s in strings(content, skip):
         problems += text_problems(s, domains)
     for p in paths(content):
         name = p.rsplit("/", 1)[-1]
@@ -483,6 +539,8 @@ def lint_item(key, content, org, items=None):
         problems += film_problems(content, items or {}, key)
     if key.startswith("version:"):
         problems += version_problems(key, content, items or {})
+    if key.startswith("document:"):
+        problems += document_problems(key, content, org or {}, items or {})
     if key.startswith("library:"):
         problems += library_problems(key, content, org or {}, items or {})
     if key.startswith("clip:"):
@@ -490,11 +548,75 @@ def lint_item(key, content, org, items=None):
     return sorted(set(problems))
 
 
+def document_problems(key, doc, org, items):
+    """SPEC §24 v2: `ask: accept` puts an Accept button in front of the named acceptors, so the proposal must be
+    checkable bytes whose numbers match the book, and Sam must be able to hear the yes."""
+    out = []
+    ask = doc.get("ask", "none")
+    if ask not in DOC_ASKS:
+        return [f"ask must be one of {', '.join(DOC_ASKS)}"]
+    if ask != "accept":
+        return out
+    if doc.get("kind") != "proposal":
+        return ["only a proposal can ask for an Accept"]
+    path = doc.get("path") or ""
+    if doc.get("url") or not path.lower().endswith(".pdf"):
+        return ["asking for an Accept needs the proposal as a .pdf path (a link has no bytes to bind the yes to)"]
+    text = pdf_text(path)
+    if not text or not text.strip():
+        out.append("can't read the proposal's text (pdftotext missing or an image-only PDF): it must be checkable")
+    flat = re.sub(r"\s+", " ", text or "")
+    total = doc.get("total")
+    if not isinstance(total, (int, float)) or total <= 0:
+        out.append("asking for an Accept needs the proposal's total (a number)")
+    elif text:
+        shown = f"${total:,.0f}" if float(total).is_integer() else f"${total:,.2f}"
+        if shown not in flat:
+            out.append(f"the total {shown} isn't in the PDF: the book and the proposal must say the same number")
+    good = str(doc.get("good_until") or "")
+    try:
+        good_day = dt.date.fromisoformat(good)
+    except ValueError:
+        good_day = None
+        out.append("asking for an Accept needs good_until (YYYY-MM-DD)")
+    if good_day:
+        import zoneinfo
+        if good_day < dt.datetime.now(zoneinfo.ZoneInfo("America/New_York")).date():
+            out.append(f"good_until {good} has passed")
+        long = f"{good_day:%B} {good_day.day}, {good_day.year}"
+        if text and long not in flat:
+            out.append(f"“{long}” isn't in the PDF: print the date itself (not “30 days from the date above”)")
+    if text and re.search(r"\bmarkup\b", text, re.I):
+        out.append('inside the PDF: "markup" (an internal pricing word)')
+    if text and re.search(r"\bcost\b.{0,60}\bcharge\b", text, re.I | re.S):
+        out.append("inside the PDF: it looks like the internal cost/charge sheet")
+    people = {k.split(":", 1)[1] for k in items if k.startswith("person:")}
+    acceptors = doc.get("acceptors") or []
+    if not acceptors:
+        out.append("asking for an Accept needs the acceptors list (the people who may say yes)")
+    for e in acceptors:
+        if str(e).lower() not in people:
+            out.append(f"acceptor {e} isn't one of this client's people in the book")
+        elif (items[f"person:{str(e).lower()}"][1] or {}).get("role", "VIEWER") not in ("OWNER", "APPROVER", "BILLING"):
+            out.append(f"acceptor {e} is a VIEWER in the book, and VIEWERs see no money: give them a role or drop them")
+    project = (items.get(f"project:{doc.get('project_key')}", (None, None))[1]) if doc.get("project_key") else None
+    if not project or not project.get("job_number"):
+        out.append("asking for an Accept needs a project with a job_number (the acceptance is recorded by job)")
+    same = [k for k, (_, c) in items.items() if k.startswith("document:") and c.get("kind") == "proposal"
+            and c.get("ask") == "accept" and c.get("project_key") == doc.get("project_key")]
+    if len(same) > 1:
+        out.append(f"one open Accept per project (this one has {len(same)}: {', '.join(same)})")
+    if not os.path.exists(ACCEPT_READER):
+        out.append("not yet: nothing tells Sam when a client accepts (Majordomo writes ledger/acceptances/_reader.json "
+                   "once it reads that folder)")
+    return out
+
+
 def library_problems(key, meta, org, items):
     """A footage package's own fields (SPEC §23 v2). Closed schema: anything else fails, so AI marks, comments,
     notes-track names, rights notes or paths can't ride along."""
     fkey = key.split(":", 1)[1]
-    out = [f"unexpected field {k!r} (the package format is closed)" for k in sorted(set(meta) - LIB_FIELDS - {"clip_count"})]
+    out = [f"unexpected field {k!r} (the package format is closed)" for k in sorted(set(meta) - LIB_FIELDS)]
     if meta.get("format") != LIBRARY_FORMAT:
         out.append(f"format must be {LIBRARY_FORMAT!r}")
     if meta.get("key") != fkey or not KEY_RE.match(str(meta.get("key", ""))):
@@ -508,9 +630,14 @@ def library_problems(key, meta, org, items):
         out.append(f"job {meta.get('job')!r} must equal the project's job_number ({project.get('job_number')!r})")
     if not isinstance(meta.get("title"), str) or not meta["title"].strip() or len(meta["title"]) > 120:
         out.append("a title of 1–120 characters")
+    # Optional fields are LEFT OUT, never null: the site's schema (lib/client/library-shape.ts) is the same.
+    out += [f"{k} must be left out rather than null" for k in ("description", "made_by", "made_at") if k in meta and meta[k] is None]
     if meta.get("description") is not None and (not isinstance(meta["description"], str) or len(meta["description"]) > 600):
         out.append("description: text up to 600 characters")
-    n = meta.get("clip_count", 0)
+    for k in ("made_by", "made_at"):
+        if meta.get(k) is not None and not isinstance(meta[k], str):
+            out.append(f"{k} must be text")
+    n = sum(1 for k in items if k.startswith(f"clip:{fkey}/"))
     if not 1 <= n <= MAX_CLIPS:
         out.append(f"a library holds 1–{MAX_CLIPS} clips (this one: {n})")
     return out
@@ -522,6 +649,9 @@ def clip_problems(key, c, items):
     if not isinstance(c, dict):
         return ["a clip must be an object"]
     out = [f"unexpected field {k!r} (the package format is closed)" for k in sorted(set(c) - CLIP_FIELDS)]
+    out += [f"{k} must be left out rather than null" for k in sorted(set(c) & CLIP_FIELDS) if c[k] is None]
+    if out:
+        return out
     missing = sorted(CLIP_REQUIRED - set(c))
     if missing:
         return out + [f"missing {', '.join(missing)}"]
@@ -538,7 +668,7 @@ def clip_problems(key, c, items):
     dur = c["duration_s"]
     if not isinstance(dur, (int, float)) or dur <= 0:
         out.append("duration_s must be a positive number")
-    elif fps and abs(dur - (b - a + 1) / fps) > 0.6:
+    elif fps and abs(dur - (b - a + 1) / fps) > DURATION_SLACK:
         out.append(f"duration_s {dur} doesn't match the frames ({(b - a + 1) / fps:.2f}s at {fps} fps)")
     t = c.get("thumb_s")
     if t is not None and (not isinstance(t, (int, float)) or t < 0 or (isinstance(dur, (int, float)) and t > dur)):
@@ -555,11 +685,11 @@ def clip_problems(key, c, items):
         out.append("sam_event must be a Stacks event id")
     if out:
         return out
-    why = sam_favorite_problem(clip_id, c["sam_event"], a, b)
+    why = sam_favorite_problem(clip_id, c["sam_event"], a, b, fps)
     if why:
         out.append(why)
     job = (items.get(f"library:{lib}", (None, {}))[1] or {}).get("job")
-    out += mux_problems(c, job)
+    out += mux_problems(c, job, (b - a + 1) / fps)
     return out
 
 
@@ -581,9 +711,11 @@ def stacks_fold():
     return _fold or None
 
 
-def sam_favorite_problem(clip_id, sam_event, a, b):
+def sam_favorite_problem(clip_id, sam_event, a, b, fps=None):
     """None when frames a..b sit inside a favorite SAM marked himself (event `sam_event`), still standing after every
-    later mark, edit, unrate and retraction. AI, sam-on-set, client and unrated ranges never pass."""
+    later mark, edit, unrate and retraction. AI, sam-on-set, client and unrated ranges never pass. The raw event must
+    itself be Sam's favorite rate (Stacks lets an admin `edit` anyone's mark while keeping its author, so an edit by
+    anyone else refuses the clip), and the fps the package rendered at must be Stacks' own for that range."""
     fold = stacks_fold()
     if not fold:
         return f"can't check it's Sam's pick: Stacks' engine isn't at {STACKS_ENGINE}"
@@ -592,15 +724,26 @@ def sam_favorite_problem(clip_id, sam_event, a, b):
         return "can't check it's Sam's pick: Stacks' marks (Vault Archive Records/events) aren't reachable"
     folder = os.path.join(root, clip_id[:2], clip_id)
     try:
-        evs = [load(os.path.join(folder, n)) for n in sorted(os.listdir(folder))
+        raw = [load(os.path.join(folder, n)) for n in sorted(os.listdir(folder))
                if n.endswith(".json") and not n.startswith((".", "_"))] if os.path.isdir(folder) else []
+        evs = [e for e in raw if isinstance(e, dict) and e.get("clip") == clip_id]  # nothing filed under the wrong clip
+        mine = next((e for e in evs if e.get("id") == sam_event), None)
+        author = (mine or {}).get("author") or {}
+        if not mine or mine.get("kind") != "rate" or mine.get("rating") != "favorite" or author.get("kind") != "sam":
+            return "not Sam's pick: sam_event must be Sam's own favorite in Stacks"
+        for e in evs:
+            if e.get("kind") == "edit" and sam_event in (e.get("targets") or []) and (e.get("author") or {}).get("kind") != "sam":
+                return "not Sam's pick as he marked it: someone else edited that favorite in Stacks"
         layer = fold(evs).get("layers", {}).get("sam", [])
     except Exception as e:
         return f"can't read Stacks' marks for this clip ({type(e).__name__})"
-    if any(s.get("rating") == "favorite" and s.get("event") == sam_event and s["in_frame"] <= a and s["out_frame"] >= b
-           for s in layer):
-        return None
-    return "not Sam's pick: the range must sit inside a favorite Sam marked himself in Stacks, still standing"
+    seg = next((s for s in layer if s.get("rating") == "favorite" and s.get("event") == sam_event
+                and s["in_frame"] <= a and s["out_frame"] >= b), None)
+    if not seg:
+        return "not Sam's pick: the range must sit inside a favorite Sam marked himself in Stacks, still standing"
+    if fps is not None and isinstance(seg.get("fps"), (int, float)) and abs(seg["fps"] - fps) > 0.01:
+        return f"fps {fps} isn't Stacks' {seg['fps']} for this range"
+    return None
 
 
 _mux_creds = None
@@ -624,7 +767,7 @@ def mux_credentials():
 
 def mux_asset(asset_id):
     """(asset, None) or (None, why). Read-only GET; GATE_MUX_FIXTURE (a JSON {asset id: asset}) stands in for tests."""
-    fixture = os.environ.get("GATE_MUX_FIXTURE")
+    fixture = os.environ.get("GATE_MUX_FIXTURE") if SANDBOX else None
     if fixture:
         a = (load(fixture) or {}).get(asset_id)
         return (a, None) if a else (None, "not found on Mux")
@@ -651,9 +794,11 @@ def mux_asset(asset_id):
     return res
 
 
-def mux_problems(c, job):
+def mux_problems(c, job, frames_s):
     """The clip's Mux asset is what the contract says: ready, SIGNED playback only, one audio track of at most two
-    channels (the client mix: no isolated lavs, no notes tracks), the clip's length, and passthrough <job>/<clip key>."""
+    channels (the client mix: no isolated lavs, no notes tracks), no text tracks (captions or descriptions a player
+    could switch on), no downloadable renditions (no downloads in v1), its length within a few frames of Sam's range,
+    and passthrough <job>/<clip key>."""
     asset, why = mux_asset(c["mux_asset_id"])
     if not asset:
         return [f"can't check the clip on Mux: {why}"]
@@ -666,12 +811,19 @@ def mux_problems(c, job):
         out.append(f"the Mux asset must have signed playback only (it has: {', '.join(policies) or 'none'})")
     if c["mux_playback_id"] not in {p.get("id") for p in pids}:
         out.append("mux_playback_id isn't one of this asset's playback ids")
-    audio = [t for t in asset.get("tracks") or [] if t.get("type") == "audio"]
+    tracks = asset.get("tracks") or []
+    audio = [t for t in tracks if t.get("type") == "audio"]
     if len(audio) != 1 or not isinstance(audio[0].get("max_channels"), int) or audio[0]["max_channels"] > 2:
         out.append("the clip must carry exactly one audio track of at most 2 channels (the client mix)")
+    if any(t.get("type") == "text" for t in tracks):
+        out.append("the clip must carry no text tracks (captions or descriptions a player could switch on)")
+    statics = asset.get("static_renditions")
+    has_statics = isinstance(statics, dict) and (bool(statics.get("files")) or statics.get("status") not in (None, "disabled"))
+    if asset.get("mp4_support") not in (None, "none") or has_statics:
+        out.append("the clip must have no downloadable renditions (no downloads in v1)")
     dur = asset.get("duration")
-    if not isinstance(dur, (int, float)) or abs(dur - c["duration_s"]) > 0.6:
-        out.append(f"Mux says the clip is {dur}s, the package says {c['duration_s']}s")
+    if not isinstance(dur, (int, float)) or abs(dur - frames_s) > DURATION_SLACK:
+        out.append(f"Mux says the clip is {dur}s; Sam's range is {frames_s:.2f}s")
     want = f"{job}/{c['key']}"
     if asset.get("passthrough") != want:
         out.append(f"the Mux asset's passthrough must be {want!r}")
@@ -747,8 +899,10 @@ def version_problems(key, v, items):
     return out
 
 
-def lint(slug, keys=None):
-    draft, live, d, l, new, changed, removed = diff(slug)
+def lint(slug, keys=None, snap=None):
+    """Problems per pending item. `snap` is a diff() taken once by the caller, so what's linted is exactly what
+    publish() then writes (a package re-exported mid-approve can't slip in unlinted)."""
+    draft, live, d, l, new, changed, removed = snap or diff(slug)
     keys = keys or (new + changed)
     org = d.get("org", (None, None))[1]
     if org and not org.get("folder"):
@@ -797,7 +951,11 @@ def film_binding(content):
 def protected_items(items):
     """What client approvals lock in `items`, as {key: digest}; none of it may change or disappear.
     v3 version items: the whole item. v4 films (versions live in Review): the Review link and asset id, so an
-    approval's receipt and the approve page keep pointing at the same picture; other film fields stay editable."""
+    approval's receipt and the approve page keep pointing at the same picture; other film fields stay editable.
+    Accepted proposals (SPEC §24 v2): the whole document; a revision after acceptance is a new key."""
+    slug = (items.get("org", (None, {}))[1] or {}).get("slug")
+    accepted = accepted_documents(slug) if slug else set()
+    out_docs = {k: digest(c) for k, (_, c) in items.items() if k.startswith("document:") and k.split(":", 1)[1] in accepted}
     approved = approved_job_versions()
     films = {k.rsplit("/", 1)[0] for k in approved}
     out = {}
@@ -813,6 +971,7 @@ def protected_items(items):
             out[key] = digest(content)
         elif kind == "film" and f"{job}/{parts[1]}" in films:
             out[key] = film_binding(content)
+    out.update(out_docs)
     return out
 
 
@@ -820,8 +979,10 @@ def still_protected(key, h, after):
     return key in after and (film_binding(after[key][1]) if key.startswith("film:") else digest(after[key][1])) == h
 
 
-def publish(slug, keys, by, ticket, removing=(), extra=None):
-    draft, live, d, l, *_ = diff(slug)
+def publish(slug, keys, by, ticket, removing=(), extra=None, snap=None, tombstone=()):
+    """Write the live book (and footage snapshots) from `snap` (default: a fresh diff). `tombstone` = the keys Sam
+    pulled by hand: those clips (and a pulled library's clips) can only return when named in --items."""
+    draft, live, d, l, *_ = snap or diff(slug)
     items = dict(l)
     for k in keys:
         items[k] = d[k]
@@ -839,17 +1000,41 @@ def publish(slug, keys, by, ticket, removing=(), extra=None):
         raise SystemExit("refused: these were approved by the client and can't change or disappear (a film keeps the "
                          "Review link and asset it was approved on; new cuts go up as new versions of that asset, and "
                          "a different asset needs a new film): " + ", ".join(broken))
+    freeze_proposals(slug, keys, d)
     write_json(os.path.join(PUBLISHED, f"{slug}.json"), book)
-    write_libraries(slug, items, order, l, by)
+    write_libraries(slug, items, order, l, by, tombstone)
     log(slug, {"by": by, "ticket": ticket, "published": list(keys), "removed": list(removing), **(extra or {})})
     write_preview(slug)
     return book
 
 
-def write_libraries(slug, items, order, before, by):
+def freeze_proposals(slug, keys, d):
+    """Copy each proposal being published to frozen/<sha256>.pdf (add-only), from the bytes the snapshot hashed. If
+    the file changed since (re-rendered mid-approve), refuse: Sam's tap was for the other bytes."""
+    for k in keys:
+        c = d[k][1] if k in d else {}
+        sha = c.get("frozen_sha256") if k.startswith("document:") else None
+        if not sha:
+            continue
+        dest = os.path.join(FROZEN, f"{sha}.pdf")
+        if os.path.exists(dest):
+            continue
+        src = os.path.join(ROOT, c["path"].lstrip("/"))
+        with open(src, "rb") as f:
+            data = f.read()
+        if hashlib.sha256(data).hexdigest() != sha:
+            raise SystemExit(f"refused: {k}'s PDF changed since it was checked; make a new ticket")
+        os.makedirs(FROZEN, exist_ok=True)
+        tmp = dest + ".tmp"
+        with open(tmp, "wb") as f:
+            f.write(data)
+        os.replace(tmp, dest)
+
+
+def write_libraries(slug, items, order, before, by, tombstone=()):
     """Footage (SPEC §23 v2): every published library is a frozen snapshot file the site syncs. A library that left
-    moves to _removed/ (kept, never deleted); a clip that left gets a tombstone, so it can only come back on a ticket
-    that says "previously removed"."""
+    moves to _removed/ (kept, never deleted). What Sam pulled by hand (`tombstone`: clips, or a library and all its
+    live clips) is tombstoned, so it can only come back by being named in --items, on a ticket that says so."""
     folder = os.path.join(LIBRARY_LIVE, slug)
     libs = assemble_libraries(items, order)
     for key, pkg in libs.items():
@@ -863,13 +1048,41 @@ def write_libraries(slug, items, order, before, by):
             if os.path.exists(src):
                 os.makedirs(os.path.join(folder, "_removed"), exist_ok=True)
                 os.replace(src, os.path.join(folder, "_removed", f"{k.split(':', 1)[1]}.{stamp}.json"))
-    gone = [k for k in before if k.startswith("clip:") and k not in items]
-    if gone:
+    pulled = set()
+    for k in tombstone:
+        if k.startswith("clip:"):
+            pulled.add(k)
+        elif k.startswith("library:"):
+            lib = k.split(":", 1)[1]
+            pulled.add(k)
+            pulled.update(x for x in before if x.startswith(f"clip:{lib}/"))
+    if pulled:
         path = os.path.join(folder, "_tombstones.json")
         stones = load(path) or {}
-        for k in gone:
+        for k in sorted(pulled):
             stones[k] = {"removed_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"), "by": by}
         write_json(path, stones)
+
+
+def footage_withdrawals(slug, d, l):
+    """Live footage Stacks no longer offers: clips that left a READY draft package (a re-trim or an un-pick) and
+    libraries whose package left the drafts folder. Removal never needs Sam's tap (SPEC §23 v2); nothing here is
+    tombstoned, because a later pick in Stacks is Sam's own new choice. Never while the draft book or the drafts
+    folder is missing (a sync glitch must not empty a client's library)."""
+    if "org" not in d or not os.path.isdir(os.path.join(LIBRARY_DRAFTS, slug)):
+        return []
+    out = []
+    for k in l:
+        if k.startswith("library:") and k not in d:
+            out.append(k)
+        elif k.startswith("clip:") and k not in d and f"library:{k.split(':', 1)[1].split('/', 1)[0]}" in d:
+            out.append(k)
+    return out
+
+
+def pending_digest(d, keys):
+    """A short fingerprint of exactly what a ticket shows; `approve --digest` refuses if anything changed since."""
+    return hashlib.sha256(json.dumps({k: digest(d[k][1]) for k in sorted(keys)}, sort_keys=True).encode()).hexdigest()[:12]
 
 
 def tombstones(slug):
@@ -932,7 +1145,15 @@ def auto_ok(key, before, after):
 
 
 def cmd_auto(a):
-    _, _, d, l, new, changed, removed = diff(a.org)
+    snap = diff(a.org)
+    _, _, d, l, new, changed, removed = snap
+    gone = footage_withdrawals(a.org, d, l)
+    if gone:
+        publish(a.org, [], "auto: footage Stacks no longer offers", "auto", removing=gone, snap=snap)
+        for k in gone:
+            print(f"  WITHDRAWN {k:47} {l[k][0]}")
+        snap = diff(a.org)
+        _, _, d, l, new, changed, removed = snap
     candidates = [k for k in changed if auto_ok(k, l[k][1], d[k][1])]
     held = lint(a.org, candidates) if candidates else {}
     for k in candidates:
@@ -1058,55 +1279,86 @@ def cmd_preview(a):
 def cmd_ticket(a):
     _, _, d, l, new, changed, removed = diff(a.org)
     name = (d.get("org") or l.get("org"))[1].get("short_name") or (d.get("org") or l.get("org"))[1]["name"]
-    pending = new + changed
-    if not pending:
+    stones = tombstones(a.org)
+    pending = [k for k in new + changed if k not in stones]
+    pulled = [k for k in new + changed if k in stones]
+    if not pending and not pulled:
         print(f"{name}: nothing waiting to publish.")
         return
-    # Footage clips are counted per library (the contact-sheet frames show every still); clips Sam removed before
-    # are called out so they never slip back in unnoticed.
-    stones = tombstones(a.org)
+    # Footage clips are counted per library (the staff preview's footage page shows every still and title).
     labels, clips = [], {}
     for k in pending:
         if k.startswith("clip:"):
             lib = k.split(":", 1)[1].split("/", 1)[0]
-            n = clips.setdefault(lib, {"new": 0, "changed": 0, "again": 0})
+            n = clips.setdefault(lib, {"new": 0, "changed": 0})
             n["new" if k in new else "changed"] += 1
-            n["again"] += 1 if k in stones else 0
+        elif k.startswith("document:") and d[k][1].get("ask") == "accept":
+            c = d[k][1]
+            who = " and ".join(e.split("@")[0] for e in c.get("acceptors") or [])
+            total = c.get("total")
+            money = (f"${total:,.0f}" if float(total).is_integer() else f"${total:,.2f}") if isinstance(total, (int, float)) else "?"
+            sha8 = (c.get("frozen_sha256") or "")[:8]
+            again = " (replaces the one they may be reading)" if k in changed else ""
+            labels.append(f"{'New' if k in new else 'Changed'}: {d[k][0]}: puts an Accept button in front of {who} · {money} · "
+                          f"good until {c.get('good_until')} · file {sha8}{again}")
         else:
             labels.append(("New: " if k in new else "Changed: ") + d[k][0])
     for lib, n in clips.items():
         title = (d.get(f"library:{lib}") or l.get(f"library:{lib}") or (lib, {}))[1].get("title") or lib
-        bits = [f"{n['new']} new" if n["new"] else "", f"{n['changed']} changed" if n["changed"] else "",
-                f"{n['again']} previously removed" if n["again"] else ""]
-        labels.append(f"Footage clips in {title}: " + ", ".join(b for b in bits if b) + " (every still is in the frames)")
-    print(f"{name}: {len(pending)} thing{'s' if len(pending) != 1 else ''} ready for their site. Publish? (a) Publish (b) Hold")
-    for x in labels:
-        print(f"  - {x}")
+        bits = [f"{n['new']} new" if n["new"] else "", f"{n['changed']} changed" if n["changed"] else ""]
+        labels.append(f"Footage in {title}: " + ", ".join(b for b in bits if b) + " clip(s); every still and title is on the preview's footage page")
+    n_clips = sum(1 for k in pending if k.startswith("clip:"))
+    if pending:
+        print(f"{name}: {len(pending)} thing{'s' if len(pending) != 1 else ''} ready for their site. Publish? (a) Publish (b) Hold")
+        for x in labels:
+            print(f"  - {x}")
+        print(f"  (check: {pending_digest(d, pending)}" + (f"; more than {MAX_CLIPS_PER_TICKET} clips: publish in parts" if n_clips > MAX_CLIPS_PER_TICKET else "") + ")")
+    if pulled:
+        print(f"  Not in this ticket, {TOMBSTONE_NOTE}:")
+        for k in pulled:
+            print(f"  - {d[k][0]}")
 
 
 def cmd_approve(a):
-    _, _, d, l, new, changed, removed = diff(a.org)
-    keys = [k.strip() for k in a.items.split(",")] if a.items else new + changed
+    snap = diff(a.org)
+    _, _, d, l, new, changed, removed = snap
+    stones = tombstones(a.org)
+    named = [k.strip() for k in a.items.split(",")] if a.items else None
+    keys = named if named is not None else [k for k in new + changed if k not in stones]
     unknown = [k for k in keys if k not in d]
     if unknown:
         raise SystemExit(f"not in the draft: {unknown}")
+    if a.digest and a.digest != pending_digest(d, keys):
+        raise SystemExit("refused: something changed since the ticket (its check doesn't match); make a new ticket")
+    # A clip is checked against ITS library (job, org, project): never publish clips under a library change that
+    # isn't being approved with them.
+    lonely = sorted({k.split(":", 1)[1].split("/", 1)[0] for k in keys if k.startswith("clip:")}
+                    - {k.split(":", 1)[1] for k in keys if k.startswith("library:")})
+    lonely = [lib for lib in lonely if f"library:{lib}" in new + changed]
+    if lonely:
+        raise SystemExit(f"refused: library changes waiting for {', '.join(lonely)}: approve library:<key> with its clips")
     n_clips = sum(1 for k in keys if k.startswith("clip:") and (k in new or k in changed))
     if n_clips > MAX_CLIPS_PER_TICKET:
         raise SystemExit(f"{n_clips} footage clips in one ticket: at most {MAX_CLIPS_PER_TICKET} (publish in parts with "
                          "--items, so every still is on a ticket Sam can actually look at)")
-    probs = lint(a.org, keys)
+    probs = lint(a.org, keys, snap=snap)
     if probs:
         for k, ps in probs.items():
             for p in ps:
                 print(f"  {k}: {p}", file=sys.stderr)
         raise SystemExit("lint failed: nothing published")
-    publish(a.org, keys, a.by, a.ticket)
+    # Footage Stacks stopped offering (a re-trim, an un-pick) comes down in the same publish: never left live.
+    publish(a.org, keys, a.by, a.ticket, removing=footage_withdrawals(a.org, d, l), snap=snap)
     print(f"{a.org}: published {len(keys)} item(s); live within 5 minutes")
 
 
 def cmd_remove(a):
     keys = [k.strip() for k in a.items.split(",")]
-    publish(a.org, [], a.by, a.ticket or "removal", removing=keys)
+    snap = diff(a.org)
+    not_live = [k for k in keys if k not in snap[3]]
+    if not_live:
+        raise SystemExit(f"not on the live site (check the key): {not_live}")
+    publish(a.org, [], a.by, a.ticket or "removal", removing=keys, snap=snap, tombstone=keys)
     print(f"{a.org}: removed {len(keys)} item(s) from the live site")
 
 
@@ -1121,6 +1373,7 @@ def main():
     s.add_argument("--by", required=True)
     s.add_argument("--ticket", required=True)
     s.add_argument("--items")
+    s.add_argument("--digest", help="the ticket's check: refuse if anything changed since Sam saw it")
     s = sub.add_parser("remove")
     s.add_argument("org")
     s.add_argument("--items", required=True)

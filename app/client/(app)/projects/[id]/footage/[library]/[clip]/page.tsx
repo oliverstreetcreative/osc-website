@@ -67,8 +67,8 @@ export default async function ClipPage({ params, searchParams }: { params: { id:
             <input type="hidden" name="clip_id" value={clip.id} />
             <input type="hidden" name="on" value={hearted ? "0" : "1"} />
             <button className={hearted ? "cs-btn" : "cs-btn ghost"} aria-pressed={hearted}>
-              <Heart size={16} fill={hearted ? "currentColor" : "none"} style={{ verticalAlign: -3, marginRight: 6 }} />
-              {hearted ? "Favorite" : "Add to favorites"}
+              <Heart size={16} fill={hearted ? "currentColor" : "none"} style={{ verticalAlign: -3, marginRight: 6 }} aria-hidden />
+              Favorite
             </button>
           </form>
         ) : null}

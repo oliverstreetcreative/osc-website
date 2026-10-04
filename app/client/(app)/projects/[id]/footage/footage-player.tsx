@@ -15,7 +15,7 @@ export function FootagePlayer({ playbackId, playback, poster, title, aspect }: {
   if (failed || !playback) {
     return (
       <div className="cs-card cs-pad">
-        <p>This clip won&rsquo;t play right now. Try again in a minute.</p>
+        <p>This clip won&rsquo;t play right now. Reload the page to try again.</p>
       </div>
     )
   }

@@ -1,6 +1,6 @@
 // Shared building blocks for the client site. Server components; no client JS.
 import Link from "next/link"
-import { Check, Download, ExternalLink, Play, FileText, FileSignature, Receipt, Clapperboard, Shield, Map, CalendarPlus } from "lucide-react"
+import { Check, ChevronRight, Download, ExternalLink, Play, FileText, FileSignature, Receipt, Clapperboard, Shield, Map, CalendarPlus } from "lucide-react"
 import { PHASE_STEPS, phaseIndex, muxThumb, DOC_KIND_LABEL } from "@/lib/client/format"
 
 /** The staging demo (SPEC §19): any button that would DO something shows this instead, for the demo org. */
@@ -87,6 +87,25 @@ export function DocRow({ doc, showProject = true }: {
   doc: { id: string; kind: string; title: string; dated_on: Date | null; signed_by?: string | null; url?: string | null; project?: { name: string } | null; description?: string | null }
   showProject?: boolean
 }) {
+  // A proposal opens its own page (read + accept), never the raw file (SPEC §24 v2).
+  if (doc.kind === "proposal") {
+    return (
+      <Link className="cs-row" href={`/client/proposals/${doc.id}`}>
+        <DocIcon kind={doc.kind} />
+        <span className="cs-row-main">
+          <strong>{doc.title}</strong>
+          <small>
+            {[DOC_KIND_LABEL[doc.kind], showProject && doc.project ? doc.project.name : doc.description ?? null, doc.dated_on ? doc.dated_on.toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }) : null]
+              .filter(Boolean)
+              .join(" · ")}
+          </small>
+        </span>
+        <span className="cs-row-end" aria-hidden style={{ color: "var(--mut)" }}>
+          <ChevronRight size={18} />
+        </span>
+      </Link>
+    )
+  }
   const href = doc.url ?? `/client/files/${doc.id}`
   const bits = [
     DOC_KIND_LABEL[doc.kind] ?? "File",

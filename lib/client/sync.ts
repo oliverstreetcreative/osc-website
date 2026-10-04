@@ -331,6 +331,17 @@ export async function applyBook(book: Book) {
       signed_by: doc.signed_by ?? null,
       signed_on: d(doc.signed_on),
       mime_type: doc.path?.toLowerCase().endsWith(".pdf") ? "application/pdf" : null,
+      // SPEC §24 v2: a proposal's frozen bytes (the gate wrote frozen_sha256 when Sam published it) and its ask. A
+      // proposal without a frozen hash can't be read or accepted on the site (the frozen copy is the only source).
+      ...(doc.kind === "proposal"
+        ? {
+            sha256: doc.frozen_sha256 ?? null,
+            ask: doc.frozen_sha256 ? doc.ask : "none",
+            acceptors: doc.acceptors.map((e) => e.toLowerCase()),
+            good_until: d(doc.good_until),
+            total: doc.total ?? null,
+          }
+        : {}),
       hidden: false,
     }
     await db.document.upsert({ where: { ext_key: ext }, create: { ext_key: ext, ...data }, update: data })

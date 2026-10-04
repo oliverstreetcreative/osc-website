@@ -30,14 +30,23 @@ export async function syncLibraries(slug: string, preview: boolean): Promise<str
     keep.push(ext)
     const existing = await db.library.findUnique({ where: { ext_key: ext }, select: { id: true, source_rev: true, hidden: true } })
     if (existing && e.rev && existing.source_rev === e.rev && !existing.hidden) continue
+    let raw: string
     try {
-      const pkg = Package.parse(JSON.parse(await readText(e.path)))
+      raw = await readText(e.path)
+    } catch (err) {
+      // Couldn't READ it (Dropbox hiccup): leave the library as it was and try again next run.
+      problems.push(`${e.path}: ${String((err as Error)?.message ?? err).slice(0, 300)}`)
+      continue
+    }
+    try {
+      const pkg = Package.parse(JSON.parse(raw))
       if (pkg.key !== key) throw new Error(`key ${pkg.key} isn't the file name`)
       if (pkg.org !== slug) throw new Error(`names org ${pkg.org}`)
       const project = await db.project.findUnique({ where: { ext_key: `${slug}/${pkg.project}` }, select: { id: true, job_number: true } })
       if (!project) throw new Error(`project ${pkg.project} isn't on the site`)
       if (project.job_number !== pkg.job) throw new Error(`job ${pkg.job} isn't the project's`)
       const days = pkg.clips.map((c) => c.taken_on).filter((x): x is string => !!x).sort()
+      const keepClips = pkg.clips.map((c) => `${ext}/${c.key}`)
       const data = {
         organization_id: org.id,
         project_id: project.id,
@@ -47,17 +56,17 @@ export async function syncLibraries(slug: string, preview: boolean): Promise<str
         clip_count: pkg.clips.length,
         first_day: day(days[0]),
         last_day: day(days[days.length - 1]),
-        source_rev: e.rev || null,
+        source_rev: null, // marked done only at the very end: a failure part-way is retried next run
         hidden: false,
         synced_at: new Date(),
       }
       const lib = await db.library.upsert({ where: { ext_key: ext }, create: { ext_key: ext, ...data }, update: data, select: { id: true } })
-      const keepClips: string[] = []
+      // Removals FIRST: a clip that left the snapshot never outlives a failure further down.
+      await db.libraryClip.updateMany({ where: { library_id: lib.id, ext_key: { notIn: keepClips }, hidden: false }, data: { hidden: true } })
       for (let i = 0; i < pkg.clips.length; i += CHUNK) {
         await db.$transaction(
           pkg.clips.slice(i, i + CHUNK).map((c, j) => {
             const cx = `${ext}/${c.key}`
-            keepClips.push(cx)
             const cd = {
               library_id: lib.id,
               clip_key: c.key,
@@ -76,9 +85,11 @@ export async function syncLibraries(slug: string, preview: boolean): Promise<str
           }),
         )
       }
-      await db.libraryClip.updateMany({ where: { library_id: lib.id, ext_key: { notIn: keepClips }, hidden: false }, data: { hidden: true } })
+      await db.library.update({ where: { id: lib.id }, data: { source_rev: e.rev || null } })
     } catch (err) {
       problems.push(`${e.path}: ${String((err as Error)?.message ?? err).slice(0, 300)}`)
+      // A changed snapshot that won't apply: fail closed, hide the library until one does.
+      if (existing) await db.library.update({ where: { id: existing.id }, data: { hidden: true, source_rev: null } }).catch(() => {})
     }
   }
   // Gone from the folder (and the listing worked) → hidden.
@@ -103,7 +114,7 @@ export async function heartsOf(personId: string, clipIds: string[]): Promise<Set
   if (!clipIds.length) return new Set()
   const rows = await db.libraryHeart.findMany({
     where: { person_id: personId, clip_id: { in: clipIds } },
-    orderBy: { at: "desc" },
+    orderBy: { seq: "desc" },
     select: { clip_id: true, favorite: true },
   })
   const seen = new Set<string>()

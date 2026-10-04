@@ -727,12 +727,66 @@ model Document {
   signed_by       String?
   signed_on       DateTime?    @db.Date
   sha256          String?
+  // SPEC §24 v2, proposals: Sam asks the named acceptors for a yes to exactly the frozen file (sha256 above = the
+  // gate's frozen copy, _admin/client-site/frozen/<sha256>.pdf). `total` is office-side, never rendered.
+  ask             String       @default("none") // none | accept
+  acceptors       Json? // emails (gated: book people only)
+  good_until      DateTime?    @db.Date
+  total           Decimal?     @db.Decimal(10, 2)
   hidden          Boolean      @default(false)
   organization    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
   project         Project?     @relation(fields: [project_id], references: [id], onDelete: SetNull)
+  acceptance      ProposalAcceptance?
 
   @@index([organization_id])
   @@map("documents")
+}
+
+// ---------------------------------------------------------------------------
+// A client's yes to a proposal (SPEC §24 v2; the old portal's doctrine): a plain
+// tap, frozen, ONE per document, bound to the exact bytes served. The ledger
+// file (ledger/acceptances*/) is what Majordomo reads to tell Sam; the gate's
+// lock reads it too (an accepted proposal can't change or disappear).
+// ---------------------------------------------------------------------------
+model ProposalAcceptance {
+  id                String    @id @default(uuid()) @db.Uuid
+  document_id       String    @unique @db.Uuid
+  organization_id   String    @db.Uuid
+  project_id        String?   @db.Uuid
+  job               String?
+  doc_key           String
+  title             String
+  sha256            String
+  total             Decimal?  @db.Decimal(10, 2)
+  good_until        DateTime? @db.Date
+  person_id         String    @db.Uuid
+  name              String
+  email             String
+  org_name          String
+  org_slug          String
+  member_role       String
+  ip                String?
+  user_agent        String?
+  accepted_at       DateTime  @default(now())
+  ledger_path       String?
+  ledger_written_at DateTime?
+  withdrawn_at      DateTime?
+  document          Document  @relation(fields: [document_id], references: [id], onDelete: Restrict)
+
+  @@index([organization_id])
+  @@map("proposal_acceptances")
+}
+
+/// Every serve of a proposal's frozen file to a client (SPEC §24 v2): the record can show the file was opened.
+model ProposalView {
+  id          String   @id @default(uuid()) @db.Uuid
+  document_id String   @db.Uuid
+  person_id   String   @db.Uuid
+  sha256      String
+  at          DateTime @default(now())
+
+  @@index([document_id, at])
+  @@map("proposal_views")
 }
 
 // ---------------------------------------------------------------------------
@@ -869,6 +923,7 @@ model LibraryHeart {
   person_id         String      @db.Uuid
   organization_id   String      @db.Uuid
   favorite          Boolean // true = hearted, false = un-hearted (append-only: the latest row wins)
+  seq               Int         @unique @default(autoincrement()) // the order of taps (timestamps can tie)
   at                DateTime    @default(now())
   ledger_written_at DateTime?
   clip              LibraryClip @relation(fields: [clip_id], references: [id], onDelete: Restrict)

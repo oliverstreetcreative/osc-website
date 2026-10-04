@@ -54,12 +54,18 @@ export const snappedExp = (nowMs: number) => Math.ceil((Math.floor(nowMs / 1000)
 async function sign(playbackId: string, aud: "v" | "t", extra: Record<string, number>, nowMs: number): Promise<string | null> {
   const k = signingKey()
   if (!k || !ID.test(playbackId)) return null
-  return new SignJWT({ ...extra })
-    .setProtectedHeader({ alg: "RS256", typ: "JWT", kid: k.id })
-    .setSubject(playbackId)
-    .setAudience(aud)
-    .setExpirationTime(snappedExp(nowMs))
-    .sign(k.key)
+  try {
+    return await new SignJWT({ ...extra })
+      .setProtectedHeader({ alg: "RS256", typ: "JWT", kid: k.id })
+      .setSubject(playbackId)
+      .setAudience(aud)
+      .setExpirationTime(snappedExp(nowMs))
+      .sign(k.key)
+  } catch (err) {
+    // e.g. a key that loads but isn't RSA: "unavailable", never a broken page
+    console.error("mux-sign: signing failed", (err as Error)?.message)
+    return null
+  }
 }
 
 /** A playback token for the clip's signed id (Mux Player: `tokens={{ playback }}`). */

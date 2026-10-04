@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Check, CalendarDays, Receipt, Clapperboard, ArrowRight, FileSignature, ScrollText } from "lucide-react"
+import { Check, CalendarDays, Receipt, Clapperboard, ArrowRight, FileSignature, FileText, ScrollText } from "lucide-react"
 import { requireClientContext } from "@/lib/client/context"
 import { orgProjects, needsYou, clientSignatures, type NeedsItem } from "@/lib/client/data"
 import { KIND_LABEL, type SignViewer } from "@/lib/client/sign"
@@ -141,6 +141,7 @@ export default async function Home({ searchParams }: { searchParams: { sign?: st
 }
 
 function key(n: NeedsItem) {
+  if (n.kind === "proposal") return `p-${n.doc.id}`
   if (n.kind === "sign") return `g-${n.item.id}`
   if (n.kind === "script") return `c-${n.script.id}`
   return n.kind === "invoice" ? `i-${n.invoice.id}` : n.kind === "shoot" ? `s-${n.shoot.id}` : `r-${n.film.id}`
@@ -148,6 +149,22 @@ function key(n: NeedsItem) {
 
 // demo: the staging demo org (SPEC §19). Its links are placeholders, so its buttons show "Off in the demo".
 function NeedCard({ n, demo, me }: { n: NeedsItem; demo: boolean; me: string }) {
+  if (n.kind === "proposal") {
+    // SPEC §24 v2: no price on the card (the PDF carries Sam's numbers); only its named acceptors see it.
+    return (
+      <div className="cs-card cs-need">
+        <div className="cs-need-top">
+          <span className="cs-eyebrow"><FileText size={13} style={{ verticalAlign: -2, marginRight: 6 }} />Proposal</span>
+          {n.doc.good_until ? <span className="cs-status due">Good until {day(n.doc.good_until, { month: "short", day: "numeric" })}</span> : null}
+        </div>
+        <h3>A proposal for you{n.project ? ` · ${n.project.name}` : ""}</h3>
+        <p>{n.doc.title}</p>
+        <div className="cs-need-act">
+          <Link className="cs-btn" href={`/client/proposals/${n.doc.id}`}>Read it</Link>
+        </div>
+      </div>
+    )
+  }
   if (n.kind === "script") {
     return (
       <div className="cs-card cs-need">

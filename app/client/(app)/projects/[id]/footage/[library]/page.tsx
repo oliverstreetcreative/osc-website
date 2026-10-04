@@ -1,9 +1,11 @@
-// /client/projects/<slug>/footage/<library>: the client's footage library (SPEC §23 v2). A grid of stills, 60 at a
-// time; chips All · Your favorites. Every still is a signed Mux image minted for this page view (~400 px wide, the
-// same URL for an hour so the phone can cache it). Clips are Sam's own picks, published through the gate.
+// /client/projects/<slug>/footage/<library>: the client's footage library (SPEC §23 v2). A grid of stills, 60 per
+// page (Previous / Next, so a phone never re-signs and re-renders everything it already showed); chips All · Your
+// favorites. Every still is a signed Mux image minted for this view (~400 px wide, the same URL for an hour so the
+// phone can cache it). Staff viewing see each clip's title under its still, so the preview frames show Sam every
+// still AND every title before his tap. Clips are Sam's own picks, published through the gate.
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ChevronLeft, Heart } from "lucide-react"
+import { ChevronLeft, ChevronRight, Heart } from "lucide-react"
 import { requireClientContext } from "@/lib/client/context"
 import { clipLength, dayRange, findLibrary, heartedInLibrary } from "@/lib/client/library"
 import { signingReady, stillUrl } from "@/lib/client/mux-sign"
@@ -20,21 +22,22 @@ export default async function LibraryPage({ params, searchParams }: { params: { 
   const lib = await findLibrary(ctx.orgs.map((o) => o.id), params.id, params.library)
   if (!lib) notFound()
   const favoritesOnly = searchParams.show === "favorites" && !ctx.viewing
-  const page = Math.max(1, Math.min(100, Number.parseInt(searchParams.page ?? "1", 10) || 1))
   const mine = ctx.viewing ? new Set<string>() : await heartedInLibrary(ctx.user.id, lib.id)
   const where = { library_id: lib.id, hidden: false, ...(favoritesOnly ? { id: { in: [...mine] } } : {}) }
-  const [clips, total] = await Promise.all([
-    db.libraryClip.findMany({
-      where,
-      orderBy: { sort: "asc" },
-      take: PAGE * page,
-      select: { id: true, title: true, mux_playback_id: true, thumb_s: true, duration_s: true, aspect: true },
-    }),
-    db.libraryClip.count({ where }),
-  ])
+  const total = await db.libraryClip.count({ where })
+  const pages = Math.max(1, Math.ceil(total / PAGE))
+  const page = Math.max(1, Math.min(pages, Number.parseInt(searchParams.page ?? "1", 10) || 1))
+  const clips = await db.libraryClip.findMany({
+    where,
+    orderBy: { sort: "asc" },
+    skip: (page - 1) * PAGE,
+    take: PAGE,
+    select: { id: true, title: true, mux_playback_id: true, thumb_s: true, duration_s: true, aspect: true },
+  })
   const ready = signingReady()
   const stills = ready ? await Promise.all(clips.map((c) => stillUrl(c.mux_playback_id, { time: c.thumb_s ?? 1, width: 400 }))) : []
   const base = `/client/projects/${lib.project.slug}/footage/${lib.id}`
+  const pageHref = (n: number) => `${base}?${new URLSearchParams({ ...(favoritesOnly ? { show: "favorites" } : {}), ...(n > 1 ? { page: String(n) } : {}) })}`
   const days = dayRange(lib.first_day, lib.last_day)
 
   return (
@@ -64,15 +67,23 @@ export default async function LibraryPage({ params, searchParams }: { params: { 
         ) : clips.length ? (
           <div className="cs-footage">
             {clips.map((c, i) => (
-              <Link key={c.id} href={`${base}/${c.id}`} className="cs-still" style={{ aspectRatio: ratio(c.aspect) }} aria-label={c.title}>
-                {stills[i] ? <img src={stills[i]!} alt="" loading={i < 8 ? "eager" : "lazy"} decoding="async" /> : null}
-                <span className="cs-len">{clipLength(c.duration_s)}</span>
-                {mine.has(c.id) ? (
-                  <span className="cs-heart" aria-label="One of your favorites">
-                    <Heart size={16} fill="currentColor" />
-                  </span>
-                ) : null}
-              </Link>
+              <div key={c.id}>
+                <Link
+                  href={`${base}/${c.id}`}
+                  className="cs-still"
+                  style={{ aspectRatio: ratio(c.aspect) }}
+                  aria-label={`${c.title}, ${clipLength(c.duration_s)}${mine.has(c.id) ? ", one of your favorites" : ""}`}
+                >
+                  {stills[i] ? <img src={stills[i]!} alt="" loading={i < 8 ? "eager" : "lazy"} decoding="async" /> : null}
+                  <span className="cs-len" aria-hidden>{clipLength(c.duration_s)}</span>
+                  {mine.has(c.id) ? (
+                    <span className="cs-heart" aria-hidden>
+                      <Heart size={16} fill="currentColor" />
+                    </span>
+                  ) : null}
+                </Link>
+                {ctx.viewing ? <small className="cs-still-title">{c.title}</small> : null}
+              </div>
             ))}
           </div>
         ) : (
@@ -81,12 +92,26 @@ export default async function LibraryPage({ params, searchParams }: { params: { 
             {favoritesOnly ? <Link className="cs-link" href={base}>Show everything</Link> : null}
           </div>
         )}
-        {ready && total > clips.length ? (
-          <p style={{ marginTop: 16, textAlign: "center" }}>
-            <Link className="cs-btn ghost" href={`${base}?${new URLSearchParams({ ...(favoritesOnly ? { show: "favorites" } : {}), page: String(page + 1) })}`} scroll={false}>
-              Show more
-            </Link>
-          </p>
+        {ready && pages > 1 ? (
+          <nav className="cs-need-act" style={{ marginTop: 16, justifyContent: "space-between" }} aria-label="Pages">
+            {page > 1 ? (
+              <Link className="cs-btn ghost" href={pageHref(page - 1)}>
+                <ChevronLeft size={16} style={{ verticalAlign: -3 }} /> Previous
+              </Link>
+            ) : (
+              <span />
+            )}
+            <span className="cs-lede" style={{ fontSize: 14 }}>
+              Page {page} of {pages}
+            </span>
+            {page < pages ? (
+              <Link className="cs-btn ghost" href={pageHref(page + 1)}>
+                Next <ChevronRight size={16} style={{ verticalAlign: -3 }} />
+              </Link>
+            ) : (
+              <span />
+            )}
+          </nav>
         ) : null}
       </section>
       <HelpFooter />

@@ -461,7 +461,7 @@ class FootageTest(GateBase):
         self.write_package(package())
         r = self.gate("lint", "acme")
         self.assertEqual(r.returncode, 0, r.stdout)
-        self.assertIn("Footage clips in June shoot · B-roll: 1 new", self.gate("ticket", "acme").stdout)
+        self.assertIn("Footage in June shoot · B-roll: 1 new clip(s)", self.gate("ticket", "acme").stdout)
         self.assertEqual(self.approve_all().returncode, 0)
         live = self.live_library()
         self.assertEqual([c["key"] for c in live["clips"]], [clip()["key"]])
@@ -524,11 +524,95 @@ class FootageTest(GateBase):
         r = self.gate("remove", "acme", "--items", gone, "--by", "Sam")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual([c["key"] for c in self.live_library()["clips"]], [two[0]["key"]])
-        self.assertIn("1 previously removed", self.gate("ticket", "acme").stdout)
+        t = self.gate("ticket", "acme").stdout
+        self.assertIn("Not in this ticket, previously removed", t)
+        self.assertNotIn("Changed: Footage", t)  # a clip's removal is not a change to its library
+        # Approving "everything" never brings a pulled clip back; naming it does.
+        self.assertEqual(self.approve_all("t2").returncode, 0)
+        self.assertEqual(len(self.live_library()["clips"]), 1)
+        r = self.gate("approve", "acme", "--by", "Sam", "--ticket", "t3", "--items", gone)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(len(self.live_library()["clips"]), 2)
+        # Pulling the whole library tombstones it with its clips: "approve everything" leaves it down.
         r = self.gate("remove", "acme", "--items", "library:june-broll", "--by", "Sam")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIsNone(self.live_library())
         self.assertTrue(os.listdir(os.path.join(self.site, "published", "library", "acme", "_removed")))
+        self.approve_all("t4")
+        self.assertIsNone(self.live_library())
+
+    def test_remove_refuses_a_key_that_isnt_live(self):
+        self.write_package(package())
+        self.approve_all()
+        r = self.gate("remove", "acme", "--items", "clip:june-broll/nope", "--by", "Sam")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("not on the live site", r.stderr + r.stdout)
+
+    def test_a_retrim_or_unpick_in_stacks_comes_down_without_a_tap(self):
+        two = [clip(), clip(500, 700, ev=E3, mux_asset_id="ASSETid00000000002")]
+        self.marks(stacks_event(E3, 450, 800))
+        self.mux_assets({ASSET: mux_asset(two[0]), "ASSETid00000000002": mux_asset(two[1])})
+        self.write_package(package(clips=two))
+        self.assertEqual(self.approve_all().returncode, 0)
+        self.write_package(package(clips=[two[0]]))  # Sam un-picked the second range in Stacks
+        r = self.gate("auto", "acme")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("WITHDRAWN", r.stdout)
+        self.assertEqual([c["key"] for c in self.live_library()["clips"]], [two[0]["key"]])
+        self.assertNotIn("clip:", json.dumps(self.stones()))  # Stacks' own change: no tombstone
+
+    def stones(self):
+        path = os.path.join(self.site, "published", "library", "acme", "_tombstones.json")
+        if not os.path.exists(path):
+            return {}
+        with open(path) as f:
+            return json.load(f)
+
+    def test_clips_never_publish_under_a_library_change_left_out(self):
+        self.write_package(package())
+        self.assertEqual(self.approve_all().returncode, 0)
+        c2 = clip(500, 700, ev=E1, mux_asset_id="ASSETid00000000002")
+        self.mux_assets({ASSET: mux_asset(clip()), "ASSETid00000000002": mux_asset(c2)})
+        self.write_package(package(clips=[clip(), c2], title="Renamed library"))
+        r = self.gate("approve", "acme", "--by", "Sam", "--ticket", "t2", "--items", f"clip:june-broll/{c2['key']}")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("approve library:<key> with its clips", r.stderr + r.stdout)
+
+    def test_approve_refuses_when_the_ticket_is_stale(self):
+        self.write_package(package())
+        r = self.gate("approve", "acme", "--by", "Sam", "--ticket", "t1", "--digest", "000000000000")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("changed since the ticket", r.stderr + r.stdout)
+        check = self.gate("ticket", "acme").stdout.split("(check: ")[1][:12]
+        r = self.gate("approve", "acme", "--by", "Sam", "--ticket", "t1", "--digest", check)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_raw_event_edits_fps_and_nulls(self):
+        self.write_package(package())
+        # Sam's favorite edited by someone else (an admin can edit any mark in Stacks): refused.
+        self.marks(stacks_event(E2, kind="edit", author="person", targets=[E1]))
+        self.assertIn("someone else edited that favorite", self.gate("lint", "acme").stdout)
+        shutil.rmtree(self.events)
+        self.marks(stacks_event(E1, 0, 1000))
+        # The package's fps must be Stacks' own for that range.
+        c = clip(fps=29.97, duration_s=round((435 - 100 + 1) / 29.97, 3))
+        self.mux_assets({ASSET: mux_asset(c)})
+        self.write_package(package(clips=[c]))
+        self.assertIn("isn't Stacks'", self.gate("lint", "acme").stdout)
+        # Null instead of left out: refused here, as the site's schema would refuse it.
+        self.mux_assets({ASSET: mux_asset(clip())})
+        self.write_package(package(clips=[clip(aspect=None)]))
+        self.assertIn("must be left out rather than null", self.gate("lint", "acme").stdout)
+
+    def test_no_text_tracks_no_downloads_and_tight_lengths(self):
+        self.write_package(package())
+        c = clip()
+        for over, words in (({"tracks": [{"type": "video"}, {"type": "audio", "max_channels": 2}, {"type": "text"}]}, "no text tracks"),
+                            ({"mp4_support": "standard"}, "no downloadable renditions"),
+                            ({"static_renditions": {"files": [{"name": "highest.mp4"}]}}, "no downloadable renditions"),
+                            ({"duration": c["duration_s"] + 0.5}, "Sam's range is")):
+            self.mux_assets({ASSET: mux_asset(c, **over)})
+            self.assertIn(words, self.gate("lint", "acme").stdout, over)
 
     def test_a_package_mid_write_neither_changes_nor_disappears(self):
         self.write_package(package())
@@ -552,6 +636,119 @@ class FootageTest(GateBase):
             self.assertEqual(json.load(f)["org"], "acme--preview")
         self.approve_all()
         self.assertFalse(os.path.exists(path))
+
+
+# ---------------------------------------------------------------- proposals (SPEC §24 v2)
+def tiny_pdf(lines):
+    """A one-page PDF whose text pdftotext can read (Helvetica, one line per entry)."""
+    esc = lambda s: s.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+    text = "BT /F1 12 Tf 72 720 Td " + " ".join(f"({esc(x)}) Tj 0 -16 Td" for x in lines) + " ET"
+    objs = ["<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+            f"<< /Length {len(text)} >>\nstream\n{text}\nendstream",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"]
+    out, offsets = "%PDF-1.4\n", []
+    for i, o in enumerate(objs, 1):
+        offsets.append(len(out.encode("latin-1")))
+        out += f"{i} 0 obj\n{o}\nendobj\n"
+    xref = len(out.encode("latin-1"))
+    out += f"xref\n0 {len(objs) + 1}\n0000000000 65535 f \n" + "".join(f"{o:010d} 00000 n \n" for o in offsets)
+    out += f"trailer\n<< /Size {len(objs) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n"
+    return out.encode("latin-1")
+
+
+PROPOSAL_PATH = "/Clients/Acme/Spots Proposal.pdf"
+
+
+@unittest.skipUnless(shutil.which("pdftotext"), "pdftotext isn't installed")
+class ProposalTest(GateBase):
+    def setUp(self):
+        super().setUp()
+        self.write_pdf(["Spots: a proposal", "Total $8,500", "Good until October 31, 2027"])
+        self.reader(True)
+
+    def write_pdf(self, lines):
+        full = os.path.join(self.root, PROPOSAL_PATH.lstrip("/"))
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        with open(full, "wb") as f:
+            f.write(tiny_pdf(lines))
+
+    def reader(self, on):
+        d = os.path.join(self.site, "ledger", "acceptances")
+        os.makedirs(d, exist_ok=True)
+        path = os.path.join(d, "_reader.json")
+        if on:
+            with open(path, "w") as f:
+                json.dump({"by": "Majordomo"}, f)
+        elif os.path.exists(path):
+            os.remove(path)
+
+    def draft(self, **over):
+        b = book()
+        doc = {"key": "spots-proposal", "project_key": "p1", "kind": "proposal", "title": "Spots proposal",
+               "audience": "client", "path": PROPOSAL_PATH, "ask": "accept", "acceptors": ["jane@client.org"],
+               "total": 8500, "good_until": "2027-10-31"}
+        doc.update(over)
+        b["documents"] = [{k: v for k, v in doc.items() if v is not None}]
+        self.write_draft(b)
+        return b
+
+    def sha(self):
+        import hashlib
+        with open(os.path.join(self.root, PROPOSAL_PATH.lstrip("/")), "rb") as f:
+            return hashlib.sha256(f.read()).hexdigest()
+
+    def test_publishing_freezes_the_exact_bytes(self):
+        self.draft()
+        r = self.approve_all()
+        self.assertEqual(r.returncode, 0, r.stderr + self.gate("lint", "acme").stdout)
+        doc = self.published()["documents"][0]
+        self.assertEqual(doc["frozen_sha256"], self.sha())
+        with open(os.path.join(self.site, "frozen", f"{self.sha()}.pdf"), "rb") as f, \
+                open(os.path.join(self.root, PROPOSAL_PATH.lstrip("/")), "rb") as g:
+            self.assertEqual(f.read(), g.read())
+
+    def test_a_rerendered_pdf_is_a_change_even_with_the_same_json(self):
+        self.draft()
+        self.approve_all()
+        self.write_pdf(["Spots: a proposal", "Total $8,500", "Good until October 31, 2027", "(re-rendered)"])
+        self.assertIn("CHANGED  document:spots-proposal", self.gate("status", "acme").stdout)
+
+    def test_the_rules_for_asking_for_an_accept(self):
+        self.reader(False)
+        self.draft()
+        self.assertIn("nothing tells Sam when a client accepts", self.gate("lint", "acme").stdout)
+        self.reader(True)
+        for over, words in (({"total": 9000}, "the total $9,000 isn't in the PDF"),
+                            ({"good_until": "2027-11-30"}, "isn't in the PDF: print the date itself"),
+                            ({"good_until": "2020-01-01"}, "has passed"),
+                            ({"acceptors": ["stranger@else.com"]}, "isn't one of this client's people"),
+                            ({"acceptors": []}, "needs the acceptors list"),
+                            ({"kind": "agreement"}, "only a proposal can ask for an Accept"),
+                            ({"ask": "sign"}, "ask must be one of")):
+            self.draft(**over)
+            self.assertIn(words, self.gate("lint", "acme").stdout, over)
+        self.write_pdf(["Total $8,500", "Good until October 31, 2027", "Crew markup 30%"])
+        self.draft()
+        self.assertIn('"markup"', self.gate("lint", "acme").stdout)
+
+    def test_an_accepted_proposal_is_locked(self):
+        self.draft()
+        self.approve_all()
+        with open(os.path.join(self.site, "ledger", "acceptances", "26-099_spots-proposal_x.json"), "w") as f:
+            json.dump({"org": "acme", "document": "spots-proposal", "sha256": self.sha()}, f)
+        self.draft(title="Spots proposal v2")
+        r = self.approve_all("t2")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("approved by the client", r.stderr + r.stdout)
+        r = self.gate("remove", "acme", "--items", "document:spots-proposal", "--by", "Sam")
+        self.assertNotEqual(r.returncode, 0)
+
+    def test_the_ticket_says_what_the_tap_does(self):
+        self.draft()
+        t = self.gate("ticket", "acme").stdout
+        self.assertIn(f"puts an Accept button in front of jane · $8,500 · good until 2027-10-31 · file {self.sha()[:8]}", t)
 
 
 if __name__ == "__main__":

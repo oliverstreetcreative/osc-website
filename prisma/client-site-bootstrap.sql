@@ -451,9 +451,52 @@ CREATE TABLE "documents" (
     "signed_by" TEXT,
     "signed_on" DATE,
     "sha256" TEXT,
+    "ask" TEXT NOT NULL DEFAULT 'none',
+    "acceptors" JSONB,
+    "good_until" DATE,
+    "total" DECIMAL(10,2),
     "hidden" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "documents_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "proposal_acceptances" (
+    "id" UUID NOT NULL,
+    "document_id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
+    "project_id" UUID,
+    "job" TEXT,
+    "doc_key" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "sha256" TEXT NOT NULL,
+    "total" DECIMAL(10,2),
+    "good_until" DATE,
+    "person_id" UUID NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "org_name" TEXT NOT NULL,
+    "org_slug" TEXT NOT NULL,
+    "member_role" TEXT NOT NULL,
+    "ip" TEXT,
+    "user_agent" TEXT,
+    "accepted_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "ledger_path" TEXT,
+    "ledger_written_at" TIMESTAMP(3),
+    "withdrawn_at" TIMESTAMP(3),
+
+    CONSTRAINT "proposal_acceptances_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "proposal_views" (
+    "id" UUID NOT NULL,
+    "document_id" UUID NOT NULL,
+    "person_id" UUID NOT NULL,
+    "sha256" TEXT NOT NULL,
+    "at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "proposal_views_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -562,6 +605,7 @@ CREATE TABLE "library_hearts" (
     "person_id" UUID NOT NULL,
     "organization_id" UUID NOT NULL,
     "favorite" BOOLEAN NOT NULL,
+    "seq" SERIAL NOT NULL,
     "at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "ledger_written_at" TIMESTAMP(3),
 
@@ -876,6 +920,15 @@ CREATE UNIQUE INDEX "documents_ext_key_key" ON "documents"("ext_key");
 CREATE INDEX "documents_organization_id_idx" ON "documents"("organization_id");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "proposal_acceptances_document_id_key" ON "proposal_acceptances"("document_id");
+
+-- CreateIndex
+CREATE INDEX "proposal_acceptances_organization_id_idx" ON "proposal_acceptances"("organization_id");
+
+-- CreateIndex
+CREATE INDEX "proposal_views_document_id_at_idx" ON "proposal_views"("document_id", "at");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "project_requests_form_key_key" ON "project_requests"("form_key");
 
 -- CreateIndex
@@ -904,6 +957,9 @@ CREATE UNIQUE INDEX "library_clips_ext_key_key" ON "library_clips"("ext_key");
 
 -- CreateIndex
 CREATE INDEX "library_clips_library_id_hidden_sort_idx" ON "library_clips"("library_id", "hidden", "sort");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "library_hearts_seq_key" ON "library_hearts"("seq");
 
 -- CreateIndex
 CREATE INDEX "library_hearts_person_id_clip_id_at_idx" ON "library_hearts"("person_id", "clip_id", "at");
@@ -1051,6 +1107,9 @@ ALTER TABLE "documents" ADD CONSTRAINT "documents_organization_id_fkey" FOREIGN 
 
 -- AddForeignKey
 ALTER TABLE "documents" ADD CONSTRAINT "documents_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "proposal_acceptances" ADD CONSTRAINT "proposal_acceptances_document_id_fkey" FOREIGN KEY ("document_id") REFERENCES "documents"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "project_requests" ADD CONSTRAINT "project_requests_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE CASCADE;

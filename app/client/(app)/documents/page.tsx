@@ -5,24 +5,36 @@ import { orgDocuments } from "@/lib/client/data"
 import { DOC_KIND_LABEL } from "@/lib/client/format"
 import { DocRow, HelpFooter } from "@/app/client/ui"
 import { db } from "@/lib/db"
+import { seesProposals } from "@/lib/client/proposals"
 
 export const metadata = { title: "Documents" }
 
 const APPROVAL = "approval"
+const ACCEPTANCE = "acceptance"
 
 export default async function Documents({ searchParams }: { searchParams: { q?: string; kind?: string } }) {
   const ctx = await requireClientContext()
-  const all = await orgDocuments(ctx.org.id)
+  // Proposals are money: never for a VIEWER (SPEC §10.5b, §24 v2); nor their acceptances.
+  const money = seesProposals(ctx.role)
+  const all = (await orgDocuments(ctx.org.id)).filter((d) => money || d.kind !== "proposal")
   // Cut approvals are records of their own (SPEC §13): read from the approvals table, never a synced Document.
   const approvals = await db.versionApproval.findMany({
     where: { organization_id: ctx.org.id },
     include: { deliverable: { select: { project: { select: { name: true } } } } },
     orderBy: { approved_at: "desc" },
   })
+  // So are proposal acceptances (SPEC §24 v2).
+  const acceptances = money
+    ? await db.proposalAcceptance.findMany({
+        where: { organization_id: ctx.org.id },
+        include: { document: { select: { project: { select: { name: true } } } } },
+        orderBy: { accepted_at: "desc" },
+      })
+    : []
   const q = (searchParams.q ?? "").trim().toLowerCase()
   const kind = searchParams.kind ?? ""
-  const kinds = [...new Set(all.map((d) => d.kind)), ...(approvals.length ? [APPROVAL] : [])]
-  const label = (k: string) => (k === APPROVAL ? "Approvals" : DOC_KIND_LABEL[k] ?? k)
+  const kinds = [...new Set(all.map((d) => d.kind)), ...(approvals.length ? [APPROVAL] : []), ...(acceptances.length ? [ACCEPTANCE] : [])]
+  const label = (k: string) => (k === APPROVAL ? "Approvals" : k === ACCEPTANCE ? "Accepted proposals" : DOC_KIND_LABEL[k] ?? k)
   const matches = (words: (string | null | undefined)[]) => !q || words.filter(Boolean).join(" ").toLowerCase().includes(q)
   const rows = [
     ...all
@@ -31,8 +43,31 @@ export default async function Documents({ searchParams }: { searchParams: { q?: 
     ...approvals
       .filter((a) => (!kind || kind === APPROVAL) && matches([a.film_title, a.deliverable.project.name, a.name, "approval approved"]))
       .map((a) => ({ at: a.approved_at.getTime(), row: <ApprovalRow key={a.id} a={a} project={a.deliverable.project.name} /> })),
+    ...acceptances
+      .filter((a) => (!kind || kind === ACCEPTANCE) && matches([a.title, a.document.project?.name, a.name, "proposal accepted"]))
+      .map((a) => ({
+        at: a.accepted_at.getTime(),
+        row: (
+          <Link key={a.id} className="cs-row" href={`/client/acceptances/${a.id}`}>
+            <span className="cs-ico" aria-hidden>
+              <BadgeCheck />
+            </span>
+            <span className="cs-row-main">
+              <strong>{a.title}</strong>
+              <small>
+                {["Accepted proposal", a.name, a.document.project?.name, a.accepted_at.toLocaleDateString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric" })]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </small>
+            </span>
+            <span className="cs-row-end" aria-hidden style={{ color: "var(--mut)" }}>
+              <ChevronRight size={18} />
+            </span>
+          </Link>
+        ),
+      })),
   ].sort((x, y) => y.at - x.at)
-  const total = all.length + approvals.length
+  const total = all.length + approvals.length + acceptances.length
   const href = (k: string) => {
     const p = new URLSearchParams()
     if (q) p.set("q", q)

@@ -47,6 +47,45 @@ export async function writeLedger(approvalId: string): Promise<boolean> {
   return true
 }
 
+const ACCEPTANCES = IS_PRODUCTION ? "/_admin/client-site/ledger/acceptances" : "/_admin/client-site/ledger/acceptances-staging"
+
+/**
+ * A client's yes to a proposal (SPEC §24 v2) → one add-only file Majordomo reads (it tickets Sam) and the gate's lock
+ * reads ({org, document}: an accepted proposal can't change or disappear). Named by the acceptance's own id.
+ */
+export async function writeAcceptanceLedger(id: string): Promise<boolean> {
+  const a = await db.proposalAcceptance.findUnique({ where: { id } })
+  if (!a || a.ledger_written_at) return !!a
+  const path = `${ACCEPTANCES}/${safe(a.job ?? "no-job")}_${safe(a.doc_key)}_${a.id}.json`
+  const record = {
+    org: a.org_slug,
+    document: a.doc_key,
+    job: a.job,
+    title: a.title,
+    sha256: a.sha256,
+    frozen_file: `/_admin/client-site/frozen/${a.sha256}.pdf`,
+    total: a.total ? a.total.toString() : null,
+    good_until: a.good_until ? a.good_until.toISOString().slice(0, 10) : null,
+    accepted_by: { name: a.name, email: a.email, org: a.org_name, role: a.member_role },
+    accepted_at: a.accepted_at.toISOString(),
+    accepted_at_eastern: eastern(a.accepted_at),
+    how: "portal",
+    portal_record: a.id,
+  }
+  const r = await writeNewFile(path, JSON.stringify(record, null, 2) + "\n")
+  if (r !== "written" && r !== "exists") {
+    console.error(`proposals: ledger write failed for ${a.id}: ${r}`)
+    return false
+  }
+  await db.proposalAcceptance.update({ where: { id: a.id }, data: { ledger_path: path, ledger_written_at: new Date() } })
+  return true
+}
+
+export async function writePendingAcceptances() {
+  const pending = await db.proposalAcceptance.findMany({ where: { ledger_written_at: null }, select: { id: true }, take: 50 })
+  for (const p of pending) await writeAcceptanceLedger(p.id).catch((err) => console.error("proposals: ledger retry failed", err))
+}
+
 /** Every approval whose ledger file hasn't landed yet (the client-site run calls this every 5 minutes). */
 export async function writePendingLedgers() {
   const pending = await db.versionApproval.findMany({ where: { ledger_written_at: null }, select: { id: true }, take: 50 })
@@ -63,7 +102,7 @@ const HEARTS = IS_PRODUCTION ? "/_admin/client-site/ledger/library-hearts" : "/_
 export async function writePendingHearts() {
   const rows = await db.libraryHeart.findMany({
     where: { ledger_written_at: null },
-    orderBy: { at: "asc" },
+    orderBy: { seq: "asc" },
     take: 100,
     include: { clip: { select: { clip_key: true, sam_event: true, library: { select: { ext_key: true } } } } },
   })
@@ -79,6 +118,10 @@ export async function writePendingHearts() {
     const org = orgs.get(r.organization_id)
     const record = {
       id: r.id,
+      // Stacks orders events by id (<12 hex ms>-<8 hex>): the tap's time, then its sequence, so a heart and its
+      // un-heart can never swap places on import.
+      stacks_id: `${r.at.getTime().toString(16).padStart(12, "0")}-${r.seq.toString(16).padStart(8, "0")}`,
+      seq: r.seq,
       library: r.clip.library.ext_key,
       clip_key: r.clip.clip_key,
       sam_event: r.clip.sam_event,
@@ -86,7 +129,7 @@ export async function writePendingHearts() {
       person: { email: who?.email.toLowerCase() ?? null, name: who?.name ?? null, org: org?.slug ?? null, org_name: org?.name ?? null },
       at: r.at.toISOString(),
     }
-    const res = await writeNewFile(`${HEARTS}/${r.id}.json`, JSON.stringify(record, null, 2) + "\n")
+    const res = await writeNewFile(`${HEARTS}/${String(r.seq).padStart(10, "0")}_${r.id}.json`, JSON.stringify(record, null, 2) + "\n")
     if (res !== "written" && res !== "exists") {
       console.error(`library: heart ledger write failed for ${r.id}: ${res}`)
       return // try the rest next run, in order

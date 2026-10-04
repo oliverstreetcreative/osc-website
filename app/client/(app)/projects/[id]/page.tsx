@@ -5,6 +5,7 @@ import { requireClientContext } from "@/lib/client/context"
 import { orgProject, clientSignatures, visibleScriptsWhere } from "@/lib/client/data"
 import { labelFor, reviewState, type ReviewState } from "@/lib/client/approvals"
 import { dayRange } from "@/lib/client/library"
+import { roleIn, seesProposals } from "@/lib/client/proposals"
 import { signingReady, stillUrl } from "@/lib/client/mux-sign"
 import { db } from "@/lib/db"
 import { KIND_LABEL, isDone, type SignViewer } from "@/lib/client/sign"
@@ -62,19 +63,31 @@ export default async function ProjectPage({ params }: { params: { id: string } }
     select: { id: true, title: true, status: true, target_seconds: true },
     orderBy: { title: "asc" },
   })
+  // Proposals are money (SPEC §24 v2): never listed for a VIEWER; an acceptance shows as "accepted" until Sam moves
+  // the phase on.
+  const seesMoney = seesProposals((await roleIn(ctx, org.id)) ?? "VIEWER")
+  const files = p.documents.filter((d) => seesMoney || d.kind !== "proposal")
+  const accepted = seesMoney
+    ? await db.proposalAcceptance.findFirst({ where: { project_id: p.id, withdrawn_at: null }, orderBy: { accepted_at: "desc" }, select: { name: true, accepted_at: true } })
+    : null
   // Footage from Stacks (SPEC §23 v2): one row per published library, four signed stills each.
   const libraries = demo
     ? []
-    : await db.library.findMany({
-        where: { project_id: p.id, hidden: false },
-        orderBy: [{ sort: "asc" }, { created_at: "asc" }],
-        include: { clips: { where: { hidden: false }, orderBy: { sort: "asc" }, take: 4, select: { id: true, mux_playback_id: true, thumb_s: true } } },
-      })
+    : await db.library.findMany({ where: { project_id: p.id, hidden: false }, orderBy: [{ sort: "asc" }, { created_at: "asc" }] })
   const footageReady = signingReady()
+  // Four stills per library, each its own small query (a nested `take` could load every clip of every library).
   const strips = new Map(
     footageReady
       ? await Promise.all(
-          libraries.map(async (l) => [l.id, await Promise.all(l.clips.map((c) => stillUrl(c.mux_playback_id, { time: c.thumb_s ?? 1, width: 400 })))] as const),
+          libraries.map(async (l) => {
+            const four = await db.libraryClip.findMany({
+              where: { library_id: l.id, hidden: false },
+              orderBy: { sort: "asc" },
+              take: 4,
+              select: { mux_playback_id: true, thumb_s: true },
+            })
+            return [l.id, await Promise.all(four.map((c) => stillUrl(c.mux_playback_id, { time: c.thumb_s ?? 1, width: 400 })))] as const
+          }),
         )
       : [],
   )
@@ -104,6 +117,11 @@ export default async function ProjectPage({ params }: { params: { id: string } }
           <p className="cs-eyebrow">{[p.kind, p.job_number ? `No. ${p.job_number}` : null].filter(Boolean).join(" · ")}</p>
           <h1>{p.name}</h1>
           {p.status_line ? <p className="cs-hero-line">{p.status_line}</p> : null}
+          {accepted && p.phase === "quote" ? (
+            <p className="cs-hero-line">
+              Proposal accepted {dayET(accepted.accepted_at)} by {accepted.name.split(/\s+/)[0]}.
+            </p>
+          ) : null}
           <PhaseTracker phase={p.phase} />
         </div>
       </header>
@@ -331,10 +349,10 @@ export default async function ProjectPage({ params }: { params: { id: string } }
               </section>
             ) : null}
 
-            {p.documents.length ? (
+            {files.length ? (
               <section className="cs-section">
                 <SectionTitle href="/client/documents" link="All documents">Files</SectionTitle>
-                <div className="cs-rows">{p.documents.map((d) => <DocRow key={d.id} doc={d} showProject={false} />)}</div>
+                <div className="cs-rows">{files.map((d) => <DocRow key={d.id} doc={d} showProject={false} />)}</div>
               </section>
             ) : null}
 
