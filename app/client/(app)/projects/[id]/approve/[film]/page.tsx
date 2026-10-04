@@ -37,7 +37,9 @@ export default async function ApprovePage({ params, searchParams }: { params: { 
   const stream =
     state.kind === "ok" && token && film.review_asset_id && !ctx.viewing ? await versionStream(token, film.review_asset_id, state.newest.id) : null
   const preview = (await headers()).get("x-user-preview") === "true"
-  const approver = !ctx.viewing && !preview && isApprover(film, ctx.user.email)
+  // A staging PREVIEW sign-in (the screenshot camera) sees the approver's real form with the button off; the POST
+  // refuses preview sessions anyway. Staff viewing never see the form.
+  const approver = !ctx.viewing && isApprover(film, ctx.user.email)
   const approvers = approversOf(film)
   const names = new Map(
     (await db.person.findMany({ where: { email: { in: approvers } }, select: { email: true, name: true, first_name: true } })).map((p) => [
@@ -115,11 +117,13 @@ export default async function ApprovePage({ params, searchParams }: { params: { 
                 <span>A note with your approval (optional)</span>
                 <textarea name="note" rows={2} maxLength={1000} />
               </label>
-              <button className="cs-btn" style={{ marginTop: 12 }}>
+              <button className="cs-btn" style={{ marginTop: 12 }} disabled={preview}>
                 Approve version {state.newest.n}
               </button>
               <p className="cs-lede" style={{ marginTop: 8, fontSize: 14 }}>
-                Your approval is recorded with the date and this exact version. Your team and Sam can see the note.
+                {preview
+                  ? "Preview sign-in: the button is off."
+                  : "Your approval is recorded with the date and this exact version. Your team and Sam can see the note."}
               </p>
             </form>
           ) : approver && !mineOnNewest ? (

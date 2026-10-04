@@ -32,7 +32,8 @@ export default async function ClipPage({ params, searchParams }: { params: { id:
     ? await Promise.all([playbackToken(clip.mux_playback_id), stillToken(clip.mux_playback_id, { time: clip.thumb_s ?? 1, width: 1280 })])
     : [null, null]
   const preview = (await headers()).get("x-user-preview") === "true"
-  const canHeart = !ctx.viewing && !preview && !isDemoSlug(lib.project.organization?.slug)
+  // A staging PREVIEW sign-in (the screenshot camera) sees the heart, switched off; the POST refuses it anyway.
+  const canHeart = !ctx.viewing && !isDemoSlug(lib.project.organization?.slug)
   const hearted = canHeart ? (await heartsOf(ctx.user.id, [clip.id])).has(clip.id) : false
   const base = `/client/projects/${lib.project.slug}/footage/${lib.id}`
   const saved = searchParams.saved && Object.hasOwn(SAVED, searchParams.saved) ? SAVED[searchParams.saved] : null
@@ -66,7 +67,7 @@ export default async function ClipPage({ params, searchParams }: { params: { id:
           <form method="post" action="/client/library/heart">
             <input type="hidden" name="clip_id" value={clip.id} />
             <input type="hidden" name="on" value={hearted ? "0" : "1"} />
-            <button className={hearted ? "cs-btn" : "cs-btn ghost"} aria-pressed={hearted}>
+            <button className={hearted ? "cs-btn" : "cs-btn ghost"} aria-pressed={hearted} disabled={preview}>
               <Heart size={16} fill={hearted ? "currentColor" : "none"} style={{ verticalAlign: -3, marginRight: 6 }} aria-hidden />
               Favorite
             </button>

@@ -77,7 +77,17 @@ s, h, home = call("/client")
 step(s == 200 and "Rehearsal" in text(home), "the rehearsal client's home page", f"{s}")
 step(h.get("x-frame-options") == "SAMEORIGIN", "the page can't be framed by another site", h.get("x-frame-options", "none"))
 
-if FEATURE == "proposal-check":
+if FEATURE == "state":
+    # Read-only: what the rehearsal client sees right now (for the screenshot list). KEY is unused ("-").
+    th = text(home)
+    step("Ready for your OK" in th, "a cut waits for the client's OK")
+    step("A proposal for you" in th, "a proposal waits for the client's yes")
+    for path in sorted(set(re.findall(r'href="(/client/(?:proposals|projects|approvals|acceptances)/[^"#?]+)"', th))):
+        print("link:", path)
+    s, h, docs = call("/client/documents")
+    for path in sorted(set(re.findall(r'href="(/client/(?:proposals|approvals|acceptances)/[0-9a-f-]{36})"', text(docs)))):
+        print("doc:", path)
+elif FEATURE == "proposal-check":
     # Re-check a proposal already accepted (the record, the receipt, idempotence), without accepting anything new.
     s, h, docs = call("/client/documents")
     m = re.search(r'/client/proposals/([0-9a-f-]{36})"', text(docs))

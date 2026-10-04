@@ -21,7 +21,9 @@ export default async function ProposalPage({ params, searchParams }: { params: {
   const { doc } = found
   const org = ctx.orgs.find((o) => o.id === doc.organization_id)
   const preview = (await headers()).get("x-user-preview") === "true"
-  const readOnly = !!ctx.viewing || preview || isDemoSlug(org?.slug)
+  // A staging PREVIEW sign-in (the screenshot camera) sees the acceptor's real form with the button off; the POST
+  // refuses preview sessions anyway.
+  const readOnly = !!ctx.viewing || isDemoSlug(org?.slug)
   const acceptors = acceptorsOf(doc)
   const names = new Map(
     (await db.person.findMany({ where: { email: { in: acceptors } }, select: { email: true, name: true, first_name: true } })).map((p) => [
@@ -105,11 +107,17 @@ export default async function ProposalPage({ params, searchParams }: { params: {
           <form method="post" action="/client/proposals/accept" className="cs-card cs-pad">
             <input type="hidden" name="document_id" value={doc.id} />
             <input type="hidden" name="sha256" value={doc.sha256!} />
-            <button className="cs-btn" style={{ width: "100%" }}>
+            <button className="cs-btn" style={{ width: "100%" }} disabled={preview}>
               Accept this proposal
             </button>
             <p className="cs-lede" style={{ marginTop: 8, fontSize: 14 }}>
-              Accepting tells Sam yes to this proposal as written. Questions first? <a className="cs-link" href={OSC_SMS}>Text Sam</a>.
+              {preview ? (
+                "Preview sign-in: the button is off."
+              ) : (
+                <>
+                  Accepting tells Sam yes to this proposal as written. Questions first? <a className="cs-link" href={OSC_SMS}>Text Sam</a>.
+                </>
+              )}
             </p>
           </form>
         ) : (
