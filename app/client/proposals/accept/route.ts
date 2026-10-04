@@ -16,10 +16,14 @@ export async function POST(req: NextRequest) {
   const id = String(form?.get("document_id") ?? "")
   const sha = String(form?.get("sha256") ?? "")
   if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.redirect(`${origin}/client/documents`, 303)
+  // A failed Accept says so on the proposal page and saves nothing (never a bare error page).
   const r = await acceptProposal(ctx, id, sha, {
     ip: clientIp(req.headers),
     userAgent: req.headers.get("user-agent"),
     preview: req.headers.get("x-user-preview") === "true",
+  }).catch((err) => {
+    console.error("proposals: accept failed", err)
+    return { ok: false as const, code: "unavailable" as const }
   })
   if (!r.ok) return NextResponse.redirect(`${origin}/client/proposals/${id}?why=${r.code}`, 303)
   return NextResponse.redirect(`${origin}/client/acceptances/${r.id}`, 303)

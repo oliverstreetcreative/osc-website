@@ -118,6 +118,8 @@ export async function needsYou(
   personId?: string,
   /** The signed-in client's email (undefined while staff view the site: they see every approver's asks). */
   email?: string,
+  /** Their role in this org: VIEWERs see no money, so no proposals (SPEC §10.5b, §24 v2). */
+  role?: string,
 ) {
   const items: NeedsItem[] = []
   // Scripts Sam marked ready for their notes or their OK (SPEC §14 phone moment 3).
@@ -137,7 +139,7 @@ export async function needsYou(
   }
   // A proposal waiting for this person's yes (SPEC §24 v2): its named acceptors only (staff viewing see them, read-only),
   // until it's accepted or past its good-until date.
-  const proposals = await db.document.findMany({
+  const proposals = role === "VIEWER" ? [] : await db.document.findMany({
     where: { organization_id: orgId, hidden: false, kind: "proposal", ask: "accept", sha256: { not: null }, acceptance: null, OR: [{ project_id: null }, { project: { hidden: false } }] },
     select: { id: true, title: true, good_until: true, acceptors: true, project: { select: { name: true } } },
   })

@@ -11,6 +11,8 @@ import { HelpFooter, OSC_SMS } from "@/app/client/ui"
 
 export const metadata = { title: "Accepted" }
 
+const ROLE_WORDS: Record<string, string> = { OWNER: "Owner", APPROVER: "Approver", BILLING: "Billing" }
+
 export default async function AcceptanceReceipt({ params }: { params: { id: string } }) {
   const ctx = await requireClientContext()
   if (!/^[0-9a-f-]{36}$/i.test(params.id)) notFound()
@@ -56,7 +58,7 @@ export default async function AcceptanceReceipt({ params }: { params: { id: stri
           <dd>Fingerprint {a.sha256.slice(0, 8)}</dd>
           <dt>Accepted by</dt>
           <dd>
-            {a.name} · {a.org_name}
+            {a.name} · {a.org_name} · {ROLE_WORDS[a.member_role] ?? a.member_role}
           </dd>
           <dt>When</dt>
           <dd>{when}</dd>

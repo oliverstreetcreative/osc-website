@@ -13,6 +13,7 @@ import { Book } from "./book"
 import { listJson, readText } from "./dropbox"
 import { DEMO_ORG_SLUG, demoBook, demoOn, isDemoSlug } from "./demo"
 import { syncLibraries } from "./library"
+import { flagReview } from "./ledger"
 import { IS_PRODUCTION, IS_STAGING } from "@/lib/site-env"
 
 export const PUBLISHED_FOLDER = "/_admin/client-site/published"
@@ -319,6 +320,13 @@ export async function applyBook(book: Book) {
   const keepDocs: string[] = []
   for (const doc of book.documents) {
     const ext = `${o.slug}/${doc.key}`
+    // An ACCEPTED proposal is a record (SPEC §24 v2): the site keeps the bytes the client said yes to, whatever a book
+    // says later. A book naming different bytes is flagged for Sam (the gate should have refused it).
+    const accepted =
+      doc.kind === "proposal"
+        ? await db.document.findUnique({ where: { ext_key: ext }, select: { acceptance: { select: { sha256: true } } } }).then((r) => r?.acceptance ?? null)
+        : null
+    if (accepted && doc.frozen_sha256 !== accepted.sha256) flagReview("accepted-proposal-changed", ext, doc.title)
     const data = {
       organization_id: org.id,
       project_id: doc.project_key ? projectIdByKey.get(doc.project_key) ?? null : null,
@@ -335,8 +343,8 @@ export async function applyBook(book: Book) {
       // proposal without a frozen hash can't be read or accepted on the site (the frozen copy is the only source).
       ...(doc.kind === "proposal"
         ? {
-            sha256: doc.frozen_sha256 ?? null,
-            ask: doc.frozen_sha256 ? doc.ask : "none",
+            sha256: accepted ? accepted.sha256 : doc.frozen_sha256 ?? null,
+            ask: accepted ? "accept" : doc.frozen_sha256 ? doc.ask : "none",
             acceptors: doc.acceptors.map((e) => e.toLowerCase()),
             good_until: d(doc.good_until),
             total: doc.total ?? null,

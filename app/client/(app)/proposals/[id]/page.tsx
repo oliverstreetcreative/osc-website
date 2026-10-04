@@ -31,7 +31,12 @@ export default async function ProposalPage({ params, searchParams }: { params: {
   )
   const open = doc.ask === "accept" && !!doc.sha256 && !doc.acceptance
   const late = expired(doc.good_until)
-  const fileUrl = doc.sha256 ? `/client/proposals/${doc.id}/file?v=${doc.sha256.slice(0, 8)}` : null
+  // The frozen copy; the demo's sample proposal (no frozen copy, never accepted) streams from its sample path.
+  const fileUrl = doc.sha256
+    ? `/client/proposals/${doc.id}/file?v=${doc.sha256.slice(0, 8)}`
+    : isDemoSlug(org?.slug) && doc.dropbox_path
+      ? `/client/proposals/${doc.id}/file`
+      : null
   const why = isAcceptCode(searchParams.why) ? searchParams.why : null
 
   return (

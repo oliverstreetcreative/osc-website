@@ -124,18 +124,24 @@ DOC_ASKS = ("none", "accept")
 
 
 def file_sha256(path):
+    """The file's sha256, or None when it's missing or unreadable (never an error: removals must always work)."""
     full = os.path.join(ROOT, path.lstrip("/"))
-    if not os.path.isfile(full):
+    try:
+        if not os.path.isfile(full):
+            return None
+        h = hashlib.sha256()
+        with open(full, "rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                h.update(chunk)
+        return h.hexdigest()
+    except OSError:
         return None
-    h = hashlib.sha256()
-    with open(full, "rb") as f:
-        for chunk in iter(lambda: f.read(1 << 20), b""):
-            h.update(chunk)
-    return h.hexdigest()
 
 
 def accepted_documents(slug):
-    """Document keys of `slug` a client has accepted (not withdrawn), from the portal's ledger files."""
+    """Document keys of `slug` a client has accepted, from the portal's ledger files. A key once accepted is burned for
+    good (withdrawn or not: the site keeps one acceptance per document); a revision is a new key. A ledger file the
+    gate can't read (an online-only placeholder) stops the gate rather than quietly unlocking anything."""
     out = set()
     if not os.path.isdir(ACCEPTANCES):
         return out
@@ -144,8 +150,8 @@ def accepted_documents(slug):
             try:
                 rec = load(os.path.join(ACCEPTANCES, name)) or {}
             except Exception:
-                continue
-            if rec.get("org") == slug and rec.get("document") and not rec.get("withdrawn"):
+                raise SystemExit(f"can't read the acceptance record {name} (is it online-only?): nothing published")
+            if rec.get("org") == slug and rec.get("document"):
                 out.add(rec["document"])
     return out
 
@@ -318,11 +324,19 @@ def diff(slug):
     l.update(flatten_libraries(read_packages(LIBRARY_LIVE, slug)[0]))
     # Proposals are bound to their bytes (SPEC §24 v2): the draft's file hash is part of the item, so a PDF
     # re-rendered at the same path shows up as CHANGED and needs Sam's tap.
+    accepted = {f"document:{x}" for x in accepted_documents(slug)}
     for k, (_, content) in d.items():
+        if k in accepted:
+            continue
         if k.startswith("document:") and content.get("kind") == "proposal" and content.get("path"):
             sha = file_sha256(content["path"]) if plain_path(content["path"]) else None
             if sha:
                 content["frozen_sha256"] = sha
+    # An ACCEPTED proposal is locked: its live item (pointing at the frozen copy the client said yes to) is the record,
+    # whatever happens to the working file. It's never "changed" or "removed" again.
+    for k in accepted:
+        if k in l:
+            d[k] = l[k]
     # A package that's mid-write or online-only is NOT READY: it neither changes nor disappears.
     for name in not_ready:
         for k, v in l.items():
@@ -548,6 +562,22 @@ def lint_item(key, content, org, items=None):
     return sorted(set(problems))
 
 
+def reader_problem():
+    """None when Majordomo's reader of ledger/acceptances/ has checked in within two days (its _reader.json carries a
+    `heartbeat` it refreshes each time it reads the folder); otherwise why no Accept may publish."""
+    try:
+        beat = (load(ACCEPT_READER) or {}).get("heartbeat")
+        when = dt.datetime.fromisoformat(str(beat).replace("Z", "+00:00"))
+    except Exception:
+        return ("not yet: nothing tells Sam when a client accepts (Majordomo's reader of ledger/acceptances/ writes a "
+                "fresh `heartbeat` into its _reader.json)")
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=dt.timezone.utc)
+    if dt.datetime.now(dt.timezone.utc) - when > dt.timedelta(days=2):
+        return "not now: Majordomo's reader of ledger/acceptances/ hasn't checked in for two days"
+    return None
+
+
 def document_problems(key, doc, org, items):
     """SPEC §24 v2: `ask: accept` puts an Accept button in front of the named acceptors, so the proposal must be
     checkable bytes whose numbers match the book, and Sam must be able to hear the yes."""
@@ -555,6 +585,8 @@ def document_problems(key, doc, org, items):
     ask = doc.get("ask", "none")
     if ask not in DOC_ASKS:
         return [f"ask must be one of {', '.join(DOC_ASKS)}"]
+    if doc.get("kind") == "proposal" and (doc.get("url") or not str(doc.get("path") or "").lower().endswith(".pdf")):
+        return ["a proposal must be a .pdf in the client's folder (the site only ever serves its frozen copy)"]
     if ask != "accept":
         return out
     if doc.get("kind") != "proposal":
@@ -567,7 +599,7 @@ def document_problems(key, doc, org, items):
         out.append("can't read the proposal's text (pdftotext missing or an image-only PDF): it must be checkable")
     flat = re.sub(r"\s+", " ", text or "")
     total = doc.get("total")
-    if not isinstance(total, (int, float)) or total <= 0:
+    if isinstance(total, bool) or not isinstance(total, (int, float)) or total <= 0:
         out.append("asking for an Accept needs the proposal's total (a number)")
     elif text:
         shown = f"${total:,.0f}" if float(total).is_integer() else f"${total:,.2f}"
@@ -602,13 +634,16 @@ def document_problems(key, doc, org, items):
     project = (items.get(f"project:{doc.get('project_key')}", (None, None))[1]) if doc.get("project_key") else None
     if not project or not project.get("job_number"):
         out.append("asking for an Accept needs a project with a job_number (the acceptance is recorded by job)")
+    slug = (org or {}).get("slug")
+    taken = accepted_documents(slug) if slug else set()
     same = [k for k, (_, c) in items.items() if k.startswith("document:") and c.get("kind") == "proposal"
-            and c.get("ask") == "accept" and c.get("project_key") == doc.get("project_key")]
+            and c.get("ask") == "accept" and c.get("project_key") == doc.get("project_key")
+            and k.split(":", 1)[1] not in taken]
     if len(same) > 1:
         out.append(f"one open Accept per project (this one has {len(same)}: {', '.join(same)})")
-    if not os.path.exists(ACCEPT_READER):
-        out.append("not yet: nothing tells Sam when a client accepts (Majordomo writes ledger/acceptances/_reader.json "
-                   "once it reads that folder)")
+    why = reader_problem()
+    if why:
+        out.append(why)
     return out
 
 
@@ -997,7 +1032,8 @@ def publish(slug, keys, by, ticket, removing=(), extra=None, snap=None, tombston
     after = flatten(book)
     broken = [k for k, h in protected_items(l).items() if not still_protected(k, h, after)]
     if broken:
-        raise SystemExit("refused: these were approved by the client and can't change or disappear (a film keeps the "
+        raise SystemExit("refused: these were approved by the client (or accepted, for a proposal) and can't change or "
+                         "disappear (an accepted proposal stays as accepted; a revision is a new document key. A film keeps the "
                          "Review link and asset it was approved on; new cuts go up as new versions of that asset, and "
                          "a different asset needs a new film): " + ", ".join(broken))
     freeze_proposals(slug, keys, d)
@@ -1018,6 +1054,8 @@ def freeze_proposals(slug, keys, d):
             continue
         dest = os.path.join(FROZEN, f"{sha}.pdf")
         if os.path.exists(dest):
+            if file_sha256("/" + os.path.relpath(dest, ROOT)) != sha:
+                raise SystemExit(f"refused: the frozen copy {sha[:8]} on file isn't what its name says; look before publishing")
             continue
         src = os.path.join(ROOT, c["path"].lstrip("/"))
         with open(src, "rb") as f:
@@ -1105,6 +1143,9 @@ def write_preview(slug):
     book["people"] = []
     for inv in book["invoices"]:
         inv["number"] = f"{inv['number']} (preview)"
+    # Staff (and Sam's ticket frames) read a pending proposal from its frozen copy too: named by hash, reachable only
+    # through a book that names it.
+    freeze_proposals(slug, [k for k in items if k.startswith("document:")], d)
     write_json(os.path.join(PREVIEW, f"{slug}--preview.json"), book)
     # Staff see pending footage on the preview site too (the worker's screenshots come from there).
     libs = assemble_libraries(items, list(d))
@@ -1276,6 +1317,14 @@ def cmd_preview(a):
     print("preview written" if b else "nothing pending: no preview")
 
 
+def pretty_day(s):
+    try:
+        x = dt.date.fromisoformat(str(s))
+        return f"{x:%b} {x.day}, {x.year}"
+    except ValueError:
+        return str(s)
+
+
 def cmd_ticket(a):
     _, _, d, l, new, changed, removed = diff(a.org)
     name = (d.get("org") or l.get("org"))[1].get("short_name") or (d.get("org") or l.get("org"))[1]["name"]
@@ -1294,13 +1343,14 @@ def cmd_ticket(a):
             n["new" if k in new else "changed"] += 1
         elif k.startswith("document:") and d[k][1].get("ask") == "accept":
             c = d[k][1]
-            who = " and ".join(e.split("@")[0] for e in c.get("acceptors") or [])
+            names = {x.split(":", 1)[1]: (v[1].get("first_name") or str(v[1].get("name", "")).split(" ")[0]) for x, v in d.items() if x.startswith("person:")}
+            who = " and ".join(names.get(str(e).lower()) or str(e).split("@")[0] for e in c.get("acceptors") or [])
             total = c.get("total")
             money = (f"${total:,.0f}" if float(total).is_integer() else f"${total:,.2f}") if isinstance(total, (int, float)) else "?"
             sha8 = (c.get("frozen_sha256") or "")[:8]
             again = " (replaces the one they may be reading)" if k in changed else ""
             labels.append(f"{'New' if k in new else 'Changed'}: {d[k][0]}: puts an Accept button in front of {who} · {money} · "
-                          f"good until {c.get('good_until')} · file {sha8}{again}")
+                          f"good until {pretty_day(c.get('good_until'))} · file {sha8}{again}")
         else:
             labels.append(("New: " if k in new else "Changed: ") + d[k][0])
     for lib, n in clips.items():
@@ -1328,8 +1378,19 @@ def cmd_approve(a):
     unknown = [k for k in keys if k not in d]
     if unknown:
         raise SystemExit(f"not in the draft: {unknown}")
-    if a.digest and a.digest != pending_digest(d, keys):
+    if any(k.startswith("document:") and d[k][1].get("kind") == "proposal" for k in keys) and not a.digest:
+        raise SystemExit("refused: a proposal publishes only with --digest <the ticket's check>, so the PDF clients get "
+                         "is the one Sam saw")
+    # The check covers everything the ticket showed, so it holds for any subset approved with --items too.
+    if a.digest and a.digest != pending_digest(d, [k for k in new + changed if k not in stones]):
         raise SystemExit("refused: something changed since the ticket (its check doesn't match); make a new ticket")
+    for k in keys:
+        c = d[k][1]
+        if k.startswith("document:") and c.get("ask") == "accept":
+            need = [f"project:{c.get('project_key')}"] + [f"person:{str(e).lower()}" for e in c.get("acceptors") or []]
+            missing = [x for x in need if x not in l and x not in keys]
+            if missing:
+                raise SystemExit(f"refused: {k} asks for an Accept, but these aren't live or in this approve: {', '.join(missing)}")
     # A clip is checked against ITS library (job, org, project): never publish clips under a library change that
     # isn't being approved with them.
     lonely = sorted({k.split(":", 1)[1].split("/", 1)[0] for k in keys if k.startswith("clip:")}

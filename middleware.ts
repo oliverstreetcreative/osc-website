@@ -309,6 +309,13 @@ export async function middleware(req: NextRequest) {
     res.headers.set('x-middleware-override-headers', keys.join(','))
   }
   if (IS_STAGING) res.headers.set('X-Robots-Tag', 'noindex, nofollow')
+  // The client site is never framed by another page (SPEC §24 built review): Accept, Approve and Pay are one tap, and
+  // a sibling subdomain counts as same-SITE for the session cookie, so it could frame a page and steer that tap.
+  // Same-origin frames (the proposal PDF) still work.
+  if (req.nextUrl.pathname.startsWith('/client') || getSubdomain(req.headers.get('host') ?? '') === 'client') {
+    res.headers.set('X-Frame-Options', 'SAMEORIGIN')
+    res.headers.set('Content-Security-Policy', "frame-ancestors 'self'")
+  }
   return res
 }
 

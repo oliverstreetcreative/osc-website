@@ -674,15 +674,21 @@ class ProposalTest(GateBase):
         with open(full, "wb") as f:
             f.write(tiny_pdf(lines))
 
-    def reader(self, on):
+    def reader(self, on, age_days=0):
+        import datetime
         d = os.path.join(self.site, "ledger", "acceptances")
         os.makedirs(d, exist_ok=True)
         path = os.path.join(d, "_reader.json")
         if on:
+            beat = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=age_days)
             with open(path, "w") as f:
-                json.dump({"by": "Majordomo"}, f)
+                json.dump({"by": "Majordomo", "heartbeat": beat.isoformat()}, f)
         elif os.path.exists(path):
             os.remove(path)
+
+    def approve_checked(self, ticket="t1"):
+        check = self.gate("ticket", "acme").stdout.split("(check: ")[1][:12]
+        return self.gate("approve", "acme", "--by", "Sam", "--ticket", ticket, "--digest", check)
 
     def draft(self, **over):
         b = book()
@@ -701,7 +707,7 @@ class ProposalTest(GateBase):
 
     def test_publishing_freezes_the_exact_bytes(self):
         self.draft()
-        r = self.approve_all()
+        r = self.approve_checked()
         self.assertEqual(r.returncode, 0, r.stderr + self.gate("lint", "acme").stdout)
         doc = self.published()["documents"][0]
         self.assertEqual(doc["frozen_sha256"], self.sha())
@@ -711,7 +717,7 @@ class ProposalTest(GateBase):
 
     def test_a_rerendered_pdf_is_a_change_even_with_the_same_json(self):
         self.draft()
-        self.approve_all()
+        self.approve_checked()
         self.write_pdf(["Spots: a proposal", "Total $8,500", "Good until October 31, 2027", "(re-rendered)"])
         self.assertIn("CHANGED  document:spots-proposal", self.gate("status", "acme").stdout)
 
@@ -733,22 +739,66 @@ class ProposalTest(GateBase):
         self.draft()
         self.assertIn('"markup"', self.gate("lint", "acme").stdout)
 
-    def test_an_accepted_proposal_is_locked(self):
+    def accept(self, key="spots-proposal"):
+        with open(os.path.join(self.site, "ledger", "acceptances", f"26-099_{key}_x.json"), "w") as f:
+            json.dump({"org": "acme", "document": key, "sha256": self.sha()}, f)
+
+    def test_an_accepted_proposal_is_locked_and_never_changes_again(self):
         self.draft()
-        self.approve_all()
-        with open(os.path.join(self.site, "ledger", "acceptances", "26-099_spots-proposal_x.json"), "w") as f:
-            json.dump({"org": "acme", "document": "spots-proposal", "sha256": self.sha()}, f)
+        self.assertEqual(self.approve_checked().returncode, 0)
+        self.accept()
+        # Its working file re-rendered, moved or retitled: the accepted record stands, nothing turns "changed".
         self.draft(title="Spots proposal v2")
-        r = self.approve_all("t2")
-        self.assertNotEqual(r.returncode, 0)
-        self.assertIn("approved by the client", r.stderr + r.stdout)
+        self.write_pdf(["something else entirely"])
+        self.assertNotIn("document:spots-proposal", self.gate("status", "acme").stdout)
+        os.remove(os.path.join(self.root, PROPOSAL_PATH.lstrip("/")))
+        self.assertNotIn("document:spots-proposal", self.gate("status", "acme").stdout)
         r = self.gate("remove", "acme", "--items", "document:spots-proposal", "--by", "Sam")
         self.assertNotEqual(r.returncode, 0)
+        self.assertIn("an accepted proposal stays as accepted", r.stderr + r.stdout)
+        # A withdrawn acceptance still burns the key.
+        with open(os.path.join(self.site, "ledger", "acceptances", "26-099_spots-proposal_x.json"), "w") as f:
+            json.dump({"org": "acme", "document": "spots-proposal", "withdrawn": True}, f)
+        self.assertNotEqual(self.gate("remove", "acme", "--items", "document:spots-proposal", "--by", "Sam").returncode, 0)
+
+    def test_a_revision_after_acceptance_is_a_new_key_and_may_ask(self):
+        self.draft()
+        self.approve_checked()
+        self.accept()
+        b = self.draft()
+        b["documents"].append(dict(b["documents"][0], key="spots-proposal-v2", title="Spots proposal v2"))
+        self.write_draft(b)
+        lint = self.gate("lint", "acme").stdout
+        self.assertNotIn("one open Accept per project", lint)
+
+    def test_a_proposal_needs_the_tickets_check_and_a_fresh_reader(self):
+        self.draft()
+        r = self.approve_all()
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("--digest", r.stderr + r.stdout)
+        self.reader(True, age_days=3)
+        self.assertIn("hasn't checked in for two days", self.gate("lint", "acme").stdout)
+
+    def test_project_and_acceptors_must_be_live_or_approved_together(self):
+        self.draft()
+        check = self.gate("ticket", "acme").stdout.split("(check: ")[1][:12]
+        r = self.gate("approve", "acme", "--by", "Sam", "--ticket", "t1", "--digest", check, "--items", "org,document:spots-proposal")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("aren't live or in this approve", r.stderr + r.stdout)
+
+    def test_every_proposal_is_a_pdf_path(self):
+        self.draft(ask="none", path=None, url="https://example.com/proposal")
+        self.assertIn("a proposal must be a .pdf", self.gate("lint", "acme").stdout)
 
     def test_the_ticket_says_what_the_tap_does(self):
         self.draft()
         t = self.gate("ticket", "acme").stdout
-        self.assertIn(f"puts an Accept button in front of jane · $8,500 · good until 2027-10-31 · file {self.sha()[:8]}", t)
+        self.assertIn(f"puts an Accept button in front of Jane · $8,500 · good until Oct 31, 2027 · file {self.sha()[:8]}", t)
+
+    def test_the_preview_freezes_a_pending_proposal(self):
+        self.draft()
+        self.gate("preview", "acme")
+        self.assertTrue(os.path.exists(os.path.join(self.site, "frozen", f"{self.sha()}.pdf")))
 
 
 if __name__ == "__main__":

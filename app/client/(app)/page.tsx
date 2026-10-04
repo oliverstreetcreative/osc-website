@@ -25,7 +25,7 @@ export default async function Home({ searchParams }: { searchParams: { sign?: st
   // Sign Here contract v2: the viewer's own paper; staff viewing as the client read every member's (read-only).
   const viewer: SignViewer = ctx.viewing ? { staff: true } : { email: ctx.user.email }
   const signatures = await clientSignatures(ctx.org, projects, viewer)
-  const needs = await needsYou(ctx.org.id, projects, signatures, ctx.viewing ? undefined : ctx.user.id, ctx.viewing ? undefined : ctx.user.email)
+  const needs = await needsYou(ctx.org.id, projects, signatures, ctx.viewing ? undefined : ctx.user.id, ctx.viewing ? undefined : ctx.user.email, ctx.role)
   const paperUnavailable = signatures.unavailable.size > 0
   const signNotice = searchParams.sign ? SIGN_NOTICE[searchParams.sign] ?? null : null
   const me = ctx.viewing ? "" : ctx.user.email.toLowerCase()

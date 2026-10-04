@@ -66,7 +66,7 @@ export async function writeAcceptanceLedger(id: string): Promise<boolean> {
     frozen_file: `/_admin/client-site/frozen/${a.sha256}.pdf`,
     total: a.total ? a.total.toString() : null,
     good_until: a.good_until ? a.good_until.toISOString().slice(0, 10) : null,
-    accepted_by: { name: a.name, email: a.email, org: a.org_name, role: a.member_role },
+    accepted_by: { name: a.name, email: a.email, org: a.org_name, role: a.member_role, ip: a.ip, user_agent: a.user_agent },
     accepted_at: a.accepted_at.toISOString(),
     accepted_at_eastern: eastern(a.accepted_at),
     how: "portal",
@@ -142,6 +142,7 @@ export async function writePendingHearts() {
 export const FLAG_WORDS = {
   "review-link-ended": "The portal can't read this cut's Review link: it was disabled, expired, or the book's asset id is wrong.",
   "ok-on-locked-link": "The book asks for the client's OK, but the Review link has a password or needs a login, so the portal can't take an approval.",
+  "accepted-proposal-changed": "A published book names different bytes for a proposal the client already accepted. The site kept the accepted file; check the book.",
 } as const
 export type FlagKind = keyof typeof FLAG_WORDS
 
