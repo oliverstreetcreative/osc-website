@@ -104,8 +104,10 @@ MAX_CLIPS_PER_TICKET = int(os.environ.get("GATE_MAX_CLIPS_PER_TICKET", "300")) i
 # Where Stacks' own rules and marks live (read-only here; the website never reads them). The live Dropbox root is
 # found the way Stacks finds it (engine/stacks/paths.py DROPBOX_ROOTS: the one that holds Matters/), so the gate
 # reads the same copy of the marks Stacks writes.
-STACKS_ENGINE = os.environ.get("STACKS_ENGINE") or os.path.expanduser("~/code/stacks/engine")
-STACKS_EVENTS = [os.environ["STACKS_EVENTS_DIR"]] if os.environ.get("STACKS_EVENTS_DIR") else [
+# The engine/marks overrides exist for tests and are honoured ONLY in a sandbox: on the real Dropbox, curation is always
+# checked against Sam's real Stacks marks (a worker can't point the gate at a folder of made-up favorites).
+STACKS_ENGINE = (os.environ.get("STACKS_ENGINE") if SANDBOX else None) or os.path.expanduser("~/code/stacks/engine")
+STACKS_EVENTS = [os.environ["STACKS_EVENTS_DIR"]] if SANDBOX and os.environ.get("STACKS_EVENTS_DIR") else [
     os.path.join(r, "Vault Archive Records", "events")
     for r in ("/Volumes/dropbox-sam", os.path.expanduser("~/Dropbox (Personal)"), os.path.expanduser("~/Dropbox"),
               os.path.expanduser("~/Library/CloudStorage/Dropbox"))
