@@ -515,6 +515,60 @@ CREATE TABLE "version_approvals" (
 );
 
 -- CreateTable
+CREATE TABLE "libraries" (
+    "id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
+    "project_id" UUID NOT NULL,
+    "ext_key" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT,
+    "job" TEXT,
+    "clip_count" INTEGER NOT NULL DEFAULT 0,
+    "first_day" DATE,
+    "last_day" DATE,
+    "source_rev" TEXT,
+    "sort" INTEGER NOT NULL DEFAULT 0,
+    "hidden" BOOLEAN NOT NULL DEFAULT false,
+    "synced_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "libraries_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "library_clips" (
+    "id" UUID NOT NULL,
+    "library_id" UUID NOT NULL,
+    "ext_key" TEXT NOT NULL,
+    "clip_key" TEXT NOT NULL,
+    "sam_event" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "taken_on" DATE,
+    "fps" DOUBLE PRECISION NOT NULL,
+    "mux_playback_id" TEXT NOT NULL,
+    "duration_s" DOUBLE PRECISION NOT NULL,
+    "thumb_s" DOUBLE PRECISION,
+    "aspect" TEXT,
+    "sort" INTEGER NOT NULL DEFAULT 0,
+    "hidden" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "library_clips_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "library_hearts" (
+    "id" UUID NOT NULL,
+    "clip_id" UUID NOT NULL,
+    "person_id" UUID NOT NULL,
+    "organization_id" UUID NOT NULL,
+    "favorite" BOOLEAN NOT NULL,
+    "at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "ledger_written_at" TIMESTAMP(3),
+
+    CONSTRAINT "library_hearts_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "scripts" (
     "id" UUID NOT NULL,
     "organization_id" UUID,
@@ -837,6 +891,27 @@ CREATE INDEX "version_approvals_organization_id_idx" ON "version_approvals"("org
 CREATE UNIQUE INDEX "version_approvals_deliverable_id_review_version_id_person_i_key" ON "version_approvals"("deliverable_id", "review_version_id", "person_id");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "libraries_ext_key_key" ON "libraries"("ext_key");
+
+-- CreateIndex
+CREATE INDEX "libraries_organization_id_idx" ON "libraries"("organization_id");
+
+-- CreateIndex
+CREATE INDEX "libraries_project_id_idx" ON "libraries"("project_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "library_clips_ext_key_key" ON "library_clips"("ext_key");
+
+-- CreateIndex
+CREATE INDEX "library_clips_library_id_hidden_sort_idx" ON "library_clips"("library_id", "hidden", "sort");
+
+-- CreateIndex
+CREATE INDEX "library_hearts_person_id_clip_id_at_idx" ON "library_hearts"("person_id", "clip_id", "at");
+
+-- CreateIndex
+CREATE INDEX "library_hearts_ledger_written_at_idx" ON "library_hearts"("ledger_written_at");
+
+-- CreateIndex
 CREATE INDEX "scripts_organization_id_idx" ON "scripts"("organization_id");
 
 -- CreateIndex
@@ -985,6 +1060,15 @@ ALTER TABLE "project_requests" ADD CONSTRAINT "project_requests_person_id_fkey" 
 
 -- AddForeignKey
 ALTER TABLE "version_approvals" ADD CONSTRAINT "version_approvals_deliverable_id_fkey" FOREIGN KEY ("deliverable_id") REFERENCES "deliverables"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "libraries" ADD CONSTRAINT "libraries_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "library_clips" ADD CONSTRAINT "library_clips_library_id_fkey" FOREIGN KEY ("library_id") REFERENCES "libraries"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "library_hearts" ADD CONSTRAINT "library_hearts_clip_id_fkey" FOREIGN KEY ("clip_id") REFERENCES "library_clips"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "scripts" ADD CONSTRAINT "scripts_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE SET NULL ON UPDATE CASCADE;

@@ -53,6 +53,48 @@ export async function writePendingLedgers() {
   for (const p of pending) await writeLedger(p.id).catch((err) => console.error("approvals: ledger retry failed", err))
 }
 
+const HEARTS = IS_PRODUCTION ? "/_admin/client-site/ledger/library-hearts" : "/_admin/client-site/ledger/library-hearts-staging"
+
+/**
+ * Footage hearts (SPEC §23 v2) → one portal-shaped record per row, for Stacks' importer to turn into its own `client`
+ * layer events (it knows the frames and fps from the package it wrote). Written one at a time (Dropbox limits bursts
+ * of writes), at most 100 per run; a row is marked written only once its file landed.
+ */
+export async function writePendingHearts() {
+  const rows = await db.libraryHeart.findMany({
+    where: { ledger_written_at: null },
+    orderBy: { at: "asc" },
+    take: 100,
+    include: { clip: { select: { clip_key: true, sam_event: true, library: { select: { ext_key: true } } } } },
+  })
+  if (!rows.length) return
+  const people = new Map(
+    (await db.person.findMany({ where: { id: { in: [...new Set(rows.map((r) => r.person_id))] } }, select: { id: true, email: true, name: true } })).map((p) => [p.id, p]),
+  )
+  const orgs = new Map(
+    (await db.organization.findMany({ where: { id: { in: [...new Set(rows.map((r) => r.organization_id))] } }, select: { id: true, slug: true, name: true } })).map((o) => [o.id, o]),
+  )
+  for (const r of rows) {
+    const who = people.get(r.person_id)
+    const org = orgs.get(r.organization_id)
+    const record = {
+      id: r.id,
+      library: r.clip.library.ext_key,
+      clip_key: r.clip.clip_key,
+      sam_event: r.clip.sam_event,
+      on: r.favorite,
+      person: { email: who?.email.toLowerCase() ?? null, name: who?.name ?? null, org: org?.slug ?? null, org_name: org?.name ?? null },
+      at: r.at.toISOString(),
+    }
+    const res = await writeNewFile(`${HEARTS}/${r.id}.json`, JSON.stringify(record, null, 2) + "\n")
+    if (res !== "written" && res !== "exists") {
+      console.error(`library: heart ledger write failed for ${r.id}: ${res}`)
+      return // try the rest next run, in order
+    }
+    await db.libraryHeart.update({ where: { id: r.id }, data: { ledger_written_at: new Date() } })
+  }
+}
+
 /** What the flags folder tells Sam (§13 v4 "flags Sam"); Majordomo turns each file into a ticket. */
 export const FLAG_WORDS = {
   "review-link-ended": "The portal can't read this cut's Review link: it was disabled, expired, or the book's asset id is wrong.",

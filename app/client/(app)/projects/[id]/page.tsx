@@ -4,6 +4,8 @@ import { ChevronLeft, Download, ExternalLink, MapPin, Clock, Phone, MessageSquar
 import { requireClientContext } from "@/lib/client/context"
 import { orgProject, clientSignatures, visibleScriptsWhere } from "@/lib/client/data"
 import { labelFor, reviewState, type ReviewState } from "@/lib/client/approvals"
+import { dayRange } from "@/lib/client/library"
+import { signingReady, stillUrl } from "@/lib/client/mux-sign"
 import { db } from "@/lib/db"
 import { KIND_LABEL, isDone, type SignViewer } from "@/lib/client/sign"
 import { SignButton } from "@/app/client/sign-button"
@@ -60,6 +62,22 @@ export default async function ProjectPage({ params }: { params: { id: string } }
     select: { id: true, title: true, status: true, target_seconds: true },
     orderBy: { title: "asc" },
   })
+  // Footage from Stacks (SPEC §23 v2): one row per published library, four signed stills each.
+  const libraries = demo
+    ? []
+    : await db.library.findMany({
+        where: { project_id: p.id, hidden: false },
+        orderBy: [{ sort: "asc" }, { created_at: "asc" }],
+        include: { clips: { where: { hidden: false }, orderBy: { sort: "asc" }, take: 4, select: { id: true, mux_playback_id: true, thumb_s: true } } },
+      })
+  const footageReady = signingReady()
+  const strips = new Map(
+    footageReady
+      ? await Promise.all(
+          libraries.map(async (l) => [l.id, await Promise.all(l.clips.map((c) => stillUrl(c.mux_playback_id, { time: c.thumb_s ?? 1, width: 400 })))] as const),
+        )
+      : [],
+  )
 
   // Timeline: shoot days + key dates, in date order.
   type Item = { when: Date; title: string; sub?: string; calId: string; shoot?: (typeof p.shoot_periods)[number] }
@@ -140,6 +158,30 @@ export default async function ProjectPage({ params }: { params: { id: string } }
                       </article>
                     )
                   })}
+                </div>
+              </section>
+            ) : null}
+
+            {libraries.length ? (
+              <section className="cs-section">
+                <SectionTitle>Footage</SectionTitle>
+                <div className="cs-list" style={{ gap: 12 }}>
+                  {libraries.map((l) => (
+                    <Link key={l.id} href={`/client/projects/${p.slug}/footage/${l.id}`} className="cs-card cs-pad" style={{ display: "block" }}>
+                      <strong>{l.title}</strong>
+                      <p className="cs-film-meta">
+                        {[`${l.clip_count} clip${l.clip_count === 1 ? "" : "s"}`, dayRange(l.first_day, l.last_day)].filter(Boolean).join(" · ")}
+                      </p>
+                      {footageReady ? (
+                        <div className="cs-strip" aria-hidden>
+                          {(strips.get(l.id) ?? []).map((src, i) => (src ? <img key={i} src={src} alt="" loading="lazy" decoding="async" /> : <span key={i} />))}
+                        </div>
+                      ) : (
+                        <p className="cs-film-meta">Footage is unavailable right now.</p>
+                      )}
+                      <span className="cs-btn ghost" style={{ marginTop: 12, width: "100%" }}>Browse</span>
+                    </Link>
+                  ))}
                 </div>
               </section>
             ) : null}

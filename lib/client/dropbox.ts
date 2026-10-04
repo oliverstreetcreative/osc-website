@@ -31,6 +31,47 @@ export async function listJson(folder: string): Promise<string[]> {
     .map((e) => `${folder}/${e.name}`)
 }
 
+/**
+ * JSON files in `folder` with a revision marker (Dropbox's rev, or mtime+size locally), so an unchanged file needn't
+ * be read again. [] when the folder doesn't exist; null when the listing itself failed (then hide nothing).
+ */
+export async function listJsonEntries(folder: string): Promise<{ path: string; rev: string }[] | null> {
+  const wanted = (n: string) => n.endsWith(".json") && !n.startsWith(".") && !n.startsWith("_")
+  if (localRoot()) {
+    const dir = join(localRoot(), folder.replace(/^\//, ""))
+    let names: string[]
+    try {
+      names = await fs.readdir(dir)
+    } catch (e) {
+      return (e as NodeJS.ErrnoException)?.code === "ENOENT" ? [] : null
+    }
+    const out: { path: string; rev: string }[] = []
+    for (const n of names.filter(wanted)) {
+      const st = await fs.stat(join(dir, n)).catch(() => null)
+      if (st?.isFile()) out.push({ path: `${folder}/${n}`, rev: `${st.mtimeMs}-${st.size}` })
+    }
+    return out
+  }
+  const token = await getDropboxAccessToken()
+  if (!token) return null
+  try {
+    const res = await fetch("https://api.dropboxapi.com/2/files/list_folder", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ path: `${prefix()}${folder}` }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    })
+    if (res.status === 409 && /not_found/.test(await res.clone().text())) return []
+    if (!res.ok) return null
+    const body = (await res.json()) as { entries: { ".tag": string; name: string; rev?: string }[]; has_more?: boolean }
+    if (body.has_more) return null // more files than one page: never treat a partial listing as the whole
+    return body.entries.filter((e) => e[".tag"] === "file" && wanted(e.name)).map((e) => ({ path: `${folder}/${e.name}`, rev: e.rev ?? "" }))
+  } catch {
+    return null
+  }
+}
+
 export async function readText(path: string): Promise<string> {
   if (localRoot()) return fs.readFile(join(localRoot(), path.replace(/^\//, "")), "utf8")
   const res = await download(path)

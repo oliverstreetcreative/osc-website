@@ -18,7 +18,9 @@ const ID = /^[A-Za-z0-9]{10,80}$/
 type Key = { id: string; key: KeyObject }
 let cached: Key | null | undefined
 
-function loadKey(env: NodeJS.ProcessEnv = process.env): Key | null {
+type Env = Record<string, string | undefined>
+
+function loadKey(env: Env = process.env): Key | null {
   const id = env.MUX_SIGNING_KEY_ID?.trim()
   const pem = env.MUX_SIGNING_KEY?.trim()
     ? env.MUX_SIGNING_KEY.trim().replace(/\\n/g, "\n")
@@ -40,7 +42,7 @@ function signingKey(): Key | null {
 }
 
 /** For tests: forget the loaded key (or load from a given env). */
-export function resetSigningKey(env?: NodeJS.ProcessEnv) {
+export function resetSigningKey(env?: Env) {
   cached = env ? loadKey(env) : undefined
 }
 
@@ -63,11 +65,16 @@ async function sign(playbackId: string, aud: "v" | "t", extra: Record<string, nu
 /** A playback token for the clip's signed id (Mux Player: `tokens={{ playback }}`). */
 export const playbackToken = (playbackId: string, nowMs = Date.now()) => sign(playbackId, "v", {}, nowMs)
 
-/** A still of the clip at `time` seconds, `width` px wide: the full image URL, or null. */
-export async function stillUrl(playbackId: string, opts: { time?: number; width?: number } = {}, nowMs = Date.now()): Promise<string | null> {
+/** A still token (aud t) with the image parameters as claims: for the player's poster, or inside stillUrl. */
+export function stillToken(playbackId: string, opts: { time?: number; width?: number } = {}, nowMs = Date.now()): Promise<string | null> {
   const claims: Record<string, number> = {}
   if (opts.time !== undefined && Number.isFinite(opts.time) && opts.time >= 0) claims.time = Math.round(opts.time * 100) / 100
   if (opts.width !== undefined && Number.isFinite(opts.width)) claims.width = Math.max(64, Math.min(1920, Math.round(opts.width)))
-  const token = await sign(playbackId, "t", claims, nowMs)
+  return sign(playbackId, "t", claims, nowMs)
+}
+
+/** A still of the clip at `time` seconds, `width` px wide: the full image URL, or null. */
+export async function stillUrl(playbackId: string, opts: { time?: number; width?: number } = {}, nowMs = Date.now()): Promise<string | null> {
+  const token = await stillToken(playbackId, opts, nowMs)
   return token ? `https://image.mux.com/${playbackId}/thumbnail.webp?token=${token}` : null
 }

@@ -21,8 +21,10 @@ export async function boot() {
     // "Start a new project" requests: retry delivery to the intake queue, notice pickups (SPEC §17).
     await deliverRequests().catch((err) => console.error("client-site: request delivery failed", err))
     // Cut approvals (SPEC §13): retry any ledger file Dropbox didn't take at approval time (the publish gate reads it).
-    const { writePendingLedgers } = await import("./ledger")
+    const { writePendingLedgers, writePendingHearts } = await import("./ledger")
     await writePendingLedgers().catch((err) => console.error("client-site: approval ledger retry failed", err))
+    // Footage hearts (SPEC §23 v2): portal-shaped records for Stacks to import as its client layer.
+    await writePendingHearts().catch((err) => console.error("client-site: hearts ledger failed", err))
     // Scripts (SPEC §14): STAGING picks up import files from Dropbox (the rehearsal; production imports through the
     // staff endpoint once Sam puts Scripts on the live site).
     if (IS_STAGING) {

@@ -12,6 +12,7 @@ import { db } from "@/lib/db"
 import { Book } from "./book"
 import { listJson, readText } from "./dropbox"
 import { DEMO_ORG_SLUG, demoBook, demoOn, isDemoSlug } from "./demo"
+import { syncLibraries } from "./library"
 import { IS_PRODUCTION, IS_STAGING } from "@/lib/site-env"
 
 export const PUBLISHED_FOLDER = "/_admin/client-site/published"
@@ -140,6 +141,8 @@ async function doSync(): Promise<SyncReport> {
       book = failClosed(book, dropped)
       if (dropped.length) report.failed.push({ file, error: `held back (internal marker): ${dropped.join(", ")}` })
       await applyBook(book)
+      // Footage from Stacks (SPEC §23 v2): the gate's frozen library snapshots for this org (preview orgs: pending ones).
+      for (const problem of await syncLibraries(slug, isPreview)) report.failed.push({ file: `library: ${slug}`, error: problem })
       report.ok.push(slug)
     } catch (err) {
       report.failed.push({ file, error: String((err as Error)?.message ?? err).slice(0, 500) })

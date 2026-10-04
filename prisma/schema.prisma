@@ -112,6 +112,7 @@ model Project {
   project_contacts     ProjectContact[]
   project_participants ProjectParticipant[]
   deliverables         Deliverable[]
+  libraries            Library[]
   project_updates      ProjectUpdate[]
   change_orders        ChangeOrder[]
   obligations          Obligation[]
@@ -806,6 +807,75 @@ model VersionApproval {
   @@unique([deliverable_id, review_version_id, person_id])
   @@index([organization_id])
   @@map("version_approvals")
+}
+
+// ---------------------------------------------------------------------------
+// FOOTAGE FROM STACKS (SPEC §23 v2): one Library per published package
+// (published/library/<org>/<key>.json, written only by the gate). Each clip is
+// its own SIGNED Mux asset Stacks rendered from a range Sam favorited; the site
+// mints short-lived tokens per page view. Hidden when it leaves, never deleted.
+// Hearts are append-only (a person's current heart = their latest row) and are
+// written to the ledger for Stacks to import as its `client` layer.
+// ---------------------------------------------------------------------------
+model Library {
+  id              String        @id @default(uuid()) @db.Uuid
+  organization_id String        @db.Uuid
+  project_id      String        @db.Uuid
+  ext_key         String        @unique // <org slug>/<library key>
+  title           String
+  description     String?
+  job             String?
+  clip_count      Int           @default(0)
+  first_day       DateTime?     @db.Date
+  last_day        DateTime?     @db.Date
+  source_rev      String? // the snapshot's Dropbox rev: an unchanged package isn't read again
+  sort            Int           @default(0)
+  hidden          Boolean       @default(false)
+  synced_at       DateTime      @default(now())
+  created_at      DateTime      @default(now())
+  project         Project       @relation(fields: [project_id], references: [id], onDelete: Restrict)
+  clips           LibraryClip[]
+
+  @@index([organization_id])
+  @@index([project_id])
+  @@map("libraries")
+}
+
+model LibraryClip {
+  id              String         @id @default(uuid()) @db.Uuid
+  library_id      String         @db.Uuid
+  ext_key         String         @unique // <org slug>/<library key>/<clip key>
+  clip_key        String // <stacks clip id>@<in frame>-<out frame>
+  sam_event       String
+  title           String
+  taken_on        DateTime?      @db.Date
+  fps             Float
+  mux_playback_id String // SIGNED only
+  duration_s      Float
+  thumb_s         Float?
+  aspect          String?
+  sort            Int            @default(0)
+  hidden          Boolean        @default(false)
+  library         Library        @relation(fields: [library_id], references: [id], onDelete: Restrict)
+  hearts          LibraryHeart[]
+
+  @@index([library_id, hidden, sort])
+  @@map("library_clips")
+}
+
+model LibraryHeart {
+  id                String      @id @default(uuid()) @db.Uuid
+  clip_id           String      @db.Uuid
+  person_id         String      @db.Uuid
+  organization_id   String      @db.Uuid
+  favorite          Boolean // true = hearted, false = un-hearted (append-only: the latest row wins)
+  at                DateTime    @default(now())
+  ledger_written_at DateTime?
+  clip              LibraryClip @relation(fields: [clip_id], references: [id], onDelete: Restrict)
+
+  @@index([person_id, clip_id, at])
+  @@index([ledger_written_at])
+  @@map("library_hearts")
 }
 
 // ---------------------------------------------------------------------------
