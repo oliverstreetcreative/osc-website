@@ -42,7 +42,7 @@ def version(n, stage="for_approval", label=None, audience="client", **review):
     return v
 
 
-class GateTest(unittest.TestCase):
+class GateBase(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp(prefix="gate-test-")
         self.site = os.path.join(self.root, "_admin", "client-site")
@@ -55,8 +55,10 @@ class GateTest(unittest.TestCase):
         with open(os.path.join(self.site, "books", "acme.json"), "w") as f:
             json.dump(b, f)
 
-    def gate(self, *args):
+    def gate(self, *args, **env_extra):
         env = dict(os.environ, DROPBOX_LOCAL_ROOT=self.root)
+        env.update(getattr(self, "env", {}))
+        env.update(env_extra)
         return subprocess.run([sys.executable, GATE, *args], capture_output=True, text=True, env=env)
 
     def published(self):
@@ -66,6 +68,8 @@ class GateTest(unittest.TestCase):
     def approve_all(self, ticket="t1"):
         return self.gate("approve", "acme", "--by", "Sam", "--ticket", ticket)
 
+
+class GateTest(GateBase):
     # --- audience: versions are their own facts ---
     def test_office_version_never_offered(self):
         self.write_draft(book([version(1, stage="rough", audience="office"), version(2)]))
@@ -374,6 +378,180 @@ class GateTest(unittest.TestCase):
         b["projects"][0]["status_line"] = "Changed."
         self.write_draft(b)
         self.assertEqual(self.gate("lint", "acme").returncode, 1)  # any re-publish of that card now stops
+
+
+# ---------------------------------------------------------------- footage packages (SPEC §23 v2)
+STACKS_ENGINE = os.path.expanduser("~/code/stacks/engine")
+CLIP_ID = "0123456789abcdef-1048576"
+E1, E2, E3 = "0192ab34cd56-1a2b3c4d", "0192ab34cd57-1a2b3c4e", "0192ab34cd58-1a2b3c4f"
+FPS = 23.976
+ASSET, PLAYBACK = "ASSETid00000000001", "PLAYBACKid0000001"
+
+
+def stacks_event(eid, a=0, b=1000, author="sam", kind="rate", rating="favorite", targets=None):
+    e = {"id": eid, "clip": CLIP_ID, "kind": kind, "range": {"in_frame": a, "out_frame": b, "fps": FPS},
+         "author": {"kind": author, "name": "Sam Patton" if author == "sam" else author}, "at": "2026-10-01T15:00:00Z"}
+    if kind == "rate":
+        e["rating"] = rating
+    if targets:
+        e["targets"] = targets
+    return e
+
+
+def clip(a=100, b=435, ev=E1, **over):
+    c = {"key": f"{CLIP_ID}@{a}-{b}", "sam_event": ev, "title": "Day 1 · 10:42 AM", "taken_on": "2026-06-12", "fps": FPS,
+         "mux_playback_id": PLAYBACK, "mux_asset_id": ASSET, "duration_s": round((b - a + 1) / FPS, 3), "thumb_s": 3.0,
+         "aspect": "16:9"}
+    c.update(over)
+    return c
+
+
+def package(clips=None, **over):
+    p = {"format": "osc-library/2", "org": "acme", "project": "p1", "job": "26-099", "key": "june-broll",
+         "title": "June shoot · B-roll", "made_by": "stacks", "made_at": "2026-10-03T20:00:00Z",
+         "clips": clips if clips is not None else [clip()]}
+    p.update(over)
+    return p
+
+
+def mux_asset(c, **over):
+    a = {"status": "ready", "playback_ids": [{"id": c["mux_playback_id"], "policy": "signed"}],
+         "tracks": [{"type": "video"}, {"type": "audio", "max_channels": 2}], "duration": c["duration_s"],
+         "passthrough": f"26-099/{c['key']}"}
+    a.update(over)
+    return a
+
+
+@unittest.skipUnless(os.path.isdir(os.path.join(STACKS_ENGINE, "stacks")), "Stacks' engine isn't on this Mac")
+class FootageTest(GateBase):
+    def setUp(self):
+        super().setUp()
+        self.events = os.path.join(self.root, "events")
+        self.mux = os.path.join(self.root, "mux.json")
+        self.env = {"STACKS_EVENTS_DIR": self.events, "GATE_MUX_FIXTURE": self.mux, "STACKS_ENGINE": STACKS_ENGINE}
+        self.write_draft(book())
+        self.marks(stacks_event(E1, 0, 1000))
+        self.mux_assets({ASSET: mux_asset(clip())})
+
+    def marks(self, *evs):
+        d = os.path.join(self.events, CLIP_ID[:2], CLIP_ID)
+        os.makedirs(d, exist_ok=True)
+        for e in evs:
+            with open(os.path.join(d, e["id"] + ".json"), "w") as f:
+                json.dump(e, f)
+
+    def mux_assets(self, assets):
+        with open(self.mux, "w") as f:
+            json.dump(assets, f)
+
+    def write_package(self, p, name=None):
+        d = os.path.join(self.site, "library", "acme")
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, (name or p["key"]) + ".json"), "w") as f:
+            json.dump(p, f)
+
+    def live_library(self, key="june-broll"):
+        path = os.path.join(self.site, "published", "library", "acme", key + ".json")
+        if not os.path.exists(path):
+            return None
+        with open(path) as f:
+            return json.load(f)
+
+    def test_a_clean_package_publishes_a_frozen_snapshot(self):
+        self.write_package(package())
+        r = self.gate("lint", "acme")
+        self.assertEqual(r.returncode, 0, r.stdout)
+        self.assertIn("Footage clips in June shoot · B-roll: 1 new", self.gate("ticket", "acme").stdout)
+        self.assertEqual(self.approve_all().returncode, 0)
+        live = self.live_library()
+        self.assertEqual([c["key"] for c in live["clips"]], [clip()["key"]])
+        self.assertNotIn("clip_count", live)
+        self.assertNotIn("CHANGED", self.gate("status", "acme").stdout)
+
+    def test_only_sams_own_standing_favorites_pass(self):
+        self.write_package(package())
+        # An AI favorite over the same frames is not Sam's pick.
+        shutil.rmtree(self.events)
+        self.marks(stacks_event(E1, 0, 1000, author="ai"))
+        self.assertIn("not Sam's pick", self.gate("lint", "acme").stdout)
+        # Sam's favorite, later retracted.
+        shutil.rmtree(self.events)
+        self.marks(stacks_event(E1, 0, 1000), stacks_event(E2, kind="retract", targets=[E1]))
+        self.assertIn("not Sam's pick", self.gate("lint", "acme").stdout)
+        # Sam's favorite with a later unrate in the middle of the clip's range.
+        shutil.rmtree(self.events)
+        self.marks(stacks_event(E1, 0, 1000), stacks_event(E2, 200, 220, kind="unrate"))
+        self.assertIn("not Sam's pick", self.gate("lint", "acme").stdout)
+        # A favorite that doesn't cover the whole range.
+        shutil.rmtree(self.events)
+        self.marks(stacks_event(E1, 150, 1000))
+        self.assertIn("not Sam's pick", self.gate("lint", "acme").stdout)
+        # No Stacks marks reachable at all: refused, never waved through.
+        r = self.gate("lint", "acme", STACKS_EVENTS_DIR=os.path.join(self.root, "nowhere"))
+        self.assertNotEqual(r.returncode, 0)
+
+    def test_the_mux_asset_must_be_the_contract(self):
+        self.write_package(package())
+        c = clip()
+        for over, words in (({"playback_ids": [{"id": PLAYBACK, "policy": "public"}]}, "signed playback only"),
+                            ({"tracks": [{"type": "video"}, {"type": "audio", "max_channels": 2},
+                                         {"type": "audio", "max_channels": 1}]}, "exactly one audio track"),
+                            ({"tracks": [{"type": "audio", "max_channels": 6}]}, "exactly one audio track"),
+                            ({"passthrough": "26-001/x"}, "passthrough must be"),
+                            ({"duration": 300.0}, "Mux says the clip is"),
+                            ({"status": "preparing"}, "isn't ready")):
+            self.mux_assets({ASSET: mux_asset(c, **over)})
+            self.assertIn(words, self.gate("lint", "acme").stdout, over)
+        self.mux_assets({})
+        self.assertIn("can't check the clip on Mux", self.gate("lint", "acme").stdout)
+
+    def test_closed_schema_job_and_file_name(self):
+        self.write_package(package(clips=[clip(ai_reason="smiling child")]))
+        self.assertIn("unexpected field 'ai_reason'", self.gate("lint", "acme").stdout)
+        self.write_package(package(job="26-001"))
+        self.assertIn("must equal the project's job_number", self.gate("lint", "acme").stdout)
+        os.remove(os.path.join(self.site, "library", "acme", "june-broll.json"))
+        self.write_package(package(), name="june-broll (Sam's conflicted copy)")
+        self.assertIn("equal its file name", self.gate("lint", "acme").stdout)
+
+    def test_removal_is_immediate_and_leaves_a_tombstone(self):
+        two = [clip(), clip(500, 700, ev=E3, mux_asset_id="ASSETid00000000002")]
+        self.marks(stacks_event(E3, 450, 800))
+        self.mux_assets({ASSET: mux_asset(two[0]), "ASSETid00000000002": mux_asset(two[1])})
+        self.write_package(package(clips=two))
+        self.assertEqual(self.approve_all().returncode, 0, self.gate("lint", "acme").stdout)
+        gone = f"clip:june-broll/{two[1]['key']}"
+        r = self.gate("remove", "acme", "--items", gone, "--by", "Sam")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual([c["key"] for c in self.live_library()["clips"]], [two[0]["key"]])
+        self.assertIn("1 previously removed", self.gate("ticket", "acme").stdout)
+        r = self.gate("remove", "acme", "--items", "library:june-broll", "--by", "Sam")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIsNone(self.live_library())
+        self.assertTrue(os.listdir(os.path.join(self.site, "published", "library", "acme", "_removed")))
+
+    def test_a_package_mid_write_neither_changes_nor_disappears(self):
+        self.write_package(package())
+        self.approve_all()
+        open(os.path.join(self.site, "library", "acme", "june-broll.json"), "w").close()  # 0 bytes: online-only/mid-write
+        st = self.gate("status", "acme").stdout
+        self.assertNotIn("REMOVED", st)
+        self.assertNotIn("CHANGED", st)
+
+    def test_at_most_n_clips_per_ticket(self):
+        self.write_package(package(clips=[clip(), clip(500, 700, ev=E1)]))
+        r = self.gate("approve", "acme", "--by", "Sam", "--ticket", "t1", GATE_MAX_CLIPS_PER_TICKET="1")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("at most 1", r.stderr + r.stdout)
+
+    def test_preview_shows_pending_footage_to_staff(self):
+        self.write_package(package())
+        self.gate("preview", "acme")
+        path = os.path.join(self.site, "preview", "library", "acme--preview", "june-broll.json")
+        with open(path) as f:
+            self.assertEqual(json.load(f)["org"], "acme--preview")
+        self.approve_all()
+        self.assertFalse(os.path.exists(path))
 
 
 if __name__ == "__main__":

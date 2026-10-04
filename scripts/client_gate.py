@@ -33,6 +33,10 @@ Usage (stdlib only; DROPBOX_LOCAL_ROOT overrides the Dropbox path):
                                           take a clearance back; lists the live books still showing the value
 Item keys: org · person:<email> · project:<key> · film:<project>/<film> · shoot:<project>/<shoot>
            · invoice:<number> · document:<key>
+           · library:<key> · clip:<library>/<clip key>   (footage packages, SPEC §23 v2: Stacks writes
+             library/<org>/<key>.json; approve freezes published/library/<org>/<key>.json; pending ones show to staff
+             in preview/library/<org>--preview/; removing a clip leaves a tombstone; at most 300 clips per ticket;
+             every clip must be Sam's own standing favorite in Stacks and a signed one-track Mux asset)
 """
 import argparse
 import copy
@@ -74,6 +78,85 @@ def plain_path(p):
     if not isinstance(p, str) or not p.startswith("/") or "\\" in p or "\x00" in p:
         return False
     return all(s not in ("", ".", "..") for s in p.split("/")[1:])
+
+
+# ---------------------------------------------------------------- footage packages (SPEC §23 v2)
+# Stacks writes one package per library into library/<org>/<key>.json (temp name + rename). Each package is a set of
+# VIRTUAL items beside the book's: library:<key> (its title etc.) and clip:<key>/<clip key>. Same status, lint,
+# ticket, approve, remove, log and preview as book items; never auto-published. Approve writes a frozen snapshot to
+# published/library/<org>/<key>.json, the only place the site reads footage from.
+LIBRARY_DRAFTS = os.path.join(SITE, "library")
+LIBRARY_LIVE = os.path.join(PUBLISHED, "library")
+LIBRARY_PREVIEW = os.path.join(PREVIEW, "library")
+LIBRARY_FORMAT = "osc-library/2"
+LIB_FIELDS = {"format", "org", "project", "job", "key", "title", "description", "made_by", "made_at"}
+CLIP_FIELDS = {"key", "sam_event", "title", "taken_on", "fps", "mux_playback_id", "mux_asset_id", "duration_s", "thumb_s",
+               "aspect"}
+CLIP_REQUIRED = {"key", "sam_event", "title", "fps", "mux_playback_id", "mux_asset_id", "duration_s"}
+CLIP_KEY = re.compile(r"^([0-9a-f]{16}-\d+)@(\d+)-(\d+)$")  # <stacks clip id = xxh64-size>@<in frame>-<out frame>
+STACKS_EVENT_ID = re.compile(r"^[0-9a-f]{12}-[0-9a-f]{8}$")
+MUX_ID = re.compile(r"^[A-Za-z0-9]{10,80}$")
+MAX_CLIPS = 2000
+MAX_CLIPS_PER_TICKET = int(os.environ.get("GATE_MAX_CLIPS_PER_TICKET", "300"))  # (override for tests only)
+# Where Stacks' own rules and marks live (read-only here; the website never reads them).
+STACKS_ENGINE = os.environ.get("STACKS_ENGINE") or os.path.expanduser("~/code/stacks/engine")
+STACKS_EVENTS = [p for p in (os.environ.get("STACKS_EVENTS_DIR"),
+                             os.path.expanduser("~/Library/CloudStorage/Dropbox/Vault Archive Records/events"),
+                             os.path.expanduser("~/Dropbox (Personal)/Vault Archive Records/events"),
+                             "/Volumes/dropbox-sam/Vault Archive Records/events") if p]
+
+
+def read_packages(base, slug):
+    """{file key: package} for base/<slug>/*.json, and the names that aren't ready (unreadable, 0-byte online-only,
+    mid-write). Dotfiles, '_' names and temp names (not ending .json) are never packages."""
+    folder = os.path.join(base, slug)
+    out, not_ready = {}, []
+    if not os.path.isdir(folder):
+        return out, not_ready
+    for name in sorted(os.listdir(folder)):
+        if name.startswith((".", "_")) or not name.endswith(".json"):
+            continue
+        path = os.path.join(folder, name)
+        try:
+            pkg = load(path) if os.path.getsize(path) > 0 else None
+        except Exception:
+            pkg = None
+        if isinstance(pkg, dict):
+            out[name[:-5]] = pkg
+        else:
+            not_ready.append(name[:-5])
+    return out, not_ready
+
+
+def flatten_libraries(pkgs):
+    out = {}
+    for fkey, pkg in pkgs.items():
+        clips = pkg.get("clips") if isinstance(pkg.get("clips"), list) else []
+        meta = {k: v for k, v in pkg.items() if k != "clips"}
+        meta["clip_count"] = len(clips)  # so a ticket line can say how many, and the count is part of the item
+        out[f"library:{fkey}"] = (f"Footage: {pkg.get('title') or fkey} ({len(clips)} clips)", meta)
+        for c in clips:
+            ck = c.get("key") if isinstance(c, dict) else None
+            out[f"clip:{fkey}/{ck}"] = (f"Clip: {(c or {}).get('title') or ck} ({pkg.get('title') or fkey})", c)
+    return out
+
+
+def assemble_libraries(items, order):
+    """Items -> {library key: package} in order; a clip only shows under a published library."""
+    libs = {}
+    for key in order:
+        if key not in items:
+            continue
+        kind, _, rest = key.partition(":")
+        if kind == "library":
+            meta = {k: v for k, v in copy.deepcopy(items[key][1]).items() if k != "clip_count"}
+            meta["clips"] = []
+            libs[rest] = meta
+        elif kind == "clip":
+            lib = rest.split("/", 1)[0]
+            if lib in libs:
+                libs[lib]["clips"].append(copy.deepcopy(items[key][1]))
+    return libs
 
 # ---------------------------------------------------------------- items
 
@@ -182,6 +265,18 @@ def diff(slug):
     draft = proposed(load(os.path.join(DRAFTS, f"{slug}.json")))
     live = load(os.path.join(PUBLISHED, f"{slug}.json"))
     d, l = flatten(draft), flatten(live)
+    # Footage packages (SPEC §23 v2): virtual items beside the book's, only once the client details exist.
+    if draft:
+        drafts, not_ready = read_packages(LIBRARY_DRAFTS, slug)
+        d.update(flatten_libraries(drafts))
+    else:
+        not_ready = []
+    l.update(flatten_libraries(read_packages(LIBRARY_LIVE, slug)[0]))
+    # A package that's mid-write or online-only is NOT READY: it neither changes nor disappears.
+    for name in not_ready:
+        for k, v in l.items():
+            if k == f"library:{name}" or k.startswith(f"clip:{name}/"):
+                d.setdefault(k, v)
     new = [k for k in d if k not in l]
     changed = [k for k in d if k in l and digest(d[k][1]) != digest(l[k][1])]
     removed = [k for k in l if k not in d]
@@ -251,7 +346,11 @@ def strings(obj):
     elif isinstance(obj, dict):
         for k, v in obj.items():
             if k in ("path", "url", "watch_url", "review_url", "pay_url", "logo", "poster", "file", "email", "key", "slug",
-                     "project_key", "share_url", "asset_id", "version_id", "master_sha256", "approvers"):
+                     "project_key", "share_url", "asset_id", "version_id", "master_sha256", "approvers",
+                     "review_asset_id", "version_review_id",
+                     # footage packages: ids, slugs and stamps, never words a client reads
+                     "sam_event", "mux_playback_id", "mux_asset_id", "format", "made_at", "made_by", "taken_on", "job",
+                     "org", "project", "aspect"):
                 continue
             yield from strings(v)
     elif isinstance(obj, list):
@@ -384,7 +483,199 @@ def lint_item(key, content, org, items=None):
         problems += film_problems(content, items or {}, key)
     if key.startswith("version:"):
         problems += version_problems(key, content, items or {})
+    if key.startswith("library:"):
+        problems += library_problems(key, content, org or {}, items or {})
+    if key.startswith("clip:"):
+        problems += clip_problems(key, content, items or {})
     return sorted(set(problems))
+
+
+def library_problems(key, meta, org, items):
+    """A footage package's own fields (SPEC §23 v2). Closed schema: anything else fails, so AI marks, comments,
+    notes-track names, rights notes or paths can't ride along."""
+    fkey = key.split(":", 1)[1]
+    out = [f"unexpected field {k!r} (the package format is closed)" for k in sorted(set(meta) - LIB_FIELDS - {"clip_count"})]
+    if meta.get("format") != LIBRARY_FORMAT:
+        out.append(f"format must be {LIBRARY_FORMAT!r}")
+    if meta.get("key") != fkey or not KEY_RE.match(str(meta.get("key", ""))):
+        out.append(f"the package's key must be lowercase-kebab and equal its file name ({fkey}.json)")
+    if meta.get("org") != org.get("slug"):
+        out.append(f"the package names org {meta.get('org')!r}, but it sits in {org.get('slug')!r}'s folder")
+    project = (items.get(f"project:{meta.get('project')}", (None, None))[1]) if meta.get("project") else None
+    if not project:
+        out.append(f"project {meta.get('project')!r} isn't one of this client's projects in the book")
+    elif not project.get("job_number") or meta.get("job") != project.get("job_number"):
+        out.append(f"job {meta.get('job')!r} must equal the project's job_number ({project.get('job_number')!r})")
+    if not isinstance(meta.get("title"), str) or not meta["title"].strip() or len(meta["title"]) > 120:
+        out.append("a title of 1–120 characters")
+    if meta.get("description") is not None and (not isinstance(meta["description"], str) or len(meta["description"]) > 600):
+        out.append("description: text up to 600 characters")
+    n = meta.get("clip_count", 0)
+    if not 1 <= n <= MAX_CLIPS:
+        out.append(f"a library holds 1–{MAX_CLIPS} clips (this one: {n})")
+    return out
+
+
+def clip_problems(key, c, items):
+    """One clip (SPEC §23 v2): its own signed Mux asset, rendered by Stacks from a range SAM favorited."""
+    lib, _, ck = key.split(":", 1)[1].partition("/")
+    if not isinstance(c, dict):
+        return ["a clip must be an object"]
+    out = [f"unexpected field {k!r} (the package format is closed)" for k in sorted(set(c) - CLIP_FIELDS)]
+    missing = sorted(CLIP_REQUIRED - set(c))
+    if missing:
+        return out + [f"missing {', '.join(missing)}"]
+    m = CLIP_KEY.match(str(c["key"]))
+    if not m or c["key"] != ck:
+        return out + ["key must be <stacks clip id>@<in frame>-<out frame>"]
+    clip_id, a, b = m.group(1), int(m.group(2)), int(m.group(3))
+    if a >= b:
+        out.append("the in frame must come before the out frame")
+    fps = c["fps"]
+    if not isinstance(fps, (int, float)) or not 1 <= fps <= 240:
+        out.append("fps must be a number from 1 to 240")
+        fps = None
+    dur = c["duration_s"]
+    if not isinstance(dur, (int, float)) or dur <= 0:
+        out.append("duration_s must be a positive number")
+    elif fps and abs(dur - (b - a + 1) / fps) > 0.6:
+        out.append(f"duration_s {dur} doesn't match the frames ({(b - a + 1) / fps:.2f}s at {fps} fps)")
+    t = c.get("thumb_s")
+    if t is not None and (not isinstance(t, (int, float)) or t < 0 or (isinstance(dur, (int, float)) and t > dur)):
+        out.append("thumb_s must be a time inside the clip")
+    if c.get("taken_on") is not None and not re.match(r"^\d{4}-\d{2}-\d{2}$", str(c["taken_on"])):
+        out.append("taken_on must be YYYY-MM-DD")
+    if c.get("aspect") is not None and not re.match(r"^\d{1,4}[:/]\d{1,4}$", str(c["aspect"])):
+        out.append('aspect like "16:9"')
+    if not isinstance(c["title"], str) or not c["title"].strip() or len(c["title"]) > 120:
+        out.append("a title of 1–120 characters")
+    if not MUX_ID.match(str(c["mux_playback_id"])) or not MUX_ID.match(str(c["mux_asset_id"])):
+        out.append("Mux ids look wrong")
+    if not STACKS_EVENT_ID.match(str(c["sam_event"])):
+        out.append("sam_event must be a Stacks event id")
+    if out:
+        return out
+    why = sam_favorite_problem(clip_id, c["sam_event"], a, b)
+    if why:
+        out.append(why)
+    job = (items.get(f"library:{lib}", (None, {}))[1] or {}).get("job")
+    out += mux_problems(c, job)
+    return out
+
+
+_fold = None
+
+
+def stacks_fold():
+    """Stacks' own fold() (engine/stacks/ratings.py; stdlib only), so "Sam's favorite" means exactly what Stacks
+    shows. Read-only use: the gate loads the events itself and never calls anything that writes."""
+    global _fold
+    if _fold is None:
+        try:
+            if STACKS_ENGINE not in sys.path:
+                sys.path.insert(0, STACKS_ENGINE)
+            from stacks.ratings import fold  # noqa: E402
+            _fold = fold
+        except Exception:
+            _fold = False
+    return _fold or None
+
+
+def sam_favorite_problem(clip_id, sam_event, a, b):
+    """None when frames a..b sit inside a favorite SAM marked himself (event `sam_event`), still standing after every
+    later mark, edit, unrate and retraction. AI, sam-on-set, client and unrated ranges never pass."""
+    fold = stacks_fold()
+    if not fold:
+        return f"can't check it's Sam's pick: Stacks' engine isn't at {STACKS_ENGINE}"
+    root = next((p for p in STACKS_EVENTS if os.path.isdir(p)), None)
+    if not root:
+        return "can't check it's Sam's pick: Stacks' marks (Vault Archive Records/events) aren't reachable"
+    folder = os.path.join(root, clip_id[:2], clip_id)
+    try:
+        evs = [load(os.path.join(folder, n)) for n in sorted(os.listdir(folder))
+               if n.endswith(".json") and not n.startswith((".", "_"))] if os.path.isdir(folder) else []
+        layer = fold(evs).get("layers", {}).get("sam", [])
+    except Exception as e:
+        return f"can't read Stacks' marks for this clip ({type(e).__name__})"
+    if any(s.get("rating") == "favorite" and s.get("event") == sam_event and s["in_frame"] <= a and s["out_frame"] >= b
+           for s in layer):
+        return None
+    return "not Sam's pick: the range must sit inside a favorite Sam marked himself in Stacks, still standing"
+
+
+_mux_creds = None
+_mux_seen = {}
+
+
+def mux_credentials():
+    global _mux_creds
+    if _mux_creds is None:
+        tid, sec = os.environ.get("MUX_TOKEN_ID", ""), os.environ.get("MUX_TOKEN_SECRET", "")
+        if not (tid and sec):
+            try:
+                get = lambda s: subprocess.run(["security", "find-generic-password", "-s", s, "-a", "sam", "-w"],
+                                               capture_output=True, text=True, timeout=10).stdout.strip()
+                tid, sec = get("mux-token-id"), get("mux-token-secret")
+            except Exception:
+                tid = sec = ""
+        _mux_creds = (tid, sec) if tid and sec else False
+    return _mux_creds or None
+
+
+def mux_asset(asset_id):
+    """(asset, None) or (None, why). Read-only GET; GATE_MUX_FIXTURE (a JSON {asset id: asset}) stands in for tests."""
+    fixture = os.environ.get("GATE_MUX_FIXTURE")
+    if fixture:
+        a = (load(fixture) or {}).get(asset_id)
+        return (a, None) if a else (None, "not found on Mux")
+    if asset_id in _mux_seen:
+        return _mux_seen[asset_id]
+    creds = mux_credentials()
+    if not creds:
+        return None, "no Mux API credentials on this Mac (Keychain mux-token-id / mux-token-secret)"
+    import base64
+    import time
+    import urllib.error
+    import urllib.request
+    auth = base64.b64encode(f"{creds[0]}:{creds[1]}".encode()).decode()
+    req = urllib.request.Request(f"https://api.mux.com/video/v1/assets/{asset_id}", headers={"Authorization": f"Basic {auth}"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            res = ((json.load(r) or {}).get("data"), None)
+    except urllib.error.HTTPError as e:
+        res = (None, "not found on Mux" if e.code == 404 else f"Mux answered {e.code}")
+    except Exception as e:
+        res = (None, f"couldn't reach Mux ({type(e).__name__})")
+    _mux_seen[asset_id] = res
+    time.sleep(0.1)  # gentle on Mux's API when a package has hundreds of clips
+    return res
+
+
+def mux_problems(c, job):
+    """The clip's Mux asset is what the contract says: ready, SIGNED playback only, one audio track of at most two
+    channels (the client mix: no isolated lavs, no notes tracks), the clip's length, and passthrough <job>/<clip key>."""
+    asset, why = mux_asset(c["mux_asset_id"])
+    if not asset:
+        return [f"can't check the clip on Mux: {why}"]
+    out = []
+    if asset.get("status") != "ready":
+        out.append(f"the Mux asset isn't ready ({asset.get('status')})")
+    pids = asset.get("playback_ids") or []
+    policies = sorted({str(p.get("policy")) for p in pids})
+    if policies != ["signed"]:
+        out.append(f"the Mux asset must have signed playback only (it has: {', '.join(policies) or 'none'})")
+    if c["mux_playback_id"] not in {p.get("id") for p in pids}:
+        out.append("mux_playback_id isn't one of this asset's playback ids")
+    audio = [t for t in asset.get("tracks") or [] if t.get("type") == "audio"]
+    if len(audio) != 1 or not isinstance(audio[0].get("max_channels"), int) or audio[0]["max_channels"] > 2:
+        out.append("the clip must carry exactly one audio track of at most 2 channels (the client mix)")
+    dur = asset.get("duration")
+    if not isinstance(dur, (int, float)) or abs(dur - c["duration_s"]) > 0.6:
+        out.append(f"Mux says the clip is {dur}s, the package says {c['duration_s']}s")
+    want = f"{job}/{c['key']}"
+    if asset.get("passthrough") != want:
+        out.append(f"the Mux asset's passthrough must be {want!r}")
+    return out
 
 
 FILM_ASKS = ("none", "notes", "ok")
@@ -549,18 +840,51 @@ def publish(slug, keys, by, ticket, removing=(), extra=None):
                          "Review link and asset it was approved on; new cuts go up as new versions of that asset, and "
                          "a different asset needs a new film): " + ", ".join(broken))
     write_json(os.path.join(PUBLISHED, f"{slug}.json"), book)
+    write_libraries(slug, items, order, l, by)
     log(slug, {"by": by, "ticket": ticket, "published": list(keys), "removed": list(removing), **(extra or {})})
     write_preview(slug)
     return book
+
+
+def write_libraries(slug, items, order, before, by):
+    """Footage (SPEC §23 v2): every published library is a frozen snapshot file the site syncs. A library that left
+    moves to _removed/ (kept, never deleted); a clip that left gets a tombstone, so it can only come back on a ticket
+    that says "previously removed"."""
+    folder = os.path.join(LIBRARY_LIVE, slug)
+    libs = assemble_libraries(items, order)
+    for key, pkg in libs.items():
+        path = os.path.join(folder, f"{key}.json")
+        if load(path) != pkg:
+            write_json(path, pkg)
+    stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+    for k in before:
+        if k.startswith("library:") and k.split(":", 1)[1] not in libs:
+            src = os.path.join(folder, k.split(":", 1)[1] + ".json")
+            if os.path.exists(src):
+                os.makedirs(os.path.join(folder, "_removed"), exist_ok=True)
+                os.replace(src, os.path.join(folder, "_removed", f"{k.split(':', 1)[1]}.{stamp}.json"))
+    gone = [k for k in before if k.startswith("clip:") and k not in items]
+    if gone:
+        path = os.path.join(folder, "_tombstones.json")
+        stones = load(path) or {}
+        for k in gone:
+            stones[k] = {"removed_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"), "by": by}
+        write_json(path, stones)
+
+
+def tombstones(slug):
+    return load(os.path.join(LIBRARY_LIVE, slug, "_tombstones.json")) or {}
 
 
 def write_preview(slug):
     """A preview exists only while something is waiting for Sam; otherwise it's removed (and the site hides it)."""
     draft, live, d, l, new, changed, removed = diff(slug)
     path = os.path.join(PREVIEW, f"{slug}--preview.json")
+    lib_folder = os.path.join(LIBRARY_PREVIEW, f"{slug}--preview")
     if not d or not (new or changed):
         if os.path.exists(path):
             os.remove(path)
+        clear_library_preview(lib_folder, keep=())
         return None
     items = {k: v for k, v in d.items() if not k.startswith("person:")}
     book = assemble(draft, items, list(d))
@@ -569,7 +893,20 @@ def write_preview(slug):
     for inv in book["invoices"]:
         inv["number"] = f"{inv['number']} (preview)"
     write_json(os.path.join(PREVIEW, f"{slug}--preview.json"), book)
+    # Staff see pending footage on the preview site too (the worker's screenshots come from there).
+    libs = assemble_libraries(items, list(d))
+    for key, pkg in libs.items():
+        write_json(os.path.join(lib_folder, f"{key}.json"), dict(pkg, org=f"{slug}--preview"))
+    clear_library_preview(lib_folder, keep=libs)
     return book
+
+
+def clear_library_preview(folder, keep):
+    """The preview's footage folder holds only what the current preview shows."""
+    if os.path.isdir(folder):
+        for name in os.listdir(folder):
+            if name.endswith(".json") and name[:-5] not in keep:
+                os.remove(os.path.join(folder, name))
 
 # ---------------------------------------------------------------- kinds, not items (SPEC §11 v2)
 
@@ -725,7 +1062,23 @@ def cmd_ticket(a):
     if not pending:
         print(f"{name}: nothing waiting to publish.")
         return
-    labels = [("New: " if k in new else "Changed: ") + d[k][0] for k in pending]
+    # Footage clips are counted per library (the contact-sheet frames show every still); clips Sam removed before
+    # are called out so they never slip back in unnoticed.
+    stones = tombstones(a.org)
+    labels, clips = [], {}
+    for k in pending:
+        if k.startswith("clip:"):
+            lib = k.split(":", 1)[1].split("/", 1)[0]
+            n = clips.setdefault(lib, {"new": 0, "changed": 0, "again": 0})
+            n["new" if k in new else "changed"] += 1
+            n["again"] += 1 if k in stones else 0
+        else:
+            labels.append(("New: " if k in new else "Changed: ") + d[k][0])
+    for lib, n in clips.items():
+        title = (d.get(f"library:{lib}") or l.get(f"library:{lib}") or (lib, {}))[1].get("title") or lib
+        bits = [f"{n['new']} new" if n["new"] else "", f"{n['changed']} changed" if n["changed"] else "",
+                f"{n['again']} previously removed" if n["again"] else ""]
+        labels.append(f"Footage clips in {title}: " + ", ".join(b for b in bits if b) + " (every still is in the frames)")
     print(f"{name}: {len(pending)} thing{'s' if len(pending) != 1 else ''} ready for their site. Publish? (a) Publish (b) Hold")
     for x in labels:
         print(f"  - {x}")
@@ -737,6 +1090,10 @@ def cmd_approve(a):
     unknown = [k for k in keys if k not in d]
     if unknown:
         raise SystemExit(f"not in the draft: {unknown}")
+    n_clips = sum(1 for k in keys if k.startswith("clip:") and (k in new or k in changed))
+    if n_clips > MAX_CLIPS_PER_TICKET:
+        raise SystemExit(f"{n_clips} footage clips in one ticket: at most {MAX_CLIPS_PER_TICKET} (publish in parts with "
+                         "--items, so every still is on a ticket Sam can actually look at)")
     probs = lint(a.org, keys)
     if probs:
         for k, ps in probs.items():
