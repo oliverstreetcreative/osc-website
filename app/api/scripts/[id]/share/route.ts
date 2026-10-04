@@ -10,6 +10,7 @@ import { atLeast, roleOf, sessionFacts, type ScriptRole } from "@/lib/scripts/se
 import { newInvite } from "@/lib/scripts/server/invites"
 import { inviteEmail, sendScriptMail } from "@/lib/scripts/server/mail"
 import { publicOrigin } from "@/lib/client/host"
+import { NOT_LIVE, clientSiteLive } from "@/lib/client/live"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -47,6 +48,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 }
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
+  // Dark until the switch (SPEC §26 v2): sharing creates a person and emails them.
+  if (!clientSiteLive()) return NextResponse.json({ error: NOT_LIVE }, { status: 403 })
   const r = await editorFacts(params.id)
   if ("error" in r) return r.error
   const { facts } = r

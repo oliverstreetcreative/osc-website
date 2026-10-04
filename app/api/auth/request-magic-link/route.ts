@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes, createHash } from 'crypto'
 import { db } from '@/lib/db'
-import { IS_STAGING } from '@/lib/site-env'
+import { IS_PRODUCTION, IS_STAGING } from '@/lib/site-env'
 import { publicOrigin } from '@/lib/client/host'
+import { magicLinkOrigin } from '@/lib/auth/link-origin'
 
 const LOGIN_HOST = process.env.LOGIN_HOST ?? 'login.oliverstreetcreative.com'
 const MAGIC_LINK_TTL_MINUTES = 15
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
 
   const person = await db.person.findUnique({
     where: { email },
-    select: { id: true, portal_allowed: true },
+    select: { id: true, portal_allowed: true, role: true, is_staff: true },
   })
 
   // Always respond 200 so we don't leak whether an email is registered.
@@ -73,9 +74,10 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  // Link back to the host the person asked from, so they land on the client
-  // site there. Crew/staff on the login host keep their old flow.
-  const link = `${publicOrigin(req)}/magic?token=${rawToken}`
+  // Session cookies are host-only, so the link points at the host the person will USE (SPEC §26 v2): in production a
+  // client signs in on the apex, crew on crew.*, staff where they asked from; elsewhere, the host they asked from.
+  const origin = magicLinkOrigin({ isProduction: IS_PRODUCTION, requestOrigin: publicOrigin(req), role: person.role, isStaff: person.is_staff })
+  const link = `${origin}/magic?token=${rawToken}`
   const html = `
     <div style="font-family: -apple-system, system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #1a1a1a;">
       <p>Here is your link to sign in to Oliver Street Creative. This link expires in ${MAGIC_LINK_TTL_MINUTES} minutes and can only be used once.</p>

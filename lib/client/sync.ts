@@ -69,14 +69,26 @@ async function applyStaff() {
     return // no staff file yet: nothing to do
   }
   const body = JSON.parse(raw) as { version: number; staff: { email: string; name: string; first_name?: string }[] }
+  const listed: string[] = []
   for (const s of body.staff ?? []) {
     const email = s.email.trim().toLowerCase()
     if (!email.endsWith("@oliverstreetcreative.com")) continue // staff are OSC addresses, always
+    listed.push(email)
     await db.person.upsert({
       where: { email },
       create: { email, name: s.name, first_name: s.first_name, role: "STAFF", is_staff: true, portal_allowed: true },
       update: { name: s.name, first_name: s.first_name ?? null, role: "STAFF", is_staff: true, portal_allowed: true },
     })
+  }
+  // The file IS the allowlist (SPEC §26 v2): anyone else still flagged as staff (the retired Bible publisher set
+  // is_staff in production) loses it, and with it View as client, every org's calendar and every script. Only when the
+  // file listed someone: a broken or empty file never demotes everyone.
+  if (listed.length) {
+    const demoted = await db.person.updateMany({
+      where: { OR: [{ is_staff: true }, { role: "STAFF" }], email: { notIn: listed } },
+      data: { is_staff: false, role: "CLIENT" },
+    })
+    if (demoted.count) console.warn(`client-site: ${demoted.count} staff flag(s) removed (not in staff.json)`)
   }
 }
 

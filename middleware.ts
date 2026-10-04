@@ -73,6 +73,9 @@ function isPublicPath(pathname: string): boolean {
 // handshake should bypass session checks here.
 function isPortalInfraPath(pathname: string): boolean {
   if (pathname.startsWith('/api/auth/')) return true
+  // The page that redeems a sign-in link: links are minted on the host the person will use (crew.* for crew; SPEC
+  // §26 v2), so it must load there before any session exists.
+  if (pathname === '/magic') return true
   if (pathname.startsWith('/_next/') || pathname.startsWith('/favicon')) return true
   return false
 }

@@ -6,11 +6,14 @@ import { getStaffUser } from "@/lib/portal-auth"
 import { IS_STAGING } from "@/lib/site-env"
 import { importScript, type ImportRequest } from "@/lib/scripts/server/importer"
 import { sessionFacts } from "@/lib/scripts/server/access"
+import { NOT_LIVE, clientSiteLive } from "@/lib/client/live"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 export async function POST(req: Request) {
+  // Dark until the switch (SPEC §26 v2).
+  if (!clientSiteLive()) return NextResponse.json({ error: NOT_LIVE }, { status: 403 })
   const staff = await getStaffUser()
   if (!staff) return NextResponse.json({ error: "Not found" }, { status: 404 })
   // A preview sign-in (the staging screenshot harness) reads; it never imports, creates people or shares.
