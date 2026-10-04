@@ -115,7 +115,7 @@ test("the summary validates what came out of the database too", () => {
   } as unknown as SummaryFacts
   const md = summaryMarkdown(f)
   assert.match(md, /^# Support report #3 · unknown /)
-  assert.match(md, /^- client: signed out$/m)
+  assert.match(md, /^- client: \(none\)$/m)
   assert.match(md, /^- page: other$/m)
   assert.match(md, /^- signed in: no$/m)
   assert.match(md, /^- device: unknown · other · 390×844$/m)

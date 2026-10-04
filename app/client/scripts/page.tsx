@@ -7,6 +7,7 @@ import { db } from "@/lib/db"
 import { sessionFacts } from "@/lib/scripts/server/access"
 import { Wordmark } from "@/app/client/ui"
 import "./scripts.css"
+import { ReportLink, ReportSheet } from "@/app/client/report-sheet"
 
 export const dynamic = "force-dynamic"
 export const metadata: Metadata = { title: "Scripts" }
@@ -82,6 +83,11 @@ export default async function ScriptsPage() {
           </div>
         )}
       </main>
+      {/* "Something's wrong?" (SPEC §29 v2): Scripts has its own chrome, so it carries its own link and sheet. */}
+      <p className="cs-report-foot">
+        <ReportLink />
+      </p>
+      <ReportSheet followLink={false} />
     </div>
   )
 }

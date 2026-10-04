@@ -63,8 +63,9 @@ function diagnostics() {
   }
 }
 
-/** The one sheet, rendered once in the shell (hidden) so its text box exists when the tap needs to focus it. */
-export function ReportSheet({ demo = false }: { demo?: boolean }) {
+/** The one sheet, rendered once per page chrome (hidden) so its text box exists when the tap needs to focus it.
+ *  `followLink` off where "Your reports" isn't reachable (the Scripts pages: someone who only has scripts has no shell). */
+export function ReportSheet({ demo = false, followLink = true }: { demo?: boolean; followLink?: boolean }) {
   const [open, setOpen] = useState(false)
   const [text, setText] = useState("")
   const [shot, setShot] = useState<Shot>({ state: "none" })
@@ -123,7 +124,9 @@ export function ReportSheet({ demo = false }: { demo?: boolean }) {
         {sent?.number ? (
           <>
             <h2>Thanks: Sam has it.</h2>
-            <p>Report #{sent.number}. You can follow it on <a href="/client/support">Your reports</a>.</p>
+            <p>
+              Report #{sent.number}.{followLink ? <> You can follow it on <a href="/client/support">Your reports</a>.</> : null}
+            </p>
             <button type="button" className="cs-btn" onClick={close}>Done</button>
           </>
         ) : (

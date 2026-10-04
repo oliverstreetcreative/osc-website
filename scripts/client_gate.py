@@ -733,7 +733,7 @@ def support_summary(ticket):
         with open(path, encoding="utf-8") as f:
             text = f.read(4000)
         num = re.search(r"^# Support report #(\d+) ", text, re.M)
-        client = re.search(r"^- client: ([a-z0-9][a-z0-9-]*)$", text, re.M)
+        client = re.search(r"^- client: ([a-z0-9][a-z0-9-]*)$", text, re.M)  # "(none)" never matches a slug
         return {"env": env, "number": int(num.group(1)) if num else None, "client": client.group(1) if client else None}
     return None
 

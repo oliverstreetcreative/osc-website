@@ -8,6 +8,7 @@ import { personCode } from "@/lib/scripts/marks"
 import { Wordmark } from "@/app/client/ui"
 import { ScriptEditor } from "./editor"
 import "../scripts.css"
+import { ReportLink, ReportSheet } from "@/app/client/report-sheet"
 
 export const dynamic = "force-dynamic"
 export const metadata: Metadata = { title: "Script" }
@@ -84,6 +85,11 @@ export default async function ScriptPage({ params }: { params: { id: string } })
           }}
         />
       </main>
+      {/* "Something's wrong?" (SPEC §29 v2): Scripts has its own chrome, so it carries its own link and sheet. */}
+      <p className="cs-report-foot">
+        <ReportLink />
+      </p>
+      <ReportSheet followLink={false} />
     </div>
   )
 }

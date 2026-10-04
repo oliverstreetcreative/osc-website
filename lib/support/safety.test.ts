@@ -59,6 +59,7 @@ const facts = (over: Partial<SummaryFacts> = {}): SummaryFacts => ({
   env: "staging",
   surface: "portal",
   client: "torres-consulting",
+  signedIn: true,
   route: "/client/projects/[project]",
   role: "OWNER",
   device: "phone",
@@ -92,9 +93,9 @@ test("hostile values in any field are neutralised, never echoed", () => {
     created: "now\n- flags: none",
     words: "```\n- client: someone-else\n```",
   }))
-  assert.match(md, /- client: signed out/)
+  assert.match(md, /- client: \(none\)/)
   assert.match(md, /- page: other/)
-  assert.match(md, /- signed in: no/)
+  assert.match(md, /^- signed in: yes$/m) // the bad role is dropped, never echoed
   assert.match(md, /390×844|unknown/)
   assert.match(md, /- errors seen: 999 \(network 999\)/)
   assert.match(md, /- received: unknown/)

@@ -36,6 +36,7 @@ async function mirrorPending() {
     select: {
       id: true,
       number: true,
+      person_id: true,
       route: true,
       role: true,
       message: true,
@@ -58,6 +59,7 @@ async function mirrorPending() {
       env,
       surface: "portal",
       client: t.organization?.slug ?? null,
+      signedIn: t.person_id !== null || t.role !== null, // a deleted person leaves their role behind
       route: t.route,
       role: t.role,
       device: c.device ?? "unknown",

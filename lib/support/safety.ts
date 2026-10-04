@@ -103,7 +103,8 @@ export type SummaryFacts = {
   number: number
   env: "production" | "staging" | "local"
   surface: "portal"
-  client: string | null // the org slug (validated kebab) or null signed out
+  client: string | null // the org slug (validated kebab), or null: signed out, staff, or someone who only has scripts
+  signedIn: boolean
   route: string // a routeTemplate
   role: string | null
   device: Device
@@ -163,9 +164,9 @@ export function summaryMarkdown(f: SummaryFacts): string {
     `- ticket: ${/^[0-9a-f-]{36}$/i.test(f.id) ? f.id : "invalid"}`,
     `- env: ${env}`,
     `- surface: portal`,
-    `- client: ${client ?? "signed out"}`,
+    `- client: ${client ?? "(none)"}`,
     `- page: ${route}`,
-    `- signed in: ${role ? `yes (${role})` : "no"}`,
+    `- signed in: ${f.signedIn === true ? (role ? `yes (${role})` : "yes") : "no"}`,
     `- device: ${device} · ${browser} · ${vp}`,
     `- errors seen: ${total}${counts.length ? ` (${counts.map(([k, n]) => `${k} ${n}`).join(", ")})` : ""}`,
     `- screenshot: ${f.screenshot ? "yes (staff page only)" : "no"}`,
