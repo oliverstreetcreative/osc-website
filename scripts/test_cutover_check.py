@@ -61,5 +61,26 @@ class EnvCheck(unittest.TestCase):
         self.assertFalse(any("SECRET-VALUE" in x for x in problems + notes))
 
 
+class PeopleCheck(unittest.TestCase):
+    def test_reads_real_published_books_only_and_lowercases(self):
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            def put(name, body):
+                with open(os.path.join(d, name), "w", encoding="utf-8") as f:
+                    json.dump(body, f)
+            put("acme.json", {"org": {"slug": "acme"}, "people": [{"email": " Pat@Acme.com "}, {"email": "o'neil@acme.com"}]})
+            put("demo-x.json", {"org": {"slug": "demo-x"}, "people": [{"email": "demo@x.com"}]})
+            put("rehearsal-osc.json", {"org": {"slug": "rehearsal-osc"}, "people": [{"email": "sam+r@x.com"}]})
+            os.mkdir(os.path.join(d, "_log"))
+            pairs = cc.book_people(d)
+        self.assertEqual(pairs, [("pat@acme.com", "acme"), ("o'neil@acme.com", "acme")])
+        sql = cc.people_sql(pairs)
+        self.assertIn("('o''neil@acme.com', 'acme')", sql)  # quotes escaped
+        self.assertIn("lower(p.email) = b.email", sql)
+        self.assertNotIn("UPDATE", sql.upper().replace("-- ", ""))  # read-only
+        self.assertIn("nothing to check", cc.people_sql([]))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

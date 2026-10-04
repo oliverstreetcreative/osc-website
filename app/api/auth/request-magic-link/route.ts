@@ -5,7 +5,6 @@ import { IS_PRODUCTION, IS_STAGING } from '@/lib/site-env'
 import { publicOrigin } from '@/lib/client/host'
 import { magicLinkOrigin } from '@/lib/auth/link-origin'
 
-const LOGIN_HOST = process.env.LOGIN_HOST ?? 'login.oliverstreetcreative.com'
 const MAGIC_LINK_TTL_MINUTES = 15
 
 async function sendEmail(to: string, subject: string, html: string) {

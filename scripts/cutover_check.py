@@ -10,6 +10,8 @@ never touched by a worker. Nothing here prints a secret value.
   verify     CUTOVER_DB_URL=... — the database now matches this branch's schema (exit 0 = nothing left to change).
   staff      prints the SQL that lists every staff flag (run it with psql on the restored copy; the go-live ticket shows
              Sam who the first sync will demote: anyone flagged as staff who isn't in staff.json).
+  people     prints the SQL (read-only, for the restored copy) that finds the published books' people who already exist
+             in production with another role, switched off, or under another capitalisation: each is a question for Sam.
 
 The database URL comes from the environment (CUTOVER_DB_URL), never the command line (argv shows in process lists).
 Prisma's --exit-code: 0 = no difference, 2 = a difference, 1 = an error.
@@ -114,6 +116,52 @@ def main_schema_file():
 STAFF_SQL = """SELECT email, name, role, is_staff, portal_allowed FROM people
 WHERE is_staff OR role = 'STAFF' ORDER BY email;"""
 
+# The published books (the same tree the gate writes; DROPBOX_LOCAL_ROOT overrides it, as in client_gate.py).
+PUBLISHED = os.path.join(os.environ.get("DROPBOX_LOCAL_ROOT") or os.path.expanduser(
+    "~/Library/CloudStorage/Dropbox/OLIVER STREET CREATIVE"), "_admin", "client-site", "published")
+
+
+def book_people(folder=None):
+    """(email, org) for every person in every published REAL book. Emails lowercased, as the sync stores them."""
+    import json
+    folder = folder or PUBLISHED
+    out = []
+    for name in sorted(os.listdir(folder)):
+        if not name.endswith(".json") or name.startswith(("_", "demo-", "rehearsal-")):
+            continue
+        with open(os.path.join(folder, name), encoding="utf-8") as f:
+            book = json.load(f)
+        slug = (book.get("org") or {}).get("slug") or name[:-5]
+        for p in book.get("people") or []:
+            email = str(p.get("email") or "").strip().lower()
+            if email:
+                out.append((email, slug))
+    return out
+
+
+def people_sql(pairs):
+    """Read-only SQL for the restored copy: book people who already exist (any case), and emails that differ only by
+    case. The sync keeps an existing person's ROLE (a CREW role sends their sign-in to crew.*) and switches
+    portal_allowed back ON (someone may have switched it off on purpose); a mixed-case row is never found by sign-in.
+    Every row it prints is a question for Sam's go-live ticket."""
+    q = lambda s: "'" + s.replace("'", "''") + "'"
+    lines = [
+        "-- 1. Book people already in production. Expect role CLIENT, is_staff false (staff.json people excepted),",
+        "--    portal_allowed true. Anything else: Sam decides before the switch.",
+    ]
+    if pairs:
+        values = ",\n  ".join(f"({q(e)}, {q(o)})" for e, o in pairs)
+        lines.append("SELECT b.org, p.email, p.role, p.is_staff, p.portal_allowed FROM people p JOIN (VALUES\n  "
+                     f"{values}\n) AS b(email, org) ON lower(p.email) = b.email ORDER BY b.org, p.email;")
+    else:
+        lines.append("-- (no published real books found: nothing to check)")
+    lines += [
+        "-- 2. Emails that differ only by case (sign-in and the sync look people up by the lowercased address).",
+        "SELECT lower(email) AS email, count(*) AS rows, string_agg(email, ' | ') AS spellings FROM people",
+        "GROUP BY lower(email) HAVING count(*) > 1 OR bool_or(email <> lower(email)) ORDER BY 1;",
+    ]
+    return "\n".join(lines)
+
 
 def main():
     if len(sys.argv) < 2:
@@ -142,6 +190,9 @@ def main():
         sys.exit(rc)
     if cmd == "staff":
         print(STAFF_SQL)
+        return
+    if cmd == "people":
+        print(people_sql(book_people()))
         return
     sys.exit(__doc__)
 
