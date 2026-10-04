@@ -3,9 +3,9 @@
 // anywhere else. Only the STAGING environment is ever treated as non-public:
 // production and local dev keep normal indexing.
 
-const envName = (process.env.SITE_ENV ?? process.env.RAILWAY_ENVIRONMENT_NAME ?? "")
-  .trim()
-  .toLowerCase()
+// An EMPTY SITE_ENV counts as unset (client-website SPEC §22 v2.1 review): with `??`, `SITE_ENV=` hid Railway's own
+// name and made a deployment neither production nor staging.
+const envName = (process.env.SITE_ENV?.trim() || process.env.RAILWAY_ENVIRONMENT_NAME?.trim() || "").toLowerCase()
 
 /** True only on the Railway `staging` environment (or SITE_ENV=staging). */
 export const IS_STAGING = envName === "staging"

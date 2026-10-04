@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { SignJWT } from "jose"
 import { db } from "@/lib/db"
 import { clearCookies, cookieDomainFor, isSecure, publicOrigin } from "@/lib/client/host"
+import { clientIp } from "@/lib/client/ip"
 import { DEMO_EMAIL, DEMO_ORG_SLUG, DEMO_TTL_SECONDS, demoFingerprint, demoOn, demoTokenMatches } from "@/lib/client/demo"
 
 export const dynamic = "force-dynamic"
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest, { params }: { params: { token: strin
         event_type: "demo_open",
         summary: "The portal demo was opened",
         details: {
-          ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+          ip: clientIp(req.headers), // the LAST hop (lib/client/ip.ts)
           user_agent: req.headers.get("user-agent")?.slice(0, 200) ?? null,
         },
         source: "portal_client",

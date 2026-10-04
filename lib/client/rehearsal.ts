@@ -9,10 +9,24 @@ export const REHEARSAL_PUBLISHED = `${REHEARSAL_ROOT}/published`
 export const REHEARSAL_PREVIEW = `${REHEARSAL_ROOT}/preview`
 /** A rehearsal book's files must sit inside its own folder (the base slug, without --preview). */
 export const rehearsalFolder = (slug: string) => `${REHEARSAL_ROOT}/files/${slug.replace(/--preview$/, "")}/`
-/** People in a rehearsal book are +rehearsal OSC addresses only (sam+rehearsal@oliverstreetcreative.com). */
-export const isRehearsalPerson = (email: string) => {
+/**
+ * Sign Here's STAGING twin (SPEC §22 v2.1). Sign Here's staging engine holds ONE bundled test org, `osc-staging-test`
+ * (job 99-002: the phone proof as sam+client-test@). Its portal twin is a rehearsal client named after it, so it lives
+ * only on staging; `signOrgFor` (sign.ts) tells the engine the twin is `osc-staging-test`. The gate keeps a copy
+ * (client_gate.py SIGN_TWIN; a test checks they match).
+ */
+export const SIGN_TWIN = {
+  slug: "rehearsal-osc-staging-test",
+  signOrg: "osc-staging-test",
+  email: "sam+client-test@oliverstreetcreative.com",
+} as const
+
+/** People in a rehearsal book are +rehearsal OSC addresses only (sam+rehearsal@oliverstreetcreative.com). The ONE
+ *  exception: Sign Here staging's test person, and only in the twin's own book (SPEC §22 v2.1). */
+export const isRehearsalPerson = (email: string, slug?: string) => {
   const e = email.trim().toLowerCase()
-  return e.endsWith("@oliverstreetcreative.com") && e.split("@")[0].includes("+rehearsal")
+  if (e.endsWith("@oliverstreetcreative.com") && e.split("@")[0].includes("+rehearsal")) return true
+  return slug === SIGN_TWIN.slug && e === SIGN_TWIN.email
 }
 
 /** A plain root-relative path (no "..", ".", empty segments or backslashes): the only kind ever checked by prefix. */

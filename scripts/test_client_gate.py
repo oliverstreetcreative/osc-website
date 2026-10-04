@@ -6,6 +6,7 @@ the CLI against a throwaway folder (DROPBOX_LOCAL_ROOT), never the real Dropbox.
 """
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -13,6 +14,9 @@ import tempfile
 import unittest
 
 GATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "client_gate.py")
+# Sign Here's STAGING twin (SPEC §22 v2.1), as both client_gate.py and lib/client/rehearsal.ts must spell it.
+TWIN = {"slug": "rehearsal-osc-staging-test", "signOrg": "osc-staging-test",
+        "email": "sam+client-test@oliverstreetcreative.com"}
 A1 = "11111111-2222-3333-4444-555555555555"
 V2 = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 LINK = "https://review.oliverstreetcreative.com/share/AbCdEfGh12345678"
@@ -908,6 +912,39 @@ class RehearsalTest(GateBase):
         self.assertIn("+rehearsal OSC addresses only", self.gate("lint", "rehearsal-osc").stdout)
         self.write_rbook(rbook(people=("sam+client-test@oliverstreetcreative.com",)))
         self.assertIn("+rehearsal OSC addresses only", self.gate("lint", "rehearsal-osc").stdout)
+
+    def test_the_signing_twin_alone_may_name_sign_heres_test_person(self):
+        """SPEC §22 v2.1: Sign Here staging's test person, only in the twin's own book; nobody else new."""
+        twin = TWIN["slug"]
+
+        def twin_book(*people):
+            b = rbook(people=people, job="99-002")
+            b["org"].update(slug=twin, name="OSC Staging Test",
+                            folder=f"/_admin/client-site/rehearsal/files/{twin}")
+            b["projects"][0]["films"] = []
+            with open(os.path.join(self.site, "rehearsal", "books", f"{twin}.json"), "w") as f:
+                json.dump(b, f)
+
+        for stranger in ("jane@client.org", "sam+client-test2@oliverstreetcreative.com", "sam@oliverstreetcreative.com"):
+            twin_book(TWIN["email"], stranger)
+            self.assertIn("+rehearsal OSC addresses only", self.gate("lint", twin).stdout, stranger)
+        twin_book(TWIN["email"], "sam+rehearsal-signing@oliverstreetcreative.com")
+        out = self.gate("lint", twin).stdout
+        self.assertNotIn("OSC addresses only", out, out)
+        ticket = self.gate("ticket", twin).stdout
+        check = ticket.split("(check: ")[1][:12]
+        r = self.gate("approve", twin, "--by", "worker", "--ticket", "rehearsal", "--digest", check)
+        self.assertEqual(r.returncode, 0, r.stderr + ticket)
+        self.assertTrue(os.path.exists(os.path.join(self.site, "rehearsal", "published", f"{twin}.json")))
+        self.assertFalse(os.path.exists(os.path.join(self.site, "published", f"{twin}.json")))
+
+    def test_the_twin_constant_is_the_same_in_the_gate_and_the_site(self):
+        here = os.path.dirname(os.path.abspath(__file__))
+        ts = open(os.path.join(here, "..", "lib", "client", "rehearsal.ts"), encoding="utf-8").read()
+        py = open(GATE, encoding="utf-8").read()
+        for k, v in TWIN.items():
+            self.assertRegex(ts, rf'{k}:\s*"{re.escape(v)}"', k)
+            self.assertRegex(py, rf'"{k}":\s*"{re.escape(v)}"', k)
         self.write_rbook(rbook(job="26-001"))
         self.assertIn("job_number is 99-NNN", self.gate("lint", "rehearsal-osc").stdout)
         self.write_rbook(rbook(invoices=[{"number": "26-0999", "title": "x", "amount": 1, "issued_on": "2026-10-01",

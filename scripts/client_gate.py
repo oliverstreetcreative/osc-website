@@ -124,10 +124,22 @@ TOMBSTONE_NOTE = "previously removed by Sam: publish only by naming it in --item
 # rehearsal/published/. The real tree never holds a rehearsal slug, a rehearsal folder or a 99- job.
 REHEARSAL = os.path.join(SITE, "rehearsal")
 REHEARSAL_PREFIX = "rehearsal-"
+# Sign Here's STAGING twin (SPEC §22 v2.1): the rehearsal client that stands in for Sign Here staging's bundled test org.
+# Its book alone may name Sign Here staging's test person. A copy of lib/client/rehearsal.ts SIGN_TWIN (a test checks).
+SIGN_TWIN = {"slug": "rehearsal-osc-staging-test", "signOrg": "osc-staging-test",
+             "email": "sam+client-test@oliverstreetcreative.com"}
 
 
 def is_rehearsal(slug):
     return bool(slug) and str(slug).startswith(REHEARSAL_PREFIX)
+
+
+def rehearsal_person_ok(email, slug):
+    """A rehearsal book's people: +rehearsal OSC addresses; plus Sign Here's test person, in the twin's book only."""
+    email = str(email or "").strip().lower()
+    if email.endswith("@oliverstreetcreative.com") and "+rehearsal" in email.split("@")[0]:
+        return True
+    return slug == SIGN_TWIN["slug"] and email == SIGN_TWIN["email"]
 
 
 class Tree:
@@ -771,9 +783,9 @@ def tree_rules(key, content, org):
             out.append(f"carries a rehearsal test link or id ({', '.join(test_ids)}): never in a real client's book")
         return out
     if key.startswith("person:"):
-        email = str(content.get("email") or "").lower()
-        if not (email.endswith("@oliverstreetcreative.com") and "+rehearsal" in email.split("@")[0]):
-            out.append("a rehearsal client's people are +rehearsal OSC addresses only (sam+rehearsal@oliverstreetcreative.com)")
+        if not rehearsal_person_ok(content.get("email"), org.get("slug")):
+            out.append("a rehearsal client's people are +rehearsal OSC addresses only (sam+rehearsal@oliverstreetcreative.com;"
+                       f" Sign Here's test person only in {SIGN_TWIN['slug']})")
     if key.startswith("invoice:"):
         out.append("no invoices in a rehearsal book (invoice numbers are global keys)")
     reused = sorted(ids_of(content) & real_ids())

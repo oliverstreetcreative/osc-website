@@ -223,7 +223,7 @@ async function syncRehearsals(report: SyncReport) {
         })
         if (reused) throw new Error("reuses a real client's Review link or Mux id: rehearsals use their own test assets")
       }
-      book = { ...book, people: isPreview ? [] : book.people.filter((x) => isRehearsalPerson(x.email)) }
+      book = { ...book, people: isPreview ? [] : book.people.filter((x) => isRehearsalPerson(x.email, slug)) }
       if (seen.has(slug)) throw new Error(`duplicate org slug ${slug}`)
       seen.add(slug)
       const dropped: string[] = []

@@ -6,6 +6,8 @@ import { createHash } from "crypto"
 import { SignJWT } from "jose"
 import { db } from "@/lib/db"
 import { cookieDomainFor, isSecure } from "@/lib/client/host"
+import { REHEARSAL_PREFIX } from "@/lib/client/rehearsal"
+import { IS_STAGING } from "@/lib/site-env"
 
 const SESSION_TTL_DAYS = 30
 
@@ -36,7 +38,15 @@ export async function startSession(req: NextRequest, res: NextResponse, person: 
 /** Where a client goes after signing in: the portal, or, for someone whose only business with us is a script
  *  (an invitee with no organization: Mike, a freelancer), their scripts (SPEC §14 phone moment 2). */
 export async function clientHome(personId: string): Promise<string> {
-  const orgs = await db.membership.count({ where: { person_id: personId, hidden: false } })
+  // Only memberships getClientContext would honour: a hidden org (a retired book) or a rehearsal org off staging
+  // counts for nothing, so a script-only person still lands on their scripts (SPEC §22 v2.1 review).
+  const orgs = await db.membership.count({
+    where: {
+      person_id: personId,
+      hidden: false,
+      organization: { hidden: false, ...(IS_STAGING ? {} : { NOT: { slug: { startsWith: REHEARSAL_PREFIX } } }) },
+    },
+  })
   if (orgs) return "/client"
   const scripts = await db.scriptAccess.count({ where: { person_id: personId, revoked_at: null } })
   return scripts ? "/client/scripts" : "/client"

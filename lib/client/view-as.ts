@@ -4,6 +4,7 @@
 // routes that end the view or sign out (VIEW_AS_ALLOWED_WRITES).
 import { SignJWT } from "jose"
 import { db } from "@/lib/db"
+import { clientIp } from "./ip"
 
 export const VIEW_TTL_SECONDS = 8 * 3600
 
@@ -32,7 +33,7 @@ export async function logViewAs(
         summary: kind === "view_as_start" ? `${staff.name} viewed the site as ${org?.name}` : `${staff.name} stopped viewing as a client`,
         details: {
           org: org?.slug ?? null,
-          ip: req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? null,
+          ip: clientIp(req.headers), // the LAST hop (lib/client/ip.ts)
           user_agent: req.headers.get("user-agent") ?? null,
         },
         source: "portal_admin",

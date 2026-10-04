@@ -43,6 +43,7 @@ NEVER = {  # each one is a known way to hurt production
     "STACKS_ENGINE": "a test-only switch",
     "STACKS_EVENTS_DIR": "a test-only switch",
     "SESSION_COOKIE_DOMAIN": "a cross-subdomain session cookie (host-only is the rule; a ruling would be needed)",
+    "SIGN_SHOW_SAMPLES": "staging-only: shows SAMPLE paper to clients (the code ignores it off staging; never set it)",
 }
 
 

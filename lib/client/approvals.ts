@@ -183,8 +183,5 @@ export async function approveVersion(
   return { ok: true, approvalId: created.id }
 }
 
-/** The client's address as our proxy saw it: the LAST X-Forwarded-For hop (earlier hops are whatever the client sent). */
-export function clientIp(h: Headers): string | null {
-  const hops = (h.get("x-forwarded-for") ?? "").split(",").map((s) => s.trim()).filter(Boolean)
-  return hops.length ? hops[hops.length - 1] : h.get("x-real-ip")
-}
+/** The client's address as our proxy saw it: the LAST X-Forwarded-For hop (lib/client/ip.ts). */
+export { clientIp } from "./ip"

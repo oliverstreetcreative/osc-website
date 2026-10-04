@@ -2,8 +2,7 @@
 // id that came from getClientContext() — never from the URL alone.
 import { db } from "@/lib/db"
 import { daysFromToday, todayUTC } from "./format"
-import { neededForJob, forClient, isDone, signingEnabled, type NeededSignature, type SignViewer } from "./sign"
-import { isDemoSlug } from "./demo"
+import { neededForJob, forClient, needsSigning, signOrgFor, signingEnabled, type NeededSignature, type SignViewer } from "./sign"
 import { isApprover, reviewState } from "./approvals"
 
 const visible = { hidden: false } as const
@@ -76,8 +75,9 @@ export async function clientSignatures(
   viewer: SignViewer,
 ): Promise<ClientPaper> {
   const out: ClientPaper = { enabled: false, unavailable: new Set(), byProject: new Map() }
-  // The demo and preview orgs have no published book, so the engine would always answer 503: show nothing there.
-  if (!signingEnabled() || isDemoSlug(org.slug) || org.slug.endsWith("--preview")) return out
+  // Orgs that don't ask show nothing: the demo and preview orgs (no published book), and on STAGING every org but the
+  // signing twin (staging's engine holds no real books). signOrgFor (sign.ts) decides, SPEC §22 v2.1.
+  if (!signingEnabled() || !signOrgFor(org.slug)) return out
   out.enabled = true
   await Promise.all(
     projects
@@ -129,10 +129,11 @@ export async function needsYou(
     orderBy: { updated_at: "desc" },
   })
   for (const s of scripts) items.push({ kind: "script", urgency: s.status === "ready_for_ok" ? 1 : 2, script: s })
-  // Paper waiting for this person (the engine already returned only their own; staff viewing see every member's).
+  // Paper waiting for this person (the engine already returned only their own; staff viewing see every member's):
+  // Sign Here's rule, `status !== "signed"`, and only what they can start now (SPEC §22 v2.1).
   for (const p of projects) {
     for (const s of signatures.byProject.get(p.id) ?? []) {
-      if (!isDone(s) && s.state !== "awaiting_countersign") {
+      if (needsSigning(s)) {
         items.push({ kind: "sign", urgency: s.overdue ? 0 : 1, project: p, item: s })
       }
     }

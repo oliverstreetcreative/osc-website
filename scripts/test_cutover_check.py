@@ -42,7 +42,8 @@ class EnvCheck(unittest.TestCase):
     def test_the_dangerous_ones(self):
         for line, words in (("SITE_ENV=staging", "prisma db push"), ("DROPBOX_ACCESS_TOKEN=x", "static token"),
                             ("DROPBOX_LOCAL_ROOT=/x", "local disk"), ("CLIENT_DEMO_TOKEN=x", "staging demo"),
-                            ("GATE_TEST_SANDBOX=1", "test-only"), ("SESSION_COOKIE_DOMAIN=.oliverstreetcreative.com", "host-only")):
+                            ("GATE_TEST_SANDBOX=1", "test-only"), ("SESSION_COOKIE_DOMAIN=.oliverstreetcreative.com", "host-only"),
+                            ("SIGN_SHOW_SAMPLES=1", "SAMPLE paper")):
             self.assertTrue(any(words in p for p in check(GOOD + line + "\n")[0]), line)
 
     def test_production_must_know_it_is_production_and_sign_in_on_the_apex(self):

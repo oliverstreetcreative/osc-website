@@ -6,6 +6,7 @@
 import { createHash } from "crypto"
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
+import { clientIp } from "@/lib/client/ip"
 import { roleOf, sessionFacts } from "@/lib/scripts/server/access"
 import { catchUp, withLive } from "@/lib/scripts/server/registry"
 import { saveVersion } from "@/lib/scripts/server/versions"
@@ -61,7 +62,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         person_id: facts.person.id,
         name: facts.person.name,
         email: me,
-        ip: (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || null,
+        ip: clientIp(req.headers), // the LAST hop (lib/client/ip.ts): earlier hops are whatever the browser claimed
         user_agent: req.headers.get("user-agent")?.slice(0, 300) ?? null,
         note,
       },

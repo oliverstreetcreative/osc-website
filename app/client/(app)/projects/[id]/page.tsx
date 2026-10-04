@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { headers } from "next/headers"
 import { notFound } from "next/navigation"
 import { ChevronLeft, Download, ExternalLink, MapPin, Clock, Phone, MessageSquare, Mail, UserPlus } from "lucide-react"
 import { requireClientContext } from "@/lib/client/context"
@@ -8,7 +9,7 @@ import { dayRange } from "@/lib/client/library"
 import { roleIn, seesProposals } from "@/lib/client/proposals"
 import { signingReady, stillUrl } from "@/lib/client/mux-sign"
 import { db } from "@/lib/db"
-import { KIND_LABEL, isDone, type SignViewer } from "@/lib/client/sign"
+import { KIND_LABEL, isDone, signedNotCleared, type SignViewer } from "@/lib/client/sign"
 import { SignButton } from "@/app/client/sign-button"
 import { day, dayET, duration, money, relativeDue, muxThumb, daysFromToday, todayUTC } from "@/lib/client/format"
 import { eventForOrgs, googleLink } from "@/lib/client/calendar"
@@ -48,6 +49,8 @@ export default async function ProjectPage({ params }: { params: { id: string } }
   const paper = signing.byProject.get(p.id) ?? []
   const paperUnavailable = signing.unavailable.has(p.id)
   const me = ctx.viewing ? "" : ctx.user.email.toLowerCase()
+  // A staging screenshot sign-in sees the real Sign button, switched off (the start route refuses it too).
+  const preview = (await headers()).get("x-user-preview") === "true"
   const origin = await pageOrigin()
   const orgName = org.short_name ?? org.name
   const dates = (Array.isArray(p.dates) ? p.dates : []) as { label: string; date: string; note?: string }[]
@@ -327,16 +330,26 @@ export default async function ProjectPage({ params }: { params: { id: string } }
                                 <a className="cs-link" href={`/client/sign/receipt/${encodeURIComponent(s.agreement_id)}`} target="_blank" rel="noopener">Your copy</a>
                               ) : null}
                             </>
-                          ) : s.state === "awaiting_countersign" ? (
-                            <span className="cs-status soon">Signed · OSC signs next</span>
                           ) : s.state === "signed_sample" ? (
-                            <span className="cs-status">Sample signed (doesn&rsquo;t count)</span>
+                            // Only ever on staging (samples reach a client only there, SPEC §22 v2.1): the sample's own copy
+                            // proves the receipt path; the engine serves it to its signer alone.
+                            <>
+                              <span className="cs-status">Sample signed (doesn&rsquo;t count)</span>
+                              {mine && s.agreement_id ? (
+                                <a className="cs-link" href={`/client/sign/receipt/${encodeURIComponent(s.agreement_id)}`} target="_blank" rel="noopener">Your copy</a>
+                              ) : null}
+                            </>
+                          ) : signedNotCleared(s) ? (
+                            // Signed by them; OSC's side isn't finished (a countersignature, more days). Nothing to do here.
+                            <span className="cs-status">
+                              Signed{s.signed_at ? ` ${day(new Date(s.signed_at), { month: "short", day: "numeric" })}` : ""}
+                            </span>
                           ) : mine ? (
                             <>
                               {s.overdue ? <span className="cs-status late">Overdue</span> : s.due ? (
                                 <span className="cs-status due">Due {day(new Date(s.due), { month: "short", day: "numeric" })}</span>
                               ) : null}
-                              <SignButton job={s.job} itemId={s.id} disabled={!s.can_start} />
+                              <SignButton job={s.job} itemId={s.id} disabled={!s.can_start} preview={preview} />
                             </>
                           ) : (
                             <span className="cs-status due">Waiting on {s.who.name.split(" ")[0]}</span>

@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { headers } from "next/headers"
 import { Check, CalendarDays, Receipt, Clapperboard, ArrowRight, FileSignature, FileText, ScrollText } from "lucide-react"
 import { requireClientContext } from "@/lib/client/context"
 import { orgProjects, needsYou, clientSignatures, type NeedsItem } from "@/lib/client/data"
@@ -29,6 +30,8 @@ export default async function Home({ searchParams }: { searchParams: { sign?: st
   const paperUnavailable = signatures.unavailable.size > 0
   const signNotice = searchParams.sign ? SIGN_NOTICE[searchParams.sign] ?? null : null
   const me = ctx.viewing ? "" : ctx.user.email.toLowerCase()
+  // A staging screenshot sign-in sees the real Sign button, switched off (the start route refuses it too).
+  const preview = (await headers()).get("x-user-preview") === "true"
   const orgName = ctx.org.short_name ?? ctx.org.name
   const active = projects.filter((p) => p.phase !== "paid" && p.phase !== "delivered")
   // When nothing needs them: lead with the latest film, and list the rest below it.
@@ -67,7 +70,7 @@ export default async function Home({ searchParams }: { searchParams: { sign?: st
         ) : null}
         {needs.length ? (
           <div className="cs-list">
-            {needs.map((n) => <NeedCard key={key(n)} n={n} demo={isDemoSlug(ctx.org.slug)} me={me} />)}
+            {needs.map((n) => <NeedCard key={key(n)} n={n} demo={isDemoSlug(ctx.org.slug)} me={me} preview={preview} />)}
           </div>
         ) : paperUnavailable ? null : (
           <div className="cs-card cs-calm">
@@ -148,7 +151,7 @@ function key(n: NeedsItem) {
 }
 
 // demo: the staging demo org (SPEC §19). Its links are placeholders, so its buttons show "Off in the demo".
-function NeedCard({ n, demo, me }: { n: NeedsItem; demo: boolean; me: string }) {
+function NeedCard({ n, demo, me, preview }: { n: NeedsItem; demo: boolean; me: string; preview: boolean }) {
   if (n.kind === "proposal") {
     // SPEC §24 v2: no price on the card (the PDF carries Sam's numbers); only its named acceptors see it.
     return (
@@ -200,7 +203,7 @@ function NeedCard({ n, demo, me }: { n: NeedsItem; demo: boolean; me: string }) 
         <p>{mine ? "For you" : `For ${s.who.name}`}</p>
         <div className="cs-need-act">
           {mine ? (
-            <SignButton job={s.job} itemId={s.id} disabled={!s.can_start} />
+            <SignButton job={s.job} itemId={s.id} disabled={!s.can_start} preview={preview} />
           ) : (
             <span className="cs-status">Read-only while viewing</span>
           )}

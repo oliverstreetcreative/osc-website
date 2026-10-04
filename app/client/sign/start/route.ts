@@ -13,10 +13,12 @@ export const dynamic = "force-dynamic"
 export async function POST(req: Request) {
   const ctx = await getClientContext()
   if (!ctx || ctx.viewing) return new NextResponse(null, { status: 404 })
+  const back = `${publicOrigin(req)}/client`
+  // A staging screenshot sign-in (/api/auth/preview) can look at everything and sign nothing (as approve and accept).
+  if (req.headers.get("x-user-preview") === "true") return NextResponse.redirect(back, 303)
   const form = await req.formData()
   const job = String(form.get("job") ?? "")
   const itemId = String(form.get("item") ?? "")
-  const back = `${publicOrigin(req)}/client`
 
   const project = await db.project.findFirst({
     where: { organization_id: ctx.org.id, hidden: false, job_number: job },

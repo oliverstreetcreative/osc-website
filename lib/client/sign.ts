@@ -12,6 +12,14 @@
 // Fail closed, visibly: with signing switched on, any non-200 (503 = "signing isn't set up for this org"), a timeout
 // or a bad shape is "Paperwork unavailable right now", NEVER "all set". An empty list from a 200 is genuinely nothing
 // to sign. Until SIGN_HERE_URL + SIGN_HERE_SERVICE_TOKEN are set, signing is dormant: nothing shows, nothing breaks.
+//
+// STAGING (SPEC §22 v2.1, Sign Here's step 8): staging's engine holds no real books, only its bundled test org. So on
+// staging ONLY the signing twin asks (as that org), and a client may see their own SAMPLE paper, marked, when
+// SIGN_SHOW_SAMPLES=1. Everywhere else (production, and any environment that isn't staging) a real org asks under its
+// own published slug, and a client never sees a sample.
+import { IS_STAGING } from "@/lib/site-env"
+import { isDemoSlug } from "./demo"
+import { SIGN_TWIN, isRehearsalSlug } from "./rehearsal"
 
 export type SignKind = "talent_release" | "minor_release" | "location_release" | "client_agreement" | "crew_deal_memo"
 
@@ -72,6 +80,22 @@ const base = () => process.env.SIGN_HERE_URL?.trim().replace(/\/$/, "") || ""
 const token = () => process.env.SIGN_HERE_SERVICE_TOKEN?.trim() || ""
 export const signingEnabled = () => Boolean(base() && token())
 
+/**
+ * The org name Sign Here is told (X-Sign-Org), or null = this org doesn't ask (no Paperwork shows). The ONE place
+ * that decides; every call below goes through it.
+ *   staging: ONLY the signing twin, as the engine's bundled test org (real orgs would only ever get a 503 there).
+ *   anywhere else: a real org's own published slug; never a rehearsal, demo or preview org.
+ */
+export function signOrgFor(slug: string | null | undefined, staging = IS_STAGING): string | null {
+  if (!slug || isDemoSlug(slug) || slug.endsWith("--preview")) return null
+  if (staging) return slug === SIGN_TWIN.slug ? SIGN_TWIN.signOrg : null
+  return isRehearsalSlug(slug) ? null : slug
+}
+
+/** Staging only: a client sees their own SAMPLE paper, marked, so the staging proof has something to sign (every form
+ *  is a sample until counsel blesses it). Anywhere else a client never sees a sample, whatever the env says. */
+export const showSamples = (staging = IS_STAGING) => staging && process.env.SIGN_SHOW_SAMPLES?.trim() === "1"
+
 function headersFor(org: string, viewer: SignViewer): Record<string, string> {
   const h: Record<string, string> = { Authorization: `Bearer ${token()}`, "X-Sign-Org": org }
   if ("staff" in viewer) h["X-Sign-Staff"] = "1"
@@ -88,8 +112,10 @@ async function call(path: string, org: string, viewer: SignViewer, init: Request
   })
 }
 
-/** The engine's list for one job, as THIS viewer may see it. Null = signing is dormant (show nothing). */
-export async function neededForJob(job: string, org: string, viewer: SignViewer): Promise<NeededResult | null> {
+/** The engine's list for one job, as THIS viewer may see it. `slug` is the portal org's; the engine is told
+ *  signOrgFor(slug). Null = signing is dormant, or this org doesn't ask (show nothing). */
+export async function neededForJob(job: string, slug: string, viewer: SignViewer): Promise<NeededResult | null> {
+  const org = signOrgFor(slug)
   if (!signingEnabled() || !job || !org) return null
   try {
     const res = await call(`/sign/api/v2/needed/${encodeURIComponent(job)}`, org, viewer)
@@ -107,23 +133,35 @@ export async function neededForJob(job: string, org: string, viewer: SignViewer)
 }
 
 /** A harmless second filter on what the engine already scoped: client-facing kinds; for a client, their own paper
- *  and never a sample; staff viewing see every member's (samples marked). */
-export function forClient(items: NeededSignature[], viewer: SignViewer) {
+ *  and never a sample (except on staging with SIGN_SHOW_SAMPLES=1, marked); staff viewing see every member's (samples
+ *  marked). */
+export function forClient(items: NeededSignature[], viewer: SignViewer, samples = showSamples()) {
   const staff = "staff" in viewer
   const me = staff ? "" : viewer.email.toLowerCase()
   return items.filter(
-    (i) => CLIENT_KINDS.includes(i.kind) && (staff || (!!i.who.email && i.who.email.toLowerCase() === me && !i.sample)),
+    (i) =>
+      CLIENT_KINDS.includes(i.kind) &&
+      (staff || (!!i.who.email && i.who.email.toLowerCase() === me && (samples || !i.sample))),
   )
 }
 
 /** Signed for good: the engine's `satisfied` (a blessed template, countersigned if required, every day covered). */
 export const isDone = (s: NeededSignature) => (s.satisfied ?? s.status === "signed") === true
 
+/** Signed by them but not cleared yet (OSC's countersignature, days not covered): the engine shows clients and staff
+ *  `state: "signed"` with `satisfied: false`, and refuses a second start. A signed SAMPLE has its own state. */
+export const signedNotCleared = (s: NeededSignature) => !isDone(s) && (s.state ? s.state === "signed" : s.status === "signed")
+
+/** For "Needs you" (Sign Here's rule for front-ends: `status !== "signed"`): not signed yet, not cleared, and startable
+ *  now. Paper OSC still has to set up (`can_start: false`) stays on the project page, off the to-do list. */
+export const needsSigning = (s: NeededSignature) => s.status !== "signed" && !isDone(s) && s.can_start
+
 export type StartResult = { ok: true; sign_url: string } | { ok: false; reason: "office" | "unavailable" }
 
 /** Mint (or reuse) the signing link for ONE of the viewer's own items. The engine picks the template. Nothing is sent. */
-export async function startSigning(job: string, org: string, email: string, itemId: string): Promise<StartResult> {
-  if (!signingEnabled()) return { ok: false, reason: "unavailable" }
+export async function startSigning(job: string, slug: string, email: string, itemId: string): Promise<StartResult> {
+  const org = signOrgFor(slug)
+  if (!signingEnabled() || !org) return { ok: false, reason: "unavailable" }
   try {
     const res = await call(`/sign/api/v2/start/${encodeURIComponent(job)}`, org, { email }, {
       method: "POST",
@@ -145,8 +183,9 @@ export async function startSigning(job: string, org: string, email: string, item
 }
 
 /** The executed PDF, only for the person who signed it (the engine checks the viewer header). */
-export async function receipt(agreementId: string, org: string, email: string): Promise<Response | null> {
-  if (!signingEnabled()) return null
+export async function receipt(agreementId: string, slug: string, email: string): Promise<Response | null> {
+  const org = signOrgFor(slug)
+  if (!signingEnabled() || !org) return null
   try {
     const res = await call(`/sign/api/v2/receipt/${encodeURIComponent(agreementId)}`, org, { email })
     return res.ok ? res : null
