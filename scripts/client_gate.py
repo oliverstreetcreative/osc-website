@@ -63,7 +63,17 @@ UUIDISH = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
 
 # Files every client may receive (OSC vendor paperwork).
 SHARED_FILES = {"/_admin/Corporate Docs/W9 Oliver Street Creative_2026.pdf"}
-SHARED_PREFIXES = ("/_admin/client-site/",)
+# Stills pulled from delivered films. NOT the rest of client-site/: books, published copies, the ledger and staff.json
+# live there (§23 design review 10/3: the old "/_admin/client-site/" prefix let a book point at another client's data).
+SHARED_PREFIXES = ("/_admin/client-site/posters/",)
+
+
+def plain_path(p):
+    """A root-relative Dropbox path with no tricks: absolute, no '..' or '.' or empty segments, no backslashes. Without
+    this, "/Clients/Acme/../Other/x.pdf" passes a startswith() containment check."""
+    if not isinstance(p, str) or not p.startswith("/") or "\\" in p or "\x00" in p:
+        return False
+    return all(s not in ("", ".", "..") for s in p.split("/")[1:])
 
 # ---------------------------------------------------------------- items
 
@@ -347,6 +357,9 @@ def lint_item(key, content, org, items=None):
         problems += text_problems(s, domains)
     for p in paths(content):
         name = p.rsplit("/", 1)[-1]
+        if not plain_path(p):
+            problems.append(f"file path must be a plain root-relative path (no '..', '.', '//' or backslashes): {p}")
+            continue
         inside = (folder and p.startswith(folder.rstrip("/") + "/")) or p in SHARED_FILES or p.startswith(SHARED_PREFIXES)
         if not inside:
             problems.append(f"file outside this client's folder: {p}")
@@ -368,7 +381,7 @@ def lint_item(key, content, org, items=None):
     if key.startswith("project:"):
         problems += team_problems(content, (org or {}).get("slug"))
     if key.startswith("film:"):
-        problems += film_problems(content, items or {})
+        problems += film_problems(content, items or {}, key)
     if key.startswith("version:"):
         problems += version_problems(key, content, items or {})
     return sorted(set(problems))
@@ -377,10 +390,16 @@ def lint_item(key, content, org, items=None):
 FILM_ASKS = ("none", "notes", "ok")
 
 
-def film_problems(film, items):
+def film_problems(film, items, key=None):
     """Who may approve a film is said by the book (gated), never inferred from a role. SPEC §13 v4: a Review link
-    carries its asset id (versions are read live from Review), and asking for an OK needs approvers and that link."""
+    carries its asset id (versions are read live from Review), and asking for an OK needs approvers, that link and
+    the project's job number (the approvals ledger, and so the lock below, is keyed by it). Sam's version label
+    names a Review version only when the book says which one (`version_review_id`), so a receipt never pairs
+    Review's Version 3 with a label written for another cut."""
     out = []
+    vr = film.get("version_review_id")
+    if vr is not None and not UUIDISH.match(str(vr)):
+        out.append("version_review_id must be the Review version's id (a uuid)")
     people = {k.split(":", 1)[1] for k in items if k.startswith("person:")}
     for e in film.get("approvers", []) or []:
         if e.lower() not in people:
@@ -398,6 +417,10 @@ def film_problems(film, items):
             out.append('asking for an OK needs the film\'s approvers list')
         if not REVIEW_SHARE.match(url):
             out.append("asking for an OK needs the film's Review link (review_url)")
+        pkey = key.split(":", 1)[1].split("/")[0] if key and ":" in key else None
+        project = (items.get(f"project:{pkey}", (None, {}))[1] or {}) if pkey else {}
+        if not project.get("job_number"):
+            out.append("asking for an OK needs the project's job_number (approvals are recorded by job)")
     return out
 
 
@@ -475,18 +498,35 @@ def approved_job_versions():
     return out
 
 
+def film_binding(content):
+    """What a v4 approval points at (SPEC §13): the film's Review link and shared asset."""
+    return digest({"review_url": content.get("review_url"), "review_asset_id": content.get("review_asset_id")})
+
+
 def protected_items(items):
-    """Version item keys in `items` that a client has approved: they may not change or disappear."""
+    """What client approvals lock in `items`, as {key: digest}; none of it may change or disappear.
+    v3 version items: the whole item. v4 films (versions live in Review): the Review link and asset id, so an
+    approval's receipt and the approve page keep pointing at the same picture; other film fields stay editable."""
     approved = approved_job_versions()
+    films = {k.rsplit("/", 1)[0] for k in approved}
     out = {}
     for key, (_, content) in items.items():
-        if not key.startswith("version:"):
+        kind, _, rest = key.partition(":")
+        if kind not in ("version", "film"):
             continue
-        pkey, fkey, n = key.split(":", 1)[1].split("/")
-        job = (items.get(f"project:{pkey}", (None, {}))[1] or {}).get("job_number")
-        if job and f"{job}/{fkey}/{n}" in approved:
+        parts = rest.split("/")
+        job = (items.get(f"project:{parts[0]}", (None, {}))[1] or {}).get("job_number")
+        if not job:
+            continue
+        if kind == "version" and f"{job}/{parts[1]}/{parts[2]}" in approved:
             out[key] = digest(content)
+        elif kind == "film" and f"{job}/{parts[1]}" in films:
+            out[key] = film_binding(content)
     return out
+
+
+def still_protected(key, h, after):
+    return key in after and (film_binding(after[key][1]) if key.startswith("film:") else digest(after[key][1])) == h
 
 
 def publish(slug, keys, by, ticket, removing=(), extra=None):
@@ -503,10 +543,11 @@ def publish(slug, keys, by, ticket, removing=(), extra=None):
     # An approved version is a record: it can't change, and nothing may make it disappear
     # (removing its film or project included). Withdrawing an approval is Sam's explicit act.
     after = flatten(book)
-    broken = [k for k, h in protected_items(l).items() if k not in after or digest(after[k][1]) != h]
+    broken = [k for k, h in protected_items(l).items() if not still_protected(k, h, after)]
     if broken:
-        raise SystemExit("refused: these versions were approved by the client and can't change or disappear: "
-                         + ", ".join(broken))
+        raise SystemExit("refused: these were approved by the client and can't change or disappear (a film keeps the "
+                         "Review link and asset it was approved on; new cuts go up as new versions of that asset, and "
+                         "a different asset needs a new film): " + ", ".join(broken))
     write_json(os.path.join(PUBLISHED, f"{slug}.json"), book)
     log(slug, {"by": by, "ticket": ticket, "published": list(keys), "removed": list(removing), **(extra or {})})
     write_preview(slug)

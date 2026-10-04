@@ -53,7 +53,7 @@ export type NeedsItem =
   | { kind: "script"; urgency: number; script: { id: string; title: string; status: string } }
   | { kind: "invoice"; urgency: number; invoice: Awaited<ReturnType<typeof orgInvoices>>[number] }
   | { kind: "shoot"; urgency: number; project: ProjectWithAll; shoot: ProjectWithAll["shoot_periods"][number] }
-  | { kind: "review"; urgency: number; project: ProjectWithAll; film: ProjectWithAll["deliverables"][number] }
+  | { kind: "review"; urgency: number; project: ProjectWithAll; film: ProjectWithAll["deliverables"][number]; version_n?: number }
   | { kind: "sign"; urgency: number; project: { name: string; slug: string | null; job_number: string | null }; item: NeededSignature }
 
 /** The client's paperwork, live from Sign Here (never stored here): per project, or "unavailable". */
@@ -141,6 +141,7 @@ export async function needsYou(
     items.push({ kind: "invoice", urgency: Math.max(0, n), invoice: inv })
   }
   const today = todayUTC()
+  const okAsks: { p: ProjectWithAll; f: ProjectWithAll["deliverables"][number] }[] = []
   for (const p of projects) {
     for (const s of p.shoot_periods) {
       if (s.end_date >= today && daysFromToday(s.start_date) <= 21) {
@@ -152,12 +153,16 @@ export async function needsYou(
     for (const f of p.deliverables) {
       if (f.delivered_at || !f.review_url) continue
       if (f.ask === "notes") items.push({ kind: "review", urgency: 2, project: p, film: f })
-      if (f.ask !== "ok" || (email && !isApprover(f, email))) continue
-      const st = await reviewState(f)
-      const mine = !!email && st.kind === "ok" && st.approvals.some((a) => a.version_id === st.newest.id && a.email === email.toLowerCase())
-      if (st.kind === "ok" && (st.newestApproved || mine)) continue
-      items.push({ kind: "review", urgency: 1, project: p, film: f })
+      if (f.ask === "ok" && (!email || isApprover(f, email))) okAsks.push({ p, f })
     }
   }
+  // Read in parallel: a slow Review costs the home page one wait, not one per film.
+  const states = await Promise.all(okAsks.map(({ f }) => reviewState(f)))
+  okAsks.forEach(({ p, f }, i) => {
+    const st = states[i]
+    const mine = !!email && st.kind === "ok" && st.approvals.some((a) => a.version_id === st.newest.id && a.email === email.toLowerCase())
+    if (st.kind === "ok" && (st.newestApproved || mine)) return
+    items.push({ kind: "review", urgency: 1, project: p, film: f, version_n: st.kind === "ok" ? st.newest.n : undefined })
+  })
   return items.sort((a, b) => a.urgency - b.urgency)
 }

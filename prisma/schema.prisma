@@ -215,6 +215,7 @@ model Deliverable {
   review_url      String?
   // SPEC §13 v4: the Review share link's asset (versions are read live from Review), who approves, and what Sam asks
   review_asset_id String?
+  version_review_id String? // the Review version Sam's version_label names (shown/frozen only for that one)
   approvers       Json? // emails (gated: book people only)
   approval        String    @default("any") // any | all
   ask             String    @default("none") // none | notes | ok

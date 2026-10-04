@@ -248,6 +248,7 @@ export async function applyBook(book: Book) {
         watch_url: f.watch_url ?? null,
         review_url: f.review_url ?? null,
         review_asset_id: f.review_asset_id ?? null,
+        version_review_id: f.version_review_id ?? null,
         approvers: f.approvers.map((e) => e.toLowerCase()),
         approval: f.approval,
         ask: f.ask,

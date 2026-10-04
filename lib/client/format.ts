@@ -33,6 +33,11 @@ export function day(d: Date | null | undefined, opts: Intl.DateTimeFormatOptions
   if (!d) return ""
   return d.toLocaleDateString("en-US", { timeZone: "UTC", ...opts })
 }
+/** A MOMENT (an approval, an upload) as its Eastern calendar day. `day()` is for date-only facts stored at UTC noon. */
+export function dayET(d: Date | string | null | undefined, opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" }) {
+  if (!d) return ""
+  return new Date(d).toLocaleDateString("en-US", { timeZone: "America/New_York", ...opts })
+}
 export function dayShort(d: Date | null | undefined) {
   return day(d, { month: "short", day: "numeric" })
 }

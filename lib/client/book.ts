@@ -49,6 +49,8 @@ const Film = z.object({
   review_url: https.optional(),
   // SPEC §13 v4: the Review link's asset (versions are read live from Review), who approves, what Sam asks for now.
   review_asset_id: z.string().uuid().optional().catch(undefined),
+  // Which Review version Sam's `version` label names ("v4" is Review's Version 2): shown and frozen only for that one.
+  version_review_id: z.string().uuid().optional().catch(undefined),
   approvers: z.array(z.string().email()).default([]).catch([]),
   approval: z.enum(["any", "all"]).default("any").catch("any"),
   ask: z.enum(["none", "notes", "ok"]).default("none").catch("none"),

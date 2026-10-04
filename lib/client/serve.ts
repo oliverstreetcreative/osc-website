@@ -10,8 +10,18 @@ const TYPES: Record<string, string> = {
 export const typeOf = (path: string) => TYPES[path.split(".").pop()?.toLowerCase() ?? ""] ?? "application/octet-stream"
 const fileName = (path: string) => path.split("/").pop() ?? "file"
 
+/**
+ * Defence in depth behind the gate's lint: only a plain root-relative path is ever served (no "..", ".", empty
+ * segments or backslashes), so "/Clients/Acme/../Other/x.pdf" can't reach another client's folder even if a book
+ * carried it.
+ */
+export const plainPath = (p: string) =>
+  p.startsWith("/") && !p.includes("\\") && !p.includes("\0") && p.split("/").slice(1).every((s) => s !== "" && s !== "." && s !== "..")
+const refused = () => new NextResponse("File not available.", { status: 404 })
+
 /** Small files (PDFs, stills): stream through us. inline = view in the browser. */
 export async function streamFile(path: string, opts: { inline?: boolean; downloadName?: string } = {}) {
+  if (!plainPath(path)) return refused()
   const res = await download(path)
   if (!res || !res.body) return new NextResponse("File not available right now.", { status: 404 })
   const name = opts.downloadName ?? fileName(path)
@@ -27,6 +37,7 @@ export async function streamFile(path: string, opts: { inline?: boolean; downloa
 
 /** Big files (films): hand the browser a short-lived Dropbox link. */
 export async function redirectToFile(path: string, req: Request) {
+  if (!plainPath(path)) return refused()
   const link = await temporaryLink(path)
   if (link) return NextResponse.redirect(link, 302)
   const local = await localFileResponse(path, req.headers.get("range"), typeOf(path))

@@ -9,6 +9,7 @@ import { greeting, money, relativeDue, day, daysFromToday, duration } from "@/li
 import { PosterImage, HelpFooter, PlayBadge, SectionTitle, DemoOff } from "@/app/client/ui"
 import { isDemoSlug } from "@/lib/client/demo"
 import { ProjectCard } from "@/app/client/project-card"
+import { shareToken } from "@/lib/client/review"
 
 export const metadata = { title: "Home" }
 
@@ -234,7 +235,12 @@ function NeedCard({ n, demo, me }: { n: NeedsItem; demo: boolean; me: string }) 
       <div className="cs-need-top">
         <span className="cs-eyebrow"><Clapperboard size={13} style={{ verticalAlign: -2, marginRight: 6 }} />{ok ? "Ready for your OK" : "Ready for your notes"}</span>
       </div>
-      <h3>{n.film.name}{n.film.version_label ? ` · ${n.film.version_label}` : ""}</h3>
+      {/* A cut on OSC Review: Review's own number when known, never the book's label (it may name another cut).
+          A Frame.io or demo link keeps the book's label, as before. */}
+      <h3>
+        {n.film.name}
+        {n.version_n ? ` · Version ${n.version_n}` : !shareToken(n.film.review_url) && n.film.version_label ? ` · ${n.film.version_label}` : ""}
+      </h3>
       <p>{n.project.name}</p>
       <div className="cs-need-act">
         {demo ? (

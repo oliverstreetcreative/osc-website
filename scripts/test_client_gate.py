@@ -137,6 +137,50 @@ class GateTest(unittest.TestCase):
         r = self.gate("lint", "acme")
         self.assertEqual(r.returncode, 0, r.stdout)
 
+    def test_ok_needs_a_job_number_and_label_binding_is_a_uuid(self):
+        b = book(film_extra={"ask": "ok", "review_url": LINK, "review_asset_id": A1})
+        del b["projects"][0]["job_number"]
+        self.write_draft(b)
+        self.assertIn("needs the project's job_number", self.gate("lint", "acme").stdout)
+        self.write_draft(book(film_extra={"review_url": LINK, "review_asset_id": A1, "version": "v4",
+                                          "version_review_id": "v4"}))
+        self.assertIn("version_review_id must be the Review version's id", self.gate("lint", "acme").stdout)
+        self.write_draft(book(film_extra={"review_url": LINK, "review_asset_id": A1, "version": "v4",
+                                          "version_review_id": V2}))
+        r = self.gate("lint", "acme")
+        self.assertEqual(r.returncode, 0, r.stdout)
+
+    def test_approved_film_keeps_its_review_link_but_other_fields_change(self):
+        A2 = "99999999-2222-3333-4444-555555555555"
+        self.write_draft(book(film_extra={"ask": "ok", "review_url": LINK, "review_asset_id": A1}))
+        self.assertEqual(self.approve_all().returncode, 0)
+        self.ledger(3)  # a v4 approval: Review's Version 3 of this film
+        self.write_draft(book(film_extra={"ask": "none", "review_url": LINK, "review_asset_id": A1}))
+        r = self.approve_all("t2")
+        self.assertEqual(r.returncode, 0, r.stderr)  # Sam can stop asking
+        self.write_draft(book(film_extra={"ask": "none", "review_url": LINK, "review_asset_id": A2}))
+        r = self.approve_all("t3")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("approved by the client", r.stderr + r.stdout)
+        r = self.gate("remove", "acme", "--items", "film:p1/02-appropriation", "--by", "Sam")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertEqual(self.published()["projects"][0]["films"][0]["review_asset_id"], A1)
+
+    def test_paths_cannot_climb_out_or_reach_client_site_data(self):
+        os.makedirs(os.path.join(self.root, "Clients", "Other"), exist_ok=True)
+        open(os.path.join(self.root, "Clients", "Other", "x.pdf"), "w").close()
+        b = book()
+        b["documents"] = [{"key": "d1", "kind": "other", "title": "Climb", "audience": "client",
+                           "path": "/Clients/Acme/../Other/x.pdf"}]
+        self.write_draft(b)
+        self.assertIn("must be a plain root-relative path", self.gate("lint", "acme").stdout)
+        b["documents"][0]["path"] = "/_admin/client-site/books/other.json"
+        self.write_draft(b)
+        self.assertIn("file outside this client's folder", self.gate("lint", "acme").stdout)
+        b["documents"][0]["path"] = "/Clients/Acme//x.pdf"
+        self.write_draft(b)
+        self.assertIn("must be a plain root-relative path", self.gate("lint", "acme").stdout)
+
     def test_lint_failure_blocks_approve(self):
         self.write_draft(book([version(1, version_id="nope")]))
         r = self.approve_all()

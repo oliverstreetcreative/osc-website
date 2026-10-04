@@ -117,6 +117,7 @@ CREATE TABLE "deliverables" (
     "watch_url" TEXT,
     "review_url" TEXT,
     "review_asset_id" TEXT,
+    "version_review_id" TEXT,
     "approvers" JSONB,
     "approval" TEXT NOT NULL DEFAULT 'any',
     "ask" TEXT NOT NULL DEFAULT 'none',
