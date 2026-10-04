@@ -47,10 +47,19 @@ def version(n, stage="for_approval", label=None, audience="client", **review):
 
 
 class GateBase(unittest.TestCase):
+    # The fixtures' Review assets count as clean client assets (SPEC §28 v2); a test that needs one refused lists less.
+    CLEAN = ("11111111-2222-3333-4444-555555555555", "99999999-2222-3333-4444-555555555555",
+             "22222222-3333-4444-5555-666666666666")
+
     def setUp(self):
         self.root = tempfile.mkdtemp(prefix="gate-test-")
         self.site = os.path.join(self.root, "_admin", "client-site")
         os.makedirs(os.path.join(self.site, "books"))
+        self.write_clean(*self.CLEAN)
+
+    def write_clean(self, *assets):
+        with open(os.path.join(self.site, "review-clean-assets.json"), "w") as f:
+            json.dump({"version": 1, "assets": [{"asset_id": a} for a in assets]}, f)
 
     def tearDown(self):
         shutil.rmtree(self.root, ignore_errors=True)
@@ -1021,6 +1030,120 @@ class RehearsalTest(GateBase):
         r = self.gate("approve", "rehearsal-osc", "--by", "worker", "--ticket", "rehearsal", "--digest", check)
         self.assertEqual(r.returncode, 0, r.stderr + lint)
         self.assertTrue(os.listdir(os.path.join(self.site, "frozen")))
+
+
+class MoneyTest(GateBase):
+    """SPEC §28 v2: money with a third-party payer, as its own publishable item."""
+
+    def today(self, days_ago=0):
+        import datetime as dt
+        return (dt.date.today() - dt.timedelta(days=days_ago)).isoformat()
+
+    def money_book(self, legs=None, as_of=None, invoices=None, **project_extra):
+        b = book()
+        b["people"][0]["role"] = "OWNER"
+        b["projects"][0].update(project_extra)
+        b["projects"][0]["money"] = {
+            "as_of": as_of or self.today(), "pattern": "campaign_pays_osc", "campaign": "the Moore campaign",
+            "legs": legs if legs is not None else [
+                {"key": "gm1", "from": "campaign", "to": "osc", "amount": 7500, "status": "paid", "date": "2026-04-03",
+                 "invoice": "GM-2026-1"},
+                {"key": "gm1-share", "from": "osc", "to": "client", "amount": 2500, "status": "sent",
+                 "date": "2026-04-06", "for": "GM-2026-1"},
+                {"key": "gm2-share", "from": "osc", "to": "client", "status": "to_confirm"},
+            ]}
+        b["invoices"] = invoices or []
+        return b
+
+    def test_money_publishes_and_holds_as_its_own_item(self):
+        self.write_draft(self.money_book())
+        r = self.gate("approve", "acme", "--by", "Sam", "--ticket", "t1", "--items", "org,person:jane@client.org,project:p1,film:p1/02-appropriation")
+        self.assertEqual(r.returncode, 0, r.stderr + self.gate("lint", "acme").stdout)
+        self.assertNotIn("money", self.published()["projects"][0])  # the job is up; its money is held
+        r = self.gate("approve", "acme", "--by", "Sam", "--ticket", "t2", "--items", "money:p1")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.published()["projects"][0]["money"]["legs"][0]["invoice"], "GM-2026-1")
+        r = self.gate("remove", "acme", "--items", "money:p1", "--by", "Sam")  # a wrong block comes down alone
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn("money", self.published()["projects"][0])
+        self.assertEqual(self.published()["projects"][0]["key"], "p1")
+
+    def test_the_status_table_and_never_guessing(self):
+        bad = [
+            {"key": "a", "from": "osc", "to": "client", "amount": 5, "status": "paid"},
+            {"key": "b", "from": "osc", "to": "client", "amount": 200, "status": "to_confirm"},
+            {"key": "c", "from": "osc", "to": "client", "amount": 200, "status": "owed", "for": "NOPE-1"},
+            {"key": "d", "from": "client", "to": "osc", "amount": 800, "status": "invoiced"},
+            {"key": "e", "from": "client", "to": "osc", "status": "invoiced", "invoice": "26-0404"},
+            {"key": "f", "from": "osc", "to": "osc", "status": "paid"},
+            {"key": "g", "from": "campaign", "to": "osc", "amount": -1, "status": "paid", "color": "red"},
+        ]
+        self.write_draft(self.money_book(legs=bad))
+        out = self.gate("lint", "acme").stdout
+        for words in ("'paid' isn't a osc → client status", "to_confirm never carries an amount",
+                      "isn't a campaign invoice in this block", "names its invoice (one source per debt)",
+                      "invoice 26-0404 isn't in this book's invoices", "no such direction osc → osc",
+                      "amount must be a number", "unexpected field 'color'"):
+            self.assertIn(words, out)
+
+    def test_open_money_must_be_fresh_and_paid_money_never_goes_stale(self):
+        open_leg = [{"key": "s", "from": "osc", "to": "client", "amount": 200, "status": "owed"}]
+        self.write_draft(self.money_book(legs=open_leg, as_of=self.today(10)))
+        self.assertIn("refresh from Mercury first", self.gate("lint", "acme").stdout)
+        self.write_draft(self.money_book(legs=open_leg, as_of=self.today(1)))
+        self.assertNotIn("refresh from Mercury", self.gate("lint", "acme").stdout)
+        paid = [{"key": "p", "from": "campaign", "to": "osc", "amount": 7500, "status": "paid", "date": "2026-04-03"}]
+        self.write_draft(self.money_book(legs=paid, as_of="2026-04-03"))
+        self.assertNotIn("refresh from Mercury", self.gate("lint", "acme").stdout)
+
+    def test_a_client_debt_reads_its_invoice(self):
+        inv = [{"number": "2026-0829", "title": "Gex Williams spots", "amount": 3000, "issued_on": "2026-08-29",
+                "status": "open", "audience": "client"}]
+        legs = [{"key": "c", "from": "campaign", "to": "client", "status": "direct"},
+                {"key": "i", "from": "client", "to": "osc", "status": "invoiced", "invoice": "2026-0829"}]
+        self.write_draft(self.money_book(legs=legs, invoices=inv))
+        out = self.gate("lint", "acme").stdout
+        self.assertIn("lint clean", out, out)
+        ticket = self.gate("ticket", "acme").stdout
+        self.assertIn("Money: Spots", ticket)
+        self.assertIn("seen by Jane Roe", ticket)
+        self.assertIn("the client → OSC $3,000 invoiced (2026-0829)", ticket)
+        # The staff preview renames the invoice; the leg follows it.
+        self.gate("preview", "acme")
+        with open(os.path.join(self.site, "preview", "acme--preview.json")) as f:
+            pv = json.load(f)
+        self.assertEqual(pv["projects"][0]["money"]["legs"][1]["invoice"], "2026-0829 (preview)")
+        self.assertEqual(pv["invoices"][0]["number"], "2026-0829 (preview)")
+
+    def test_free_text_carries_no_money_but_paid_in_full_is_fine(self):
+        for line, bad in (("Cut 2 is out. $1,500 due on delivery.", "$1"), ("You owe us for the Moore spots.", "owe"),
+                          ("Commission sent.", "Commission")):
+            b = book()
+            b["projects"][0]["status_line"] = line
+            self.write_draft(b)
+            self.assertIn(f'mentions money ("{bad}', self.gate("lint", "acme").stdout, line)
+        b = book()
+        b["projects"][0]["status_line"] = "Delivered September 16. Paid in full."
+        self.write_draft(b)
+        self.assertNotIn("mentions money", self.gate("lint", "acme").stdout)
+
+    def test_a_review_link_must_be_on_a_clean_client_asset(self):
+        self.write_clean()  # nothing listed as clean
+        self.write_draft(book(film_extra={"review_url": LINK, "review_asset_id": A1}))
+        self.assertIn("isn't on a clean client asset", self.gate("lint", "acme").stdout)
+        self.write_clean(A1)
+        self.assertNotIn("clean client asset", self.gate("lint", "acme").stdout)
+
+    def test_agreement_signatures_have_a_shape(self):
+        b = book()
+        b["documents"] = [{"key": "vva", "kind": "agreement", "title": "Video Vendor Agreement", "audience": "client",
+                           "signatures": {"osc": "2026-01-12", "client": "soon"}},
+                          {"key": "w9", "kind": "other", "title": "Note", "audience": "client",
+                           "signatures": {"osc": "2026-01-12"}}]
+        self.write_draft(b)
+        out = self.gate("lint", "acme").stdout
+        self.assertIn('signatures is {"osc"', out)
+        self.assertIn("only an agreement carries signatures", out)
 
 
 if __name__ == "__main__":

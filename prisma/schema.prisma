@@ -100,6 +100,7 @@ model Project {
   poster_time     Float?
   dates           Json?
   team            Json?
+  money           Json? // a third-party payer's flow (SPEC §28 v2): {as_of, pattern, campaign?, legs[]}; re-checked with Zod on read
   sort_date       DateTime?
   hidden          Boolean       @default(false)
   from_request    String? // a client's "Start a new project" request this project answers (SPEC §17)
@@ -726,6 +727,7 @@ model Document {
   size_bytes      Int?
   signed_by       String?
   signed_on       DateTime?    @db.Date
+  signatures      Json? // {osc?, client?} dates (SPEC §28 v2): "Signed by OSC Jan 12 · needs your signature"
   sha256          String?
   // SPEC §24 v2, proposals: Sam asks the named acceptors for a yes to exactly the frozen file (sha256 above = the
   // gate's frozen copy, _admin/client-site/frozen/<sha256>.pdf). `total` is office-side, never rendered.

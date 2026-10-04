@@ -82,6 +82,26 @@ const TeamMember = z.object({
   email: z.string().email().optional().catch(undefined),
 })
 
+// Money with a third-party payer (SPEC §28 v2): only jobs where someone else (a campaign) pays carry a block.
+// lib/client/money.ts reads it; the gate lints the status table. A bad block is dropped (`.catch(undefined)` on the
+// project field), never allowed to fail the whole book: one wrong leg must not hide a client's portal.
+const MoneyLeg = z.object({
+  key,
+  from: z.enum(["campaign", "client", "osc"]),
+  to: z.enum(["client", "osc"]),
+  amount: z.number().nonnegative().optional(),
+  status: z.enum(["invoiced", "paid", "after_campaign_pays", "owed", "sent", "after_acceptance", "direct", "to_confirm"]),
+  date: date.optional(),
+  invoice: z.string().optional(),
+  for: z.string().optional(),
+})
+export const Money = z.object({
+  as_of: date,
+  pattern: z.enum(["campaign_pays_client", "campaign_pays_osc"]),
+  campaign: z.string().optional(),
+  legs: z.array(MoneyLeg).default([]),
+})
+
 const Project = z.object({
   key,
   slug: key,
@@ -102,6 +122,7 @@ const Project = z.object({
   from_request: z.string().uuid().optional(),
   films: z.array(Film).default([]),
   shoots: z.array(Shoot).default([]),
+  money: Money.optional().catch(undefined),
 })
 
 const Invoice = z.object({
@@ -131,6 +152,8 @@ const Document = z.object({
   url: https.optional(),
   signed_by: z.string().optional(),
   signed_on: date.optional(),
+  // SPEC §28 v2: who has signed an agreement so far ("Signed by OSC Jan 12 · needs your signature").
+  signatures: z.object({ osc: date.optional(), client: date.optional() }).optional().catch(undefined),
   // SPEC §24 v2, proposals only: Sam asks the named acceptors for a yes to exactly this file. The gate freezes the PDF
   // (frozen/<sha256>.pdf) and writes frozen_sha256; `total` is office-side (record, ledger, Sam's ticket), never shown.
   ask: z.enum(["none", "accept"]).default("none").catch("none"),

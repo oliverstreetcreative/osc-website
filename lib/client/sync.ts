@@ -8,6 +8,7 @@
 // client; they never carry people, so no client can sign in to one.
 // On top of that, failClosed() drops any item whose text carries an internal
 // marker, so a bad edit renders as nothing rather than as a leak.
+import { Prisma } from "@/generated/prisma"
 import { db } from "@/lib/db"
 import { Book } from "./book"
 import { listJson, listJsonEntries, readText } from "./dropbox"
@@ -306,6 +307,8 @@ export async function applyBook(book: Book) {
       poster_path: p.poster?.path ?? p.films.find((f) => f.poster)?.poster ?? null,
       dates: p.dates,
       team: p.team,
+      // SPEC §28 v2: only jobs with a third-party payer carry money; a job without a block shows none.
+      money: p.money ?? Prisma.DbNull,
       sort_date: d(p.sort_date),
       from_request: p.from_request ?? null,
       hidden: false,
@@ -419,6 +422,7 @@ export async function applyBook(book: Book) {
       url: doc.url ?? null,
       signed_by: doc.signed_by ?? null,
       signed_on: d(doc.signed_on),
+      signatures: doc.signatures ?? Prisma.DbNull,
       mime_type: doc.path?.toLowerCase().endsWith(".pdf") ? "application/pdf" : null,
       // SPEC §24 v2: a proposal's frozen bytes (the gate wrote frozen_sha256 when Sam published it) and its ask. A
       // proposal without a frozen hash can't be read or accepted on the site (the frozen copy is the only source).
