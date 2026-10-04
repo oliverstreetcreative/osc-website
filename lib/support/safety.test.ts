@@ -26,10 +26,10 @@ test("the redactor removes tokens of every shape", () => {
 })
 
 test("device and browser come out as enums only", () => {
-  assert.deepEqual(deviceOf("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit Version/18.0 Mobile Safari/604.1"), { device: "phone", browser: "safari" })
-  assert.deepEqual(deviceOf("Mozilla/5.0 (Macintosh) Chrome/129 Safari/537.36"), { device: "desktop", browser: "chrome" })
-  assert.deepEqual(deviceOf("Mozilla/5.0 (iPad) CriOS/129 Mobile"), { device: "tablet", browser: "chrome" })
-  assert.deepEqual(deviceOf(undefined), { device: "unknown", browser: "other" })
+  assert.deepEqual(deviceOf("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit Version/18.0 Mobile Safari/604.1"), { device: "phone", browser: "safari", os: "ios" })
+  assert.deepEqual(deviceOf("Mozilla/5.0 (Macintosh) Chrome/129 Safari/537.36"), { device: "desktop", browser: "chrome", os: "macos" })
+  assert.deepEqual(deviceOf("Mozilla/5.0 (iPad) CriOS/129 Mobile"), { device: "tablet", browser: "chrome", os: "ios" })
+  assert.deepEqual(deviceOf(undefined), { device: "unknown", browser: "other", os: "other" })
 })
 
 test("flags are hints for a human: injection phrasing, money, access, requests, links, code", () => {

@@ -47,9 +47,12 @@ def version(n, stage="for_approval", label=None, audience="client", **review):
 
 
 class GateBase(unittest.TestCase):
-    # The fixtures' Review assets count as clean client assets (SPEC §28 v2); a test that needs one refused lists less.
-    CLEAN = ("11111111-2222-3333-4444-555555555555", "99999999-2222-3333-4444-555555555555",
-             "22222222-3333-4444-5555-666666666666")
+    # The fixtures' Review shares count as clean (SPEC §28 v2): each is (asset, the share link made on it), as
+    # review-clean-assets.json pairs them. A test that needs a link refused lists less.
+    CLEAN = (("11111111-2222-3333-4444-555555555555", LINK),
+             ("11111111-2222-3333-4444-555555555555", "https://review.oliverstreetcreative.com/share/RehearsalLink0001"),
+             ("99999999-2222-3333-4444-555555555555", LINK),
+             ("22222222-3333-4444-5555-666666666666", "https://review.oliverstreetcreative.com/share/RehearsalLink0001"))
 
     def setUp(self):
         self.root = tempfile.mkdtemp(prefix="gate-test-")
@@ -57,9 +60,17 @@ class GateBase(unittest.TestCase):
         os.makedirs(os.path.join(self.site, "books"))
         self.write_clean(*self.CLEAN)
 
-    def write_clean(self, *assets):
+    def write_clean(self, *entries):
+        """Each entry is an asset id (its share is LINK), an (asset, share) pair, or (asset, share, [orgs])."""
+        rows = []
+        for e in entries:
+            e = (e, LINK) if isinstance(e, str) else tuple(e)
+            row = {"asset_id": e[0], "share": e[1]}
+            if len(e) > 2:
+                row["orgs"] = list(e[2])
+            rows.append(row)
         with open(os.path.join(self.site, "review-clean-assets.json"), "w") as f:
-            json.dump({"version": 1, "assets": [{"asset_id": a} for a in assets]}, f)
+            json.dump({"version": 1, "assets": rows}, f)
 
     def tearDown(self):
         shutil.rmtree(self.root, ignore_errors=True)
@@ -1039,12 +1050,12 @@ class MoneyTest(GateBase):
         import datetime as dt
         return (dt.date.today() - dt.timedelta(days=days_ago)).isoformat()
 
-    def money_book(self, legs=None, as_of=None, invoices=None, **project_extra):
+    def money_book(self, legs=None, as_of=None, invoices=None, pattern="campaign_pays_osc", **project_extra):
         b = book()
         b["people"][0]["role"] = "OWNER"
         b["projects"][0].update(project_extra)
         b["projects"][0]["money"] = {
-            "as_of": as_of or self.today(), "pattern": "campaign_pays_osc", "campaign": "the Moore campaign",
+            "as_of": as_of or self.today(), "pattern": pattern, "campaign": "the Moore campaign",
             "legs": legs if legs is not None else [
                 {"key": "gm1", "from": "campaign", "to": "osc", "amount": 7500, "status": "paid", "date": "2026-04-03",
                  "invoice": "GM-2026-1"},
@@ -1101,13 +1112,13 @@ class MoneyTest(GateBase):
                 "status": "open", "audience": "client"}]
         legs = [{"key": "c", "from": "campaign", "to": "client", "status": "direct"},
                 {"key": "i", "from": "client", "to": "osc", "status": "invoiced", "invoice": "2026-0829"}]
-        self.write_draft(self.money_book(legs=legs, invoices=inv))
+        self.write_draft(self.money_book(legs=legs, invoices=inv, pattern="campaign_pays_client"))
         out = self.gate("lint", "acme").stdout
         self.assertIn("lint clean", out, out)
         ticket = self.gate("ticket", "acme").stdout
         self.assertIn("Money: Spots", ticket)
         self.assertIn("seen by Jane Roe", ticket)
-        self.assertIn("the client → OSC $3,000 invoiced (2026-0829)", ticket)
+        self.assertIn("the client → OSC $3,000 invoiced (invoice 2026-0829)", ticket)
         # The staff preview renames the invoice; the leg follows it.
         self.gate("preview", "acme")
         with open(os.path.join(self.site, "preview", "acme--preview.json")) as f:
@@ -1188,7 +1199,12 @@ class SupportNoteTest(GateBase):
         self.summary(self.T1)
         for note, why in [("See https://example.com/fix", "no links in a support note"),
                           ("x" * 401, "at most 400 characters"),
-                          ("We refunded $50 for the trouble.", "money")]:
+                          ("We refunded $50 for the trouble.", "money"),
+                          ("Reset it at evil.co/reset", "no links in a support note"),
+                          ("Try bit.ly/x", "no links in a support note"),
+                          ("We refunded your payment.", "no money in a support note"),
+                          ("That was 50 dollars.", "no money in a support note"),
+                          ("A credit of €50 is on its way.", "no money in a support note")]:
             self.write_draft(self.note_book(note=note))
             self.assertIn(why, self.gate("lint", "acme").stdout, note)
 
@@ -1196,6 +1212,118 @@ class SupportNoteTest(GateBase):
         self.write_draft(book())
         self.approve_all()
         self.assertNotIn("support_notes", self.published())
+
+
+class ReviewFoldTest(GateBase):
+    """The 10/4 built review of §28: clean shares are (asset, link) pairs, Review links only where they're checked,
+    the money lint's holes, the wider free-text ban, held items on the ticket, and one status table."""
+
+    def money_book(self, legs, pattern="campaign_pays_osc", as_of=None, invoices=None):
+        import datetime as dtm
+        b = book()
+        b["people"][0]["role"] = "OWNER"
+        b["projects"][0]["money"] = {"as_of": as_of or dtm.date.today().isoformat(), "pattern": pattern, "legs": legs}
+        b["invoices"] = invoices or []
+        return b
+
+    def test_the_link_must_be_the_clean_share_listed_for_its_asset(self):
+        other = "https://review.oliverstreetcreative.com/share/InternalWorkingShare1"
+        self.write_draft(book(film_extra={"review_url": other, "review_asset_id": A1}))
+        self.assertIn("isn't the clean share listed for that asset", self.gate("lint", "acme").stdout)
+        self.write_clean((A1, LINK, ["someone-else"]))
+        self.write_draft(book(film_extra={"review_url": LINK, "review_asset_id": A1}))
+        self.assertIn("listed for another client", self.gate("lint", "acme").stdout)
+        self.write_clean((A1, LINK, ["acme"]))
+        self.assertIn("lint clean", self.gate("lint", "acme").stdout)
+
+    def test_a_review_share_only_goes_where_it_is_checked(self):
+        self.write_draft(book(film_extra={"watch_url": LINK}))
+        self.assertIn("only goes in a film's review_url", self.gate("lint", "acme").stdout)
+        b = book()
+        b["documents"] = [{"key": "d1", "kind": "other", "title": "Cut", "audience": "client", "url": LINK}]
+        self.write_draft(b)
+        self.assertIn("only goes in a film's review_url", self.gate("lint", "acme").stdout)
+
+    def test_the_money_lint_holes_are_closed(self):
+        inv = [{"number": "2026-0829", "title": "Spots", "amount": 3000, "issued_on": "2026-08-29", "status": "open",
+                "audience": "client"}]
+        direct = {"key": "c", "from": "campaign", "to": "client", "status": "direct"}
+        cases = [
+            ([direct, {"key": "i", "from": "client", "to": "osc", "status": "to_confirm", "invoice": "2026-0829"}],
+             "campaign_pays_client", None, "only an invoiced or paid client→OSC leg names an invoice"),
+            ([direct, {"key": "i", "from": "client", "to": "osc", "status": "invoiced", "invoice": "2026-0829", "amount": 9}],
+             "campaign_pays_client", None, "takes its amount and date from it"),
+            ([direct, {"key": "i", "from": "client", "to": "osc", "status": "invoiced", "invoice": "2026-0829"},
+              {"key": "j", "from": "client", "to": "osc", "status": "invoiced", "invoice": "2026-0829"}],
+             "campaign_pays_client", None, "named by 2 legs"),
+            ([direct], "campaign_pays_client", "2099-01-01", "as_of is in the future"),
+            ([direct, {"key": "p", "from": "client", "to": "osc", "status": "after_acceptance", "amount": 3000}],
+             "campaign_pays_client", "2026-02-30", "a real day"),
+            ([direct, {"key": "p", "from": "client", "to": "osc", "status": "paid", "amount": 800, "date": "2099-03-26"}],
+             "campaign_pays_client", None, "dated in the future"),
+            ([{"key": "g", "from": "campaign", "to": "osc", "amount": 1500, "status": "paid", "date": "2026-06-26", "invoice": "G-2"},
+              {"key": "s", "from": "osc", "to": "client", "amount": 500, "status": "after_campaign_pays", "for": "G-2"}],
+             "campaign_pays_osc", None, "share is owed or sent now"),
+            ([{"key": "g", "from": "campaign", "to": "osc", "amount": float("inf"), "status": "paid", "date": "2026-06-26", "invoice": "G-2"}],
+             "campaign_pays_osc", None, "amount must be a number"),
+            ([{"key": "g", "from": "campaign", "to": "osc", "amount": 1500, "status": "paid", "date": "2026-06-26", "invoice": 2}],
+             "campaign_pays_osc", None, "invoice must be the invoice number as text"),
+            ([direct], "campaign_pays_osc", None, "so no campaign → client leg"),
+            ([{"key": "s", "from": "osc", "to": "client", "amount": 500, "status": "owed"}],
+             "campaign_pays_osc", None, "names the campaign invoice it comes out of"),
+        ]
+        for legs, pattern, as_of, why in cases:
+            self.write_draft(self.money_book(legs, pattern=pattern, as_of=as_of, invoices=inv))
+            out = self.gate("lint", "acme")
+            self.assertIn(why, out.stdout, (why, out.stdout, out.stderr))
+            self.assertNotIn("Traceback", out.stderr, why)
+
+    def test_free_text_money_beyond_the_project_lines(self):
+        b = book()
+        b["projects"][0]["dates"] = [{"date": "2026-11-01", "label": "Final $500 due"}]
+        self.write_draft(b)
+        self.assertIn("a key date's label mentions money", self.gate("lint", "acme").stdout)
+        b = book()
+        b["projects"][0]["status_line"] = "50% deposit received."
+        self.write_draft(b)
+        self.assertIn("mentions money", self.gate("lint", "acme").stdout)
+        b = book()
+        b["documents"] = [{"key": "d1", "kind": "other", "title": "Payment schedule", "audience": "client"}]
+        self.write_draft(b)
+        self.assertIn("title mentions money", self.gate("lint", "acme").stdout)
+
+    def test_held_items_are_shown_apart_and_skip_held_publishes_the_rest(self):
+        stale = [{"key": "g", "from": "campaign", "to": "osc", "amount": 1500, "status": "invoiced", "invoice": "G-2"}]
+        self.write_draft(self.money_book(stale, as_of="2026-01-01"))
+        tk = self.gate("ticket", "acme").stdout
+        self.assertIn("Held, not in this publish", tk)
+        self.assertIn("approve with --skip-held", tk)
+        self.assertNotEqual(self.approve_all().returncode, 0)  # all-or-nothing by default
+        r = self.gate("approve", "acme", "--by", "Sam", "--ticket", "t1", "--skip-held")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("held, not published: money:p1", r.stderr)
+        pub = self.published()
+        self.assertEqual(pub["projects"][0]["key"], "p1")
+        self.assertNotIn("money", pub["projects"][0])
+
+    def test_money_never_publishes_without_its_project(self):
+        legs = [{"key": "g", "from": "campaign", "to": "osc", "amount": 1500, "status": "paid", "date": "2026-06-26", "invoice": "G-2"}]
+        self.write_draft(self.money_book(legs))
+        r = self.gate("approve", "acme", "--by", "Sam", "--ticket", "t1", "--items", "org,person:jane@client.org,money:p1")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("money:p1 needs project:p1", r.stdout + r.stderr)
+
+    def test_the_status_table_is_the_same_in_typescript(self):
+        import ast
+        with open(os.path.join(os.path.dirname(GATE), "..", "lib", "client", "money.ts"), encoding="utf-8") as f:
+            src = f.read()
+        block = re.search(r"export const ALLOWED[^=]*=\s*\{(.*?)\n\}", src, re.S).group(1)
+        ts = {}
+        for m in re.finditer(r'"(\w+)>(\w+)":\s*(\[[^\]]*\])', block):
+            ts[(m.group(1), m.group(2))] = set(ast.literal_eval(m.group(3)))
+        sys.path.insert(0, os.path.dirname(GATE))
+        import client_gate
+        self.assertEqual(ts, {k: set(v) for k, v in client_gate.MONEY_ALLOWED.items()})
 
 
 if __name__ == "__main__":

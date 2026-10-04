@@ -26,7 +26,7 @@ export default async function Support() {
     ? []
     : await db.supportTicket.findMany({
         where: { person_id: ctx.user.id },
-        select: { id: true, number: true, route: true, status: true, client_note: true, created_at: true, message: true },
+        select: { id: true, number: true, route: true, status: true, status_at: true, client_note: true, created_at: true, message: true },
         orderBy: { created_at: "desc" },
         take: 50,
       })
@@ -47,7 +47,12 @@ export default async function Support() {
                     {r.message.length > 90 ? `${r.message.slice(0, 90)}…` : r.message}
                   </small>
                   {r.client_note ? <small style={{ color: "var(--ink)" }}>{r.client_note}</small> : null}
-                  {r.status === "open" && r.created_at.getTime() < week ? <small>Still open · Text Sam</small> : null}
+                  {/* A week with no news (no status change since it was filed or last moved) → a way to nudge. */}
+                  {r.status !== "fixed" && r.status !== "wont_fix" && (r.status_at ?? r.created_at).getTime() < week ? (
+                    <small>
+                      No news for a week · <a href="sms:+18595121419">Text Sam</a>
+                    </small>
+                  ) : null}
                 </span>
                 <span className={`cs-status ${r.status === "fixed" ? "paid" : r.status === "open" ? "due" : ""}`}>{STATUS[r.status] ?? "Open"}</span>
               </div>

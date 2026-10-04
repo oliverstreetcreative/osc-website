@@ -76,3 +76,12 @@ export function decodeScreenshot(dataUrl: unknown): Buffer | null {
 
 /** The client's words, as kept: trimmed, redacted, capped. "" means nothing to report. */
 export const cleanWords = (message: unknown) => (typeof message === "string" ? redact(message.trim()).slice(0, MAX_WORDS) : "")
+
+const LIMITS = { personHour: 5, personDay: 20, ipHour: 10, signedOutIpHour: 3, signedOutDay: 20, globalDay: 200 }
+
+/** Over any cap? The counts come from inside the store's lock (lib/support/store.ts). */
+export function overLimits(c: { signedOut: boolean; personHour: number; personDay: number; ipHour: number; outDay: number; allDay: number }) {
+  return c.signedOut
+    ? c.ipHour >= LIMITS.signedOutIpHour || c.outDay >= LIMITS.signedOutDay || c.allDay >= LIMITS.globalDay
+    : c.personHour >= LIMITS.personHour || c.personDay >= LIMITS.personDay || c.ipHour >= LIMITS.ipHour || c.allDay >= LIMITS.globalDay
+}

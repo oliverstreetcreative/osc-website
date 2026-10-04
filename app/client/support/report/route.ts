@@ -7,26 +7,26 @@ import { clientIp } from "@/lib/client/ip"
 import { getPortalUser } from "@/lib/portal-auth"
 import { MAX_BODY, createTicket } from "@/lib/support/store"
 import { mirrorTickets } from "@/lib/support/mirror"
+import { readJsonCapped } from "@/lib/support/http"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 export async function POST(req: NextRequest) {
-  const len = Number(req.headers.get("content-length") ?? "0")
-  if (!len || len > MAX_BODY) return NextResponse.json({ error: "too_big" }, { status: 413 })
+  // Staff viewing as a client (either way), and preview sign-ins, are read-only. Checked here too, not only in the
+  // middleware, because someone with no client context never gets a `viewing` flag (review 10/4).
+  if (req.cookies.get("cs_view")?.value || req.headers.get("x-impersonating") === "true" || req.headers.get("x-user-preview") === "true") {
+    return NextResponse.json({ error: "read_only" }, { status: 403 })
+  }
   const ctx = await getClientContext()
   // Staff outside View as, and people who only have scripts, have no client context: they report as themselves,
   // with no client attached.
   const user = ctx ? ctx.user : await getPortalUser()
   if (!user) return NextResponse.json({ error: "sign_in" }, { status: 401 })
-  // Staff viewing as a client and preview sign-ins are read-only; staff report as themselves, outside View as.
-  if (ctx?.viewing || req.headers.get("x-user-preview") === "true") return NextResponse.json({ error: "read_only" }, { status: 403 })
-  let body: Record<string, unknown>
-  try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json({ error: "bad_request" }, { status: 400 })
-  }
+  if (ctx?.viewing) return NextResponse.json({ error: "read_only" }, { status: 403 })
+  const read = await readJsonCapped(req, MAX_BODY)
+  if (!read.ok) return NextResponse.json({ error: read.status === 413 ? "too_big" : "bad_request" }, { status: read.status })
+  const body = read.body
   const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "").toLowerCase()
   const r = await createTicket({
     personId: user.id,

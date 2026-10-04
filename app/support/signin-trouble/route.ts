@@ -5,31 +5,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { clientIp } from "@/lib/client/ip"
 import { createTicket } from "@/lib/support/store"
 import { mirrorTickets } from "@/lib/support/mirror"
+import { readJsonCapped, sameOrigin } from "@/lib/support/http"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function sameOrigin(req: NextRequest) {
-  const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "").split(",")[0].trim().toLowerCase()
-  const from = req.headers.get("origin") ?? req.headers.get("referer")
-  if (!from || !host) return false
-  try {
-    return new URL(from).host.toLowerCase() === host
-  } catch {
-    return false
-  }
-}
-
 export async function POST(req: NextRequest) {
   if (!sameOrigin(req)) return NextResponse.json({ error: "origin" }, { status: 403 })
-  const len = Number(req.headers.get("content-length") ?? "0")
-  if (!len || len > 20_000) return NextResponse.json({ error: "too_big" }, { status: 413 })
-  let body: Record<string, unknown>
-  try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json({ error: "bad_request" }, { status: 400 })
-  }
+  const read = await readJsonCapped(req, 20_000)
+  if (!read.ok) return NextResponse.json({ error: read.status === 413 ? "too_big" : "bad_request" }, { status: read.status })
+  const body = read.body
   const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "").toLowerCase()
   const r = await createTicket({
     reporterEmail: typeof body.email === "string" ? body.email : undefined,

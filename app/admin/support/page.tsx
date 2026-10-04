@@ -6,6 +6,7 @@ import { redirect } from "next/navigation"
 import { getStaffUser } from "@/lib/portal-auth"
 import { db } from "@/lib/db"
 import { supportEnv } from "@/lib/support/store"
+import { showHidden } from "@/lib/support/safety"
 
 export const metadata = { title: "Support — OSC Admin" }
 export const dynamic = "force-dynamic"
@@ -66,11 +67,11 @@ export default async function AdminSupport() {
                   {t.created_at.toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                 </td>
                 <td style={cell}>
-                  {t.person ? `${t.person.name} · ${t.organization?.name ?? "no client"}` : `Signed out${t.reporter_email ? ` · says ${t.reporter_email}` : ""}`}
+                  {t.person ? `${t.person.name} · ${t.organization?.name ?? "no client"}` : `Signed out${t.reporter_email ? ` · says ${showHidden(t.reporter_email)}` : ""}`}
                 </td>
                 <td style={cell}><code>{t.route}</code></td>
-                <td style={cell}>
-                  {t.message.length > 140 ? `${t.message.slice(0, 140)}…` : t.message}
+                <td style={{ ...cell, unicodeBidi: "plaintext" }}>
+                  {showHidden(t.message.length > 140 ? `${t.message.slice(0, 140)}…` : t.message)}
                   {t.has_screenshot ? <span style={{ color: "var(--quiet)" }}> · screenshot</span> : null}
                 </td>
                 <td style={cell}>

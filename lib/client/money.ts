@@ -2,6 +2,7 @@
 // (tested in money.test.ts). Ordinary invoices stay in the book's invoices[]; a `money` block exists only for jobs
 // where someone else pays (the campaign), and it never guesses: an unknown leg reads "to confirm".
 import { Money } from "./book"
+import { money as formatMoney } from "./format"
 
 /** A project's stored money block, re-checked on every read (the column is Json): null when missing or malformed. */
 export function moneyOf(json: unknown): MoneyBlock | null {
@@ -65,8 +66,9 @@ export type InvoiceFact = { number: string; amount: number; status: "open" | "pa
 export const seesMoney = (role: string | null | undefined) =>
   role === "OWNER" || role === "APPROVER" || role === "BILLING" || role === "STAFF"
 
-/** Documents that are money (a proposal's price, an invoice, a receipt): listed only for someone who sees money. */
-export const MONEY_DOC_KINDS = ["proposal", "invoice", "receipt"]
+/** Documents that are money (a proposal's price, an invoice, a receipt, an agreement's rates): listed and served only to
+ *  someone who sees money. */
+export const MONEY_DOC_KINDS = ["proposal", "invoice", "receipt", "agreement"]
 
 /** Which statuses each direction may carry. The gate (client_gate.py) lints the same table. */
 export const ALLOWED: Record<string, LegStatus[]> = {
@@ -86,7 +88,28 @@ export function legProblem(l: Leg): string | null {
   if (!allowed.includes(l.status)) return `${l.status} isn't a ${dir} status`
   if (l.status === "to_confirm" && l.amount !== undefined) return "to_confirm never carries an amount"
   if (l.amount !== undefined && !(Number.isFinite(l.amount) && l.amount >= 0)) return "amount must be a number ≥ 0"
-  if (l.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(l.date)) return "date must be YYYY-MM-DD"
+  if (l.date !== undefined && !realDay(l.date)) return "date must be a real YYYY-MM-DD"
+  if (dir === "client>osc" && l.invoice !== undefined) {
+    // One source per debt, and only for a debt the leg says exists (review 10/4 MUST-FIX 1): an invoice never turns
+    // "to confirm" or "after the campaign accepts" into "you owe".
+    if (l.status !== "invoiced" && l.status !== "paid") return "only an invoiced or paid leg names an invoice"
+    if (l.amount !== undefined || l.date !== undefined) return "a leg that names an invoice takes its amount and date from it"
+  }
+  if (dir === "client>osc" && l.status === "invoiced" && l.invoice === undefined) return "an invoiced debt names its invoice"
+  return null
+}
+
+/** A real calendar day ("2026-02-30" isn't). */
+export function realDay(d: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false
+  const x = new Date(`${d}T12:00:00Z`)
+  return !Number.isNaN(x.getTime()) && x.toISOString().slice(0, 10) === d
+}
+
+/** A block's own problems (the gate lints the same): what makes every OPEN leg in it read "to confirm". */
+function blockProblem(block: MoneyBlock, today: string): string | null {
+  if (!realDay(block.as_of)) return "as_of isn't a real day"
+  if (block.as_of > today) return "as_of is in the future"
   return null
 }
 
@@ -100,26 +123,36 @@ const daysBetween = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00
  * naming an invoice we don't have, reads "to confirm".
  */
 export function resolveLeg(l: Leg, block: MoneyBlock, invoices: Map<string, InvoiceFact>, today: string): Resolved | null {
-  if (legProblem(l)) return { leg: l, status: "to_confirm", stale: false }
+  const unknown: Resolved = { leg: l, status: "to_confirm", stale: false }
+  if (legProblem(l)) return unknown
+  // A client's share comes out of a campaign invoice in this block, or we can't say what it is.
+  if (l.from === "osc" && l.to === "client" && l.status !== "to_confirm") {
+    const source = block.legs.find((x) => x.from === "campaign" && x.to === "osc" && x.invoice && x.invoice === l.for)
+    if (!source) return unknown
+  }
   let status = l.status
   let amount = l.amount
   let date = l.date
+  let backedByInvoice = false
   if (l.from === "client" && l.to === "osc" && l.invoice) {
     const inv = invoices.get(l.invoice)
-    if (!inv) return { leg: l, status: "to_confirm", stale: false }
+    if (!inv) return unknown
     if (inv.status === "void") return null // a voided invoice is no debt and no payment
     amount = inv.amount
     status = inv.status === "paid" ? "paid" : "invoiced"
     date = inv.status === "paid" ? inv.paid_on ?? undefined : inv.issued_on ?? undefined
+    backedByInvoice = true
   }
-  const stale = OPEN.has(status) && daysBetween(block.as_of, today) > STALE_DAYS
+  if (date && date > today) return unknown // a payment "made" in the future is a typo, not a fact
+  // An open leg we last checked too long ago reads "to confirm". A debt backed by its invoice doesn't: the invoice is
+  // the one source, and Billing shows it the same way (review 10/4: never one number two ways).
+  const stale = !backedByInvoice && OPEN.has(status) && (!!blockProblem(block, today) || daysBetween(block.as_of, today) > STALE_DAYS)
   if (stale) return { leg: l, status: "to_confirm", amount: undefined, date: undefined, stale: true }
   if (status === "to_confirm") amount = undefined
   return { leg: l, status, amount, date, stale: false }
 }
 
-export const usd = (n: number) =>
-  n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: Number.isInteger(n) ? 0 : 2 })
+export const usd = (n: number) => formatMoney(n)
 const shortDay = (d: string) =>
   new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" })
 const who: Record<Party, string> = { campaign: "the campaign", client: "you", osc: "OSC" }
@@ -152,7 +185,8 @@ export function legLine(r: Resolved, asOf: string): string {
     case "client>osc:paid":
       return a ? `You paid OSC ${a}${on}.` : `You paid OSC${on}.`
     case "campaign>client:direct":
-      return a ? `The campaign paid you ${a}${on}.` : "The campaign pays you directly."
+      if (a && r.date) return `The campaign paid you ${a} directly${on}.`
+      return a ? `The campaign pays you ${a} directly.` : "The campaign pays you directly."
   }
   return `${cap(who[r.leg.from])} → ${who[r.leg.to]}: to confirm`
 }
@@ -163,7 +197,8 @@ export type JobMoneyState = "none" | "to_confirm" | "open" | "settled"
 export function jobState(resolved: Resolved[], openInvoices = 0): JobMoneyState {
   if (!resolved.length && !openInvoices) return "none"
   const ours = resolved.filter((r) => r.leg.from === "osc" || r.leg.to === "osc") // the campaign→you leg isn't ours
-  if (ours.some((r) => r.status === "to_confirm")) return "to_confirm"
+  if (ours.some((r) => r.status === "to_confirm" || (r.leg.from === "osc" && r.status === "owed" && r.amount === undefined)))
+    return "to_confirm"
   if (openInvoices || ours.some((r) => OPEN.has(r.status))) return "open"
   return "settled"
 }
@@ -204,15 +239,15 @@ export function balanceLine(b: { owedToOsc: number; owedToClient: number; toConf
 /** The groups a job page shows: a campaign invoice with the client share that comes out of it, then the rest. */
 export function groupLegs(resolved: Resolved[]): Resolved[][] {
   const groups: Resolved[][] = []
-  const placed = new Set<string>()
+  const placed = new Set<Resolved>()
   for (const r of resolved) {
     if (r.leg.from === "campaign" && r.leg.to === "osc") {
-      const shares = resolved.filter((s) => s.leg.for && s.leg.for === r.leg.invoice)
+      const shares = resolved.filter((s) => !placed.has(s) && s !== r && s.leg.for && s.leg.for === r.leg.invoice)
       groups.push([r, ...shares])
-      placed.add(r.leg.key)
-      shares.forEach((s) => placed.add(s.leg.key))
+      placed.add(r)
+      shares.forEach((s) => placed.add(s))
     }
   }
-  for (const r of resolved) if (!placed.has(r.leg.key)) groups.push([r])
+  for (const r of resolved) if (!placed.has(r)) groups.push([r])
   return groups
 }

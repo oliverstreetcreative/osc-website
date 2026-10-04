@@ -121,6 +121,8 @@ export function DocRow({ doc, showProject = true }: {
         <strong>{doc.title}</strong>
         <small>{bits.join(" · ")}</small>
         {signed ? <small className={signed.includes("needs your signature") ? "cs-sign-needed" : undefined}>{signed}</small> : null}
+        {/* SPEC §28 v2: the next step, true before and after Sam sends it (once sent, Needs you carries the Sign). */}
+        {signed?.includes("needs your signature") ? <small>You&rsquo;ll sign it here once Sam sends it.</small> : null}
       </span>
       <span className="cs-row-end" aria-hidden style={{ color: "var(--mut)" }}>
         {doc.url ? <ExternalLink size={18} /> : <Download size={18} />}

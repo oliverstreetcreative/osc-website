@@ -41,6 +41,7 @@ import argparse
 import copy
 import datetime as dt
 import hashlib
+import math
 import json
 import os
 import re
@@ -583,6 +584,19 @@ def urls(obj):
             yield from urls(v)
 
 
+def keyed_urls(obj, top=True):
+    """(field, url) for every link field, at any depth (a version's review.share_url is one)."""
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if k in ("url", "watch_url", "review_url", "pay_url", "share_url") and isinstance(v, str):
+                yield k, v
+            else:
+                yield from keyed_urls(v, False)
+    elif isinstance(obj, list):
+        for v in obj:
+            yield from keyed_urls(v, False)
+
+
 def pdf_text(path):
     full = os.path.join(ROOT, path.lstrip("/"))
     if not path.lower().endswith(".pdf") or not shutil.which("pdftotext") or not os.path.exists(full):
@@ -680,6 +694,12 @@ def lint_item(key, content, org, items=None):
             problems.append(f"link isn't https: {u}")
         if TEAM_FRAMEIO.search(u):
             problems.append(f"Frame.io team link, not a client share: {u}")
+    # A Review share link goes ONLY in a film's review_url or a version's review.share_url, where the clean-asset check
+    # runs (review 10/4: a share in watch_url, a download or a document link was never checked).
+    for field, u in keyed_urls(content):
+        if REVIEW_SHARE.match(u) and not ((key.startswith("film:") and field == "review_url")
+                                          or (key.startswith("version:") and field == "share_url")):
+            problems.append(f"a Review share link only goes in a film's review_url (or its versions), not in {field}: {u}")
     if key.startswith("person:") and content.get("email", "").lower().endswith("@oliverstreetcreative.com") \
             and not is_rehearsal((org or {}).get("slug")):
         problems.append("an OSC address in a client's people list")
@@ -687,6 +707,16 @@ def lint_item(key, content, org, items=None):
     if key.startswith("project:"):
         problems += team_problems(content, (org or {}).get("slug"))
         problems += free_money_problems(content, ("status_line", "next_step", "summary", "title", "kind"))
+        if content.get("phase") == "paid" and f"money:{content.get('key')}" in (items or {}):
+            problems.append('phase "paid" on a job where money flows both ways says nothing about who paid whom: use '
+                            '"delivered" (the money block says the rest)')
+        for d in content.get("dates") or []:  # key dates reach VIEWERs and the calendar feed
+            if isinstance(d, dict):
+                problems += [f"a key date's {p}" for p in free_money_problems(d, ("label", "note"))]
+    if key.startswith("shoot:"):
+        problems += free_money_problems(content, tuple(f for f, v in content.items() if isinstance(v, str) and f not in SKIP_KEYS))
+    if key.startswith("document:") and content.get("kind") not in MONEY_DOC_KINDS:
+        problems += free_money_problems(content, ("title", "description"))
     if key.startswith("film:"):
         problems += film_problems(content, items or {}, key)
         problems += free_money_problems(content, ("title", "description", "version"))
@@ -721,6 +751,11 @@ def reader_problem():
 
 
 SUPPORT_NOTE_MAX = 400
+# A link in any spelling: a scheme, www., or a bare domain ("evil.co/reset", "bit.ly/x"). Review 10/4.
+NOTE_LINK = re.compile(r"https?://|www\.|\b[a-z0-9-]+\.(com|net|org|io|co|ly|me|app|dev|link|xyz|info|biz|us|gg|to|sh)\b", re.I)
+# Money in a note, beyond the free-text rule: currencies, amounts in words, refunds, payments, percentages.
+NOTE_MONEY = re.compile(r"[$€£]\s?\d|\b\d[\d,.]*\s?(dollars?|bucks|usd|eur|gbp)\b|\b(usd|eur|gbp)\s?\d|\b(refund\w*|payments?|paid|"
+                        r"pay|charge[sd]?|credit(ed)?|discount\w*|invoice\w*|deposit\w*|fees?|prices?)\b|\d\s?%", re.I)
 
 
 def support_summary(ticket):
@@ -751,8 +786,10 @@ def support_note_problems(key, n, org):
         out.append("a support note needs its words")
     elif len(note) > SUPPORT_NOTE_MAX:
         out.append(f"a support note is at most {SUPPORT_NOTE_MAX} characters")
-    elif re.search(r"https?://|www\.", note, re.I):
+    elif NOTE_LINK.search(note):
         out.append("no links in a support note (say where to tap instead)")
+    if isinstance(note, str) and NOTE_MONEY.search(note):
+        out.append("no money in a support note (refunds, payments, prices are Sam's own words, not a note)")
     s = support_summary(ticket.lower())
     slug = re.sub(r"--preview$", "", str((org or {}).get("slug") or ""))
     if s is None:
@@ -1106,7 +1143,10 @@ MONEY_FRESH_DAYS = 3  # an open leg publishes only if it was checked against the
 DAY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # Free text carries no money once the money block exists: no amounts, no debts. "Paid in full" stays legal (live books
 # use it, and it names no amount).
-FREE_MONEY = re.compile(r"\$\s?\d|\b(owe|owes|owed|owing|invoiced?|invoices|commission|fees?|your share)\b", re.I)
+FREE_MONEY = re.compile(r"\$\s?\d|\b\d[\d,.]*\s?(dollars?|bucks|usd)\b|\busd\s?\d|\d\s?%|"
+                        r"\b(owe|owes|owed|owing|invoiced?|invoices|commission|fees?|your share|payments?|deposits?)\b", re.I)
+# Documents that ARE money may say so; the free-text ban applies to every other document's words.
+MONEY_DOC_KINDS = ("proposal", "invoice", "receipt", "agreement")
 
 
 def free_money_problems(content, fields):
@@ -1124,10 +1164,22 @@ def today_local():
     return dt.date.today()
 
 
+def real_day(s):
+    """The date when s is a real YYYY-MM-DD day ("2026-02-30" isn't), else None."""
+    s = str(s or "")
+    if not DAY_RE.match(s):
+        return None
+    try:
+        return dt.date.fromisoformat(s)
+    except ValueError:
+        return None
+
+
 def money_problems(key, m, items):
     """A money block's own rules: a closed shape, the status table per direction, to_confirm never carries an amount,
-    a share points at a campaign invoice in the same block, a client→OSC leg names an invoice the book has, and open
-    legs publish only when checked against the bank in the last few days (paid and sent never go stale)."""
+    a share points at a campaign invoice in the same block, a client→OSC debt names an invoice the book has (and then
+    takes everything from it), real dates never in the future, the pattern matches the legs, and open legs publish only
+    when checked against the bank in the last few days (paid, sent and invoice-backed debts never go stale)."""
     pkey = key.split(":", 1)[1]
     out = []
     if f"project:{pkey}" not in items:
@@ -1137,16 +1189,32 @@ def money_problems(key, m, items):
     out += [f"unexpected money field {k!r}" for k in sorted(set(m) - MONEY_FIELDS)]
     if m.get("pattern") not in MONEY_PATTERNS:
         out.append(f"money pattern must be one of {', '.join(MONEY_PATTERNS)}")
-    as_of = str(m.get("as_of") or "")
-    if not DAY_RE.match(as_of):
-        out.append("money needs as_of (YYYY-MM-DD): when the open legs were last checked against the bank")
+    if m.get("campaign") is not None and not isinstance(m.get("campaign"), str):
+        out.append("campaign must be words (the campaign's name)")
+    today = today_local()
+    as_of = real_day(m.get("as_of"))
+    if not as_of:
+        out.append("money needs as_of, a real day (YYYY-MM-DD): when the open legs were last checked against the bank")
+    elif as_of > today:
+        out.append("money as_of is in the future")
     legs = m.get("legs") if isinstance(m.get("legs"), list) else []
     if not legs:
         out.append("a money block needs at least one leg")
-    keys, campaign_invoices, open_legs = set(), set(), 0
+    keys, open_legs = set(), 0
+    campaign_invoices, campaign_paid, client_invoices = {}, set(), {}
     for leg in legs:
-        if isinstance(leg, dict) and (leg.get("from"), leg.get("to")) == ("campaign", "osc") and leg.get("invoice"):
-            campaign_invoices.add(str(leg["invoice"]))
+        if isinstance(leg, dict) and (leg.get("from"), leg.get("to")) == ("campaign", "osc") and isinstance(leg.get("invoice"), str):
+            campaign_invoices[leg["invoice"]] = campaign_invoices.get(leg["invoice"], 0) + 1
+            if leg.get("status") == "paid":
+                campaign_paid.add(leg["invoice"])
+    for inv, n in campaign_invoices.items():
+        if n > 1:
+            out.append(f"campaign invoice {inv} is named by {n} legs (its share would show twice)")
+    directions = {(leg.get("from"), leg.get("to")) for leg in legs if isinstance(leg, dict)}
+    if m.get("pattern") == "campaign_pays_osc" and ("campaign", "client") in directions:
+        out.append("campaign_pays_osc: the campaign pays OSC, so no campaign → client leg")
+    if m.get("pattern") == "campaign_pays_client" and ("campaign", "osc") in directions:
+        out.append("campaign_pays_client: the campaign pays the client, so no campaign → OSC leg")
     for leg in legs:
         if not isinstance(leg, dict):
             out.append("every leg must be an object")
@@ -1158,6 +1226,9 @@ def money_problems(key, m, items):
         elif k in keys:
             out.append(f"leg key {k} is used twice")
         keys.add(k)
+        for f in ("invoice", "for"):
+            if leg.get(f) is not None and not isinstance(leg.get(f), str):
+                out.append(f"leg {k}: {f} must be the invoice number as text")
         direction = (leg.get("from"), leg.get("to"))
         status = leg.get("status")
         allowed = MONEY_ALLOWED.get(direction)
@@ -1169,29 +1240,44 @@ def money_problems(key, m, items):
         amount = leg.get("amount")
         if status == "to_confirm" and amount is not None:
             out.append(f"leg {k}: to_confirm never carries an amount (never guess)")
-        if amount is not None and not (isinstance(amount, (int, float)) and not isinstance(amount, bool) and amount >= 0):
+        if amount is not None and not (isinstance(amount, (int, float)) and not isinstance(amount, bool)
+                                       and math.isfinite(amount) and amount >= 0):
             out.append(f"leg {k}: amount must be a number ≥ 0")
-        if leg.get("date") is not None and not DAY_RE.match(str(leg["date"])):
-            out.append(f"leg {k}: date must be YYYY-MM-DD")
+        if leg.get("date") is not None:
+            day = real_day(leg["date"])
+            if not day:
+                out.append(f"leg {k}: date must be a real day (YYYY-MM-DD)")
+            elif day > today:
+                out.append(f"leg {k}: dated in the future (dates say when it happened)")
         if leg.get("for") is not None:
             if direction != ("osc", "client"):
                 out.append(f"leg {k}: only a client's share (OSC → client) names `for`")
             elif str(leg["for"]) not in campaign_invoices:
                 out.append(f"leg {k}: `for` {leg['for']!r} isn't a campaign invoice in this block")
+            elif status == "after_campaign_pays" and leg["for"] in campaign_paid:
+                out.append(f"leg {k}: the campaign has paid {leg['for']}, so the share is owed or sent now, not waiting")
+        elif direction == ("osc", "client") and status not in (None, "to_confirm"):
+            out.append(f"leg {k}: a client's share names the campaign invoice it comes out of (`for`)")
         if direction == ("client", "osc"):
             inv = leg.get("invoice")
+            if inv is not None and status not in ("invoiced", "paid"):
+                out.append(f"leg {k}: only an invoiced or paid client→OSC leg names an invoice")
+            if inv is not None and (amount is not None or leg.get("date") is not None):
+                out.append(f"leg {k}: a leg that names an invoice takes its amount and date from it (leave them off)")
             if status == "invoiced" and not inv:
                 out.append(f"leg {k}: an invoiced client→OSC leg names its invoice (one source per debt)")
-            if inv and f"invoice:{inv}" not in items:
-                out.append(f"leg {k}: invoice {inv} isn't in this book's invoices")
-            if inv and f"invoice:{inv}" in items:
-                if items[f"invoice:{inv}"][1].get("status") == "open":
-                    open_legs += 1
-                continue  # the invoice is the source: its own status decides
+            if isinstance(inv, str):
+                client_invoices[inv] = client_invoices.get(inv, 0) + 1
+                if f"invoice:{inv}" not in items:
+                    out.append(f"leg {k}: invoice {inv} isn't in this book's invoices")
+                continue  # the invoice is the one source: its own status decides, and it never goes stale
         if status in MONEY_OPEN:
             open_legs += 1
-    if open_legs and DAY_RE.match(as_of):
-        age = (today_local() - dt.date.fromisoformat(as_of)).days
+    for inv, n in client_invoices.items():
+        if n > 1:
+            out.append(f"invoice {inv} is named by {n} legs (the client would see the debt twice)")
+    if open_legs and as_of and as_of <= today:
+        age = (today - as_of).days
         if age > MONEY_FRESH_DAYS:
             out.append(f"money as_of is {age} days old with {open_legs} open leg(s): refresh from Mercury first "
                        f"(open money publishes only if checked in the last {MONEY_FRESH_DAYS} days)")
@@ -1212,17 +1298,48 @@ def money_lines(m, items):
             i = items[f"invoice:{inv}"][1]
             amount, status = i.get("amount"), ("paid" if i.get("status") == "paid" else "invoiced")
         a = usd(amount) if isinstance(amount, (int, float)) else ""
-        bits = [f"{names.get(leg.get('from'), '?')} → {names.get(leg.get('to'), '?')}", a, status or "?",
-                leg.get("date") or "", f"({inv})" if inv else "", f"for {leg['for']}" if leg.get("for") else ""]
+        # Sam reads this on his phone: plain words and short dates, never the status codes.
+        bits = [f"{names.get(leg.get('from'), '?')} → {names.get(leg.get('to'), '?')}", a,
+                MONEY_WORDS.get(status, status or "?"), pretty_day(leg.get("date")) if leg.get("date") else "",
+                f"(invoice {inv})" if inv else "", f"(share of {leg['for']})" if leg.get("for") else ""]
         lines.append(" ".join(b for b in bits if b))
     return lines
 
 
+# The ticket's words for each money status (SPEC §28 v2's closed table).
+MONEY_WORDS = {
+    "paid": "paid", "sent": "sent", "owed": "owed", "invoiced": "invoiced", "direct": "pays the client directly",
+    "to_confirm": "to confirm", "after_acceptance": "invoiced after the campaign accepts",
+    "after_campaign_pays": "paid after the campaign pays",
+}
+
+
 def review_clean_assets():
     """Review assets made CLEAN for clients (memory client-share-clean-asset: a fresh asset, 0 comments, 1 version).
-    Written by whoever makes the clean share; the gate refuses a Review link on any other asset."""
+    Written by whoever makes the clean share: each entry is the asset AND the share link made on it (and, when it
+    says so, the clients it's for). The gate refuses any Review link that isn't one of these pairs (review 10/4: the
+    client clicks the LINK, so checking the asset id alone let an internal share through)."""
     data = load(CLEAN_ASSETS) or {}
-    return {str(a.get("asset_id")) for a in data.get("assets", []) if a.get("asset_id")}
+    return [a for a in data.get("assets", []) if isinstance(a, dict) and a.get("asset_id")]
+
+
+def _share(u):
+    return str(u or "").strip().rstrip("/")
+
+
+def clean_share_problem(asset_id, url, org_slug):
+    """None when (asset, link) is a listed clean pair for this client; otherwise why not."""
+    slug = re.sub(r"--preview$", "", str(org_slug or ""))
+    entries = [a for a in review_clean_assets() if str(a.get("asset_id")) == str(asset_id)]
+    if not entries:
+        return ("this Review link isn't on a clean client asset: client links go on a FRESH asset (0 comments, 1 "
+                "version), listed in review-clean-assets.json when the clean share is made (SPEC §28 v2)")
+    pairs = [a for a in entries if _share(a.get("share")) == _share(url)]
+    if not pairs:
+        return "this Review link isn't the clean share listed for that asset (review-clean-assets.json pairs an asset with its link)"
+    if not any(not a.get("orgs") or slug in a.get("orgs", []) for a in pairs):
+        return "that clean Review asset is listed for another client"
+    return None
 
 
 def film_problems(film, items, key=None):
@@ -1244,9 +1361,10 @@ def film_problems(film, items, key=None):
     url = film.get("review_url") or ""
     if url and REVIEW_SHARE.match(url) and not UUIDISH.match(str(film.get("review_asset_id", ""))):
         out.append("a Review link needs its review_asset_id (the shared asset's id)")
-    elif url and REVIEW_SHARE.match(url) and str(film.get("review_asset_id")) not in review_clean_assets():
-        out.append("this Review link isn't on a clean client asset: client links go on a FRESH asset (0 comments, 1 "
-                   "version), listed in review-clean-assets.json when the clean share is made (SPEC §28 v2)")
+    elif url and REVIEW_SHARE.match(url):
+        why = clean_share_problem(film.get("review_asset_id"), url, (items.get("org", (None, {}))[1] or {}).get("slug"))
+        if why:
+            out.append(why)
     ask = film.get("ask")
     if ask is not None and ask not in FILM_ASKS:
         out.append(f'ask must be one of {", ".join(FILM_ASKS)}')
@@ -1279,6 +1397,9 @@ def version_problems(key, v, items):
             out.append("a Review link needs the asset_id and version_id it is pinned to")
         if not isinstance(review.get("version_number"), int):
             out.append("a Review link needs Review's version_number")
+        why = clean_share_problem(review.get("asset_id"), url, (items.get("org", (None, {}))[1] or {}).get("slug"))
+        if why:
+            out.append(why)
     elif LEGACY_FRAMEIO.match(url or ""):
         if v.get("stage") == "for_approval":
             out.append("approval needs a version-pinned Review link, not a Frame.io link")
@@ -1684,8 +1805,37 @@ def pretty_day(s):
         return str(s)
 
 
+def parent_of(k):
+    """The item a key shows under (assemble() drops it without that parent): money/film/shoot → project, version → film."""
+    kind, _, rest = k.partition(":")
+    if kind in ("money",):
+        return f"project:{rest}"
+    if kind in ("film", "shoot"):
+        return f"project:{rest.split('/')[0]}"
+    if kind == "version":
+        return "film:" + "/".join(rest.split("/")[:2])
+    return None
+
+
+def held_items(slug, keys, snap):
+    """Pending items that can't publish now: lint problems, and anything whose parent is neither live nor publishing
+    with it (review 10/4: a stale money block held the whole ticket; money approved without its project vanished)."""
+    _, _, d, l, *_ = snap
+    held = {k: ps[0] for k, ps in lint(slug, keys, snap=snap).items() if k in keys}
+    moved = True
+    while moved:
+        moved = False
+        for k in keys:
+            par = parent_of(k)
+            if k not in held and par and par not in l and (par not in keys or par in held):
+                held[k] = f"waits for {par}" + (" (held)" if par in held else " (not live)")
+                moved = True
+    return held
+
+
 def cmd_ticket(a):
-    _, _, d, l, new, changed, removed = diff(a.org)
+    snap = diff(a.org)
+    _, _, d, l, new, changed, removed = snap
     name = (d.get("org") or l.get("org"))[1].get("short_name") or (d.get("org") or l.get("org"))[1]["name"]
     stones = tombstones(a.org)
     pending = [k for k in new + changed if k not in stones]
@@ -1693,9 +1843,12 @@ def cmd_ticket(a):
     if not pending and not pulled:
         print(f"{name}: nothing waiting to publish.")
         return
+    # Held items are shown apart, with the reason: Sam's Publish covers only what CAN publish (approve --skip-held).
+    held = held_items(a.org, pending, snap)
+    ready = [k for k in pending if k not in held]
     # Footage clips are counted per library (the staff preview's footage page shows every still and title).
     labels, clips = [], {}
-    for k in pending:
+    for k in ready:
         if k.startswith("clip:"):
             lib = k.split(":", 1)[1].split("/", 1)[0]
             n = clips.setdefault(lib, {"new": 0, "changed": 0})
@@ -1727,12 +1880,21 @@ def cmd_ticket(a):
         title = (d.get(f"library:{lib}") or l.get(f"library:{lib}") or (lib, {}))[1].get("title") or lib
         bits = [f"{n['new']} new" if n["new"] else "", f"{n['changed']} changed" if n["changed"] else ""]
         labels.append(f"Footage in {title}: " + ", ".join(b for b in bits if b) + " clip(s); every still and title is on the preview's footage page")
-    n_clips = sum(1 for k in pending if k.startswith("clip:"))
-    if pending:
-        print(f"{name}: {len(pending)} thing{'s' if len(pending) != 1 else ''} ready for their site. Publish? (a) Publish (b) Hold")
+    n_clips = sum(1 for k in ready if k.startswith("clip:"))
+    if ready:
+        print(f"{name}: {len(ready)} thing{'s' if len(ready) != 1 else ''} ready for their site. Publish? (a) Publish (b) Hold")
         for x in labels:
             print(f"  - {x}")
-        print(f"  (check: {pending_digest(d, pending)}" + (f"; more than {MAX_CLIPS_PER_TICKET} clips: publish in parts" if n_clips > MAX_CLIPS_PER_TICKET else "") + ")")
+    else:
+        print(f"{name}: nothing can publish yet.")
+    if held:
+        print("  Held, not in this publish (fix first):")
+        for k in pending:
+            if k in held:
+                print(f"  - {d[k][0]}: {held[k]}")
+    if ready:
+        print(f"  (check: {pending_digest(d, pending)}" + ("; approve with --skip-held" if held else "")
+              + (f"; more than {MAX_CLIPS_PER_TICKET} clips: publish in parts" if n_clips > MAX_CLIPS_PER_TICKET else "") + ")")
     if pulled:
         print(f"  Not in this ticket, {TOMBSTONE_NOTE}:")
         for k in pulled:
@@ -1748,6 +1910,19 @@ def cmd_approve(a):
     unknown = [k for k in keys if k not in d]
     if unknown:
         raise SystemExit(f"not in the draft: {unknown}")
+    if getattr(a, "skip_held", False):
+        if named is not None:
+            raise SystemExit("--skip-held is for the whole ticket; with --items, name exactly what publishes")
+        held = held_items(a.org, keys, snap)
+        for k in keys:
+            if k in held:
+                print(f"  held, not published: {k}: {held[k]}", file=sys.stderr)
+        keys = [k for k in keys if k not in held]
+        if not keys:
+            raise SystemExit("nothing to publish: everything waiting is held")
+    orphans = [f"{k} needs {parent_of(k)}" for k in keys if parent_of(k) and parent_of(k) not in l and parent_of(k) not in keys]
+    if orphans:
+        raise SystemExit("refused: these show only under something that isn't live or in this publish: " + "; ".join(orphans))
     if any(k.startswith("document:") and d[k][1].get("kind") == "proposal" for k in keys) and not a.digest:
         raise SystemExit("refused: a proposal publishes only with --digest <the ticket's check>, so the PDF clients get "
                          "is the one Sam saw")
@@ -1805,6 +1980,7 @@ def main():
     s.add_argument("--ticket", required=True)
     s.add_argument("--items")
     s.add_argument("--digest", help="the ticket's check: refuse if anything changed since Sam saw it")
+    s.add_argument("--skip-held", action="store_true", help="publish what the ticket showed as ready; held items wait")
     s = sub.add_parser("remove")
     s.add_argument("org")
     s.add_argument("--items", required=True)

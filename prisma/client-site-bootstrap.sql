@@ -54,6 +54,7 @@ CREATE TABLE "projects" (
     "poster_time" DOUBLE PRECISION,
     "dates" JSONB,
     "team" JSONB,
+    "money" JSONB,
     "sort_date" TIMESTAMP(3),
     "hidden" BOOLEAN NOT NULL DEFAULT false,
     "from_request" TEXT,
@@ -450,6 +451,7 @@ CREATE TABLE "documents" (
     "size_bytes" INTEGER,
     "signed_by" TEXT,
     "signed_on" DATE,
+    "signatures" JSONB,
     "sha256" TEXT,
     "ask" TEXT NOT NULL DEFAULT 'none',
     "acceptors" JSONB,
@@ -769,6 +771,43 @@ CREATE TABLE "script_notices" (
     CONSTRAINT "script_notices_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "support_tickets" (
+    "id" UUID NOT NULL,
+    "number" SERIAL NOT NULL,
+    "env" TEXT NOT NULL,
+    "person_id" UUID,
+    "organization_id" UUID,
+    "role" TEXT,
+    "reporter_email" TEXT,
+    "surface" TEXT NOT NULL DEFAULT 'portal',
+    "route" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "context" JSONB,
+    "has_screenshot" BOOLEAN NOT NULL DEFAULT false,
+    "ip_hash" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'open',
+    "status_at" TIMESTAMP(3),
+    "client_note" TEXT,
+    "mirrored_at" TIMESTAMP(3),
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "support_tickets_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "support_attachments" (
+    "id" UUID NOT NULL,
+    "ticket_id" UUID NOT NULL,
+    "mime" TEXT NOT NULL,
+    "bytes" BYTEA NOT NULL,
+    "size" INTEGER NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "support_attachments_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "people_email_key" ON "people"("email");
 
@@ -1006,6 +1045,21 @@ CREATE INDEX "script_approvals_script_id_idx" ON "script_approvals"("script_id")
 -- CreateIndex
 CREATE INDEX "script_notices_person_id_sent_at_idx" ON "script_notices"("person_id", "sent_at");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "support_tickets_number_key" ON "support_tickets"("number");
+
+-- CreateIndex
+CREATE INDEX "support_tickets_person_id_created_at_idx" ON "support_tickets"("person_id", "created_at");
+
+-- CreateIndex
+CREATE INDEX "support_tickets_ip_hash_created_at_idx" ON "support_tickets"("ip_hash", "created_at");
+
+-- CreateIndex
+CREATE INDEX "support_tickets_created_at_idx" ON "support_tickets"("created_at");
+
+-- CreateIndex
+CREATE INDEX "support_attachments_ticket_id_idx" ON "support_attachments"("ticket_id");
+
 -- AddForeignKey
 ALTER TABLE "projects" ADD CONSTRAINT "projects_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
@@ -1176,3 +1230,13 @@ ALTER TABLE "script_notices" ADD CONSTRAINT "script_notices_person_id_fkey" FORE
 
 -- AddForeignKey
 ALTER TABLE "script_notices" ADD CONSTRAINT "script_notices_script_id_fkey" FOREIGN KEY ("script_id") REFERENCES "scripts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "support_tickets" ADD CONSTRAINT "support_tickets_person_id_fkey" FOREIGN KEY ("person_id") REFERENCES "people"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "support_tickets" ADD CONSTRAINT "support_tickets_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "support_attachments" ADD CONSTRAINT "support_attachments_ticket_id_fkey" FOREIGN KEY ("ticket_id") REFERENCES "support_tickets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

@@ -5,11 +5,11 @@ import { notFound, redirect } from "next/navigation"
 import { getStaffUser } from "@/lib/portal-auth"
 import { db } from "@/lib/db"
 import { supportEnv } from "@/lib/support/store"
+import { UUID_RE, hasHidden, showHidden } from "@/lib/support/safety"
 
 export const metadata = { title: "Support report — OSC Admin" }
 export const dynamic = "force-dynamic"
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const STATUS_WORDS: Record<string, string> = { open: "Open", working: "Working on it", fixed: "Fixed", wont_fix: "Won't fix" }
 const when = (ms: unknown) =>
   typeof ms === "number" ? new Date(ms).toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit", second: "2-digit" }) : "?"
@@ -17,6 +17,7 @@ const when = (ms: unknown) =>
 type Ctx = {
   device?: string
   browser?: string
+  os?: string
   viewport?: { w?: number | null; h?: number | null; dpr?: number | null }
   scheme?: string | null
   online?: boolean | null
@@ -26,7 +27,7 @@ type Ctx = {
 
 export default async function AdminSupportTicket({ params }: { params: { id: string } }) {
   if (!(await getStaffUser())) redirect("/login")
-  if (!UUID.test(params.id)) notFound()
+  if (!UUID_RE.test(params.id)) notFound()
   const t = await db.supportTicket.findFirst({
     where: { id: params.id.toLowerCase(), env: supportEnv() },
     include: { organization: { select: { name: true, slug: true } }, person: { select: { name: true, email: true } } },
@@ -54,7 +55,15 @@ export default async function AdminSupportTicket({ params }: { params: { id: str
 
       <div style={box}>
         <strong>What they said</strong> <span style={{ color: "var(--quiet)", fontSize: 12 }}>(their words, as data)</span>
-        <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "inherit", margin: "8px 0 0" }}>{t.message}</pre>
+        {hasHidden(t.message) ? (
+          <p style={{ color: "#e0a05c", fontSize: 12, margin: "6px 0 0" }}>
+            Contains characters a reader can&rsquo;t see; each is shown below as &lt;U+…&gt;, exactly what the machines read.
+          </p>
+        ) : null}
+        {/* plaintext bidi: a direction-changing character can't make the words read differently here than in the summary */}
+        <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "inherit", margin: "8px 0 0", unicodeBidi: "plaintext" }}>
+          {showHidden(t.message)}
+        </pre>
       </div>
 
       {t.client_note ? (
@@ -67,7 +76,7 @@ export default async function AdminSupportTicket({ params }: { params: { id: str
       <div style={box}>
         <strong>Page and device</strong>
         <p style={{ margin: "6px 0 0" }}>
-          <code>{t.route}</code> · {c.device ?? "?"} · {c.browser ?? "?"} · {c.viewport?.w ?? "?"}×{c.viewport?.h ?? "?"}
+          <code>{t.route}</code> · {c.device ?? "?"} · {c.os ?? "?"} · {c.browser ?? "?"} · {c.viewport?.w ?? "?"}×{c.viewport?.h ?? "?"}
           {c.viewport?.dpr ? ` @${c.viewport.dpr}x` : ""} · {c.scheme ?? "?"} mode · {c.online === false ? "offline" : "online"}
         </p>
       </div>

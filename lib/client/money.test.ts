@@ -74,8 +74,12 @@ test("Gex: a client→OSC leg takes its amount, status and date from the invoice
   assert.equal(legLine(r[1], gex.as_of), "You owe OSC $3,000, invoiced Aug 29.")
   assert.equal(jobState(r, 1), "open")
   const paid = new Map(gexInvoices)
-  paid.set("2026-0829", { number: "2026-0829", amount: 3000, status: "paid", issued_on: "2026-08-29", paid_on: "2026-10-09" })
-  assert.equal(legLine(resolveBlock(gex, paid, TODAY)[1], gex.as_of), "You paid OSC $3,000 on Oct 9.")
+  paid.set("2026-0829", { number: "2026-0829", amount: 3000, status: "paid", issued_on: "2026-08-29", paid_on: "2026-10-02" })
+  assert.equal(legLine(resolveBlock(gex, paid, TODAY)[1], gex.as_of), "You paid OSC $3,000 on Oct 2.")
+  // A payment dated after today is a typo, never a fact.
+  const future = new Map(gexInvoices)
+  future.set("2026-0829", { number: "2026-0829", amount: 3000, status: "paid", issued_on: "2026-08-29", paid_on: "2026-10-09" })
+  assert.equal(legLine(resolveBlock(gex, future, TODAY)[1], gex.as_of), "You → OSC: to confirm")
   // An invoice the book doesn't have can't be stood behind.
   assert.equal(legLine(resolveBlock(gex, none, TODAY)[1], gex.as_of), "You → OSC: to confirm")
   // A voided invoice is neither a debt nor a payment.
@@ -84,9 +88,17 @@ test("Gex: a client→OSC leg takes its amount, status and date from the invoice
 })
 
 test("staleness: open legs checked more than 7 days ago read 'to confirm · last checked'; paid ones never go stale", () => {
+  // A debt backed by its invoice is the invoice's fact (Billing shows it the same way): it never goes stale.
   const old: MoneyBlock = { ...gex, as_of: "2026-09-25" }
-  const r = resolveBlock(old, gexInvoices, TODAY)
-  assert.equal(legLine(r[1], old.as_of), "You → OSC: to confirm · last checked Sep 25")
+  assert.equal(legLine(resolveBlock(old, gexInvoices, TODAY)[1], old.as_of), "You owe OSC $3,000, invoiced Aug 29.")
+  // Without an invoice behind it, an open leg last checked 9 days ago is "to confirm".
+  const waiting: MoneyBlock = { ...gex, as_of: "2026-09-25", legs: [gex.legs[0], { key: "a", from: "client", to: "osc", amount: 3000, status: "after_acceptance" }] }
+  assert.equal(legLine(resolveBlock(waiting, none, TODAY)[1], waiting.as_of), "You → OSC: to confirm · last checked Sep 25")
+  // A check dated in the future, or not a real day, counts as never checked.
+  const future: MoneyBlock = { ...waiting, as_of: "2026-12-01" }
+  assert.equal(resolveBlock(future, none, TODAY)[1].status, "to_confirm")
+  const unreal: MoneyBlock = { ...waiting, as_of: "2026-02-30" }
+  assert.equal(resolveBlock(unreal, none, TODAY)[1].status, "to_confirm")
   const oldMoore: MoneyBlock = { ...moore, as_of: "2026-09-01" }
   assert.equal(legLine(resolveBlock(oldMoore, none, TODAY)[0], oldMoore.as_of), "The campaign paid OSC $7,500 on Apr 3.")
 })
@@ -97,15 +109,57 @@ test("the in-between states Sam's contract needs, in plain words", () => {
     pattern: "campaign_pays_osc",
     legs: [
       { key: "a", from: "client", to: "osc", amount: 3000, status: "after_acceptance" },
-      { key: "b", from: "osc", to: "client", amount: 200, status: "after_campaign_pays" },
-      { key: "c", from: "osc", to: "client", amount: 200, status: "owed" },
+      { key: "inv", from: "campaign", to: "osc", amount: 1000, status: "invoiced", invoice: "C-1" },
+      { key: "b", from: "osc", to: "client", amount: 200, status: "after_campaign_pays", for: "C-1" },
+      { key: "c", from: "osc", to: "client", amount: 200, status: "owed", for: "C-1" },
     ],
   }
   assert.deepEqual(resolveBlock(b, none, TODAY).map((x) => legLine(x, TODAY)), [
     "OSC invoices you $3,000 once the campaign accepts the spots.",
+    "OSC invoiced the campaign $1,000.",
     "OSC pays you $200 after the campaign pays.",
     "OSC owes you $200.",
   ])
+  // A share that doesn't name a campaign invoice in this block can't be stood behind.
+  const orphan: MoneyBlock = { ...b, legs: [{ key: "s", from: "osc", to: "client", amount: 200, status: "owed", for: "NOPE" }] }
+  assert.equal(resolveBlock(orphan, none, TODAY)[0].status, "to_confirm")
+  // An owed share with no amount is an unknown, in the job's state as in the balance.
+  const noAmount: MoneyBlock = { ...b, legs: [b.legs[1], { key: "s", from: "osc", to: "client", status: "owed", for: "C-1" }] }
+  assert.equal(jobState(resolveBlock(noAmount, none, TODAY)), "to_confirm")
+})
+
+test("an invoice counts only on a leg that says invoiced or paid, and then the invoice is the one source", () => {
+  const leg = (status: "to_confirm" | "after_acceptance") => ({ key: "x", from: "client" as const, to: "osc" as const, status, invoice: "2026-0829" })
+  for (const status of ["to_confirm", "after_acceptance"] as const) {
+    const b: MoneyBlock = { as_of: TODAY, pattern: "campaign_pays_client", legs: [leg(status)] }
+    assert.equal(legLine(resolveBlock(b, gexInvoices, TODAY)[0], TODAY), "You → OSC: to confirm", status)
+  }
+  const doubled: MoneyBlock = {
+    as_of: TODAY,
+    pattern: "campaign_pays_client",
+    legs: [{ key: "x", from: "client", to: "osc", status: "invoiced", invoice: "2026-0829", amount: 99 }],
+  }
+  assert.equal(resolveBlock(doubled, gexInvoices, TODAY)[0].status, "to_confirm")
+  const noInvoice: MoneyBlock = { as_of: TODAY, pattern: "campaign_pays_client", legs: [{ key: "x", from: "client", to: "osc", status: "invoiced", amount: 1234 }] }
+  assert.equal(resolveBlock(noInvoice, none, TODAY)[0].status, "to_confirm")
+})
+
+test("two legs with one key both stay on the page", () => {
+  const b: MoneyBlock = {
+    as_of: TODAY,
+    pattern: "campaign_pays_client",
+    legs: [
+      { key: "same", from: "campaign", to: "client", status: "direct" },
+      { key: "same", from: "client", to: "osc", amount: 800, status: "paid", date: "2026-03-26" },
+    ],
+  }
+  assert.equal(groupLegs(resolveBlock(b, none, TODAY)).flat().length, 2)
+})
+
+test("a campaign paying the client directly is said to have happened only with a date", () => {
+  const b = (date?: string): MoneyBlock => ({ as_of: TODAY, pattern: "campaign_pays_client", legs: [{ key: "c", from: "campaign", to: "client", status: "direct", amount: 9000, date }] })
+  assert.equal(legLine(resolveBlock(b(), none, TODAY)[0], TODAY), "The campaign pays you $9,000 directly.")
+  assert.equal(legLine(resolveBlock(b("2026-03-03"), none, TODAY)[0], TODAY), "The campaign paid you $9,000 directly on Mar 3.")
 })
 
 test("the balance: two numbers, never netted; unknowns counted, never added; 'All square' only when nothing is unknown", () => {

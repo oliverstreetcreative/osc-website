@@ -83,7 +83,8 @@ export default function LoginPage() {
         {email ? null : <p style={{ textAlign: 'left', margin: '6px 0 0', fontSize: 13, opacity: 0.8 }}>Put your email above so Sam knows who you are.</p>}
         {trouble === 'busy' || trouble === 'error' ? (
           <p role="alert" style={{ color: '#f2a07a', textAlign: 'left', margin: '6px 0 0' }}>
-            That didn&rsquo;t go through. Please <a href="sms:+18595121419" style={{ textDecoration: 'underline' }}>text Sam</a>.
+            {trouble === 'busy' ? 'We\u2019ve got a lot of reports right now.' : 'That didn\u2019t go through.'} Please{' '}
+            <a href="sms:+18595121419" style={{ textDecoration: 'underline' }}>text Sam</a>.
           </p>
         ) : null}
         <button type="submit" className="cs-btn light" disabled={!troubleText.trim() || trouble === 'sending'} style={{ marginTop: 10 }}>

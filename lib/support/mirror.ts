@@ -9,19 +9,29 @@
 import { db } from "@/lib/db"
 import { listJsonEntriesAll, readText } from "@/lib/client/dropbox"
 import { writeNewFile } from "@/lib/client/dropbox-write"
-import { errorCounts, parseStatusUpdate, summaryMarkdown, type Browser, type Device } from "./safety"
+import { UUID_RE, errorCounts, parseStatusUpdate, summaryMarkdown, type Browser, type Device } from "./safety"
 import { supportEnv } from "./store"
 
 const ROOT = "/_admin/client-site"
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 export const summaryPath = (env: string, id: string) => `${ROOT}/support-${env}/${id}.md`
 export const updatesFolder = (env: string) => `${ROOT}/support-updates-${env}`
 
 let mirroring: Promise<void> | null = null
+let again = false
 
-/** Write the summary of every ticket that hasn't reached Dropbox yet (oldest first). One run at a time. */
+/** Write the summary of every ticket that hasn't reached Dropbox yet (oldest first). One run at a time; a report that
+ *  arrives during a run gets a second run straight after, not the next 5-minute pass (review 10/4). */
 export function mirrorTickets(): Promise<void> {
-  mirroring ??= mirrorPending().finally(() => {
+  if (mirroring) {
+    again = true
+    return mirroring
+  }
+  mirroring = (async () => {
+    do {
+      again = false
+      await mirrorPending()
+    } while (again)
+  })().finally(() => {
     mirroring = null
   })
   return mirroring
@@ -42,6 +52,7 @@ async function mirrorPending() {
       message: true,
       context: true,
       has_screenshot: true,
+      reporter_email: true,
       created_at: true,
       organization: { select: { slug: true } },
     },
@@ -69,6 +80,7 @@ async function mirrorPending() {
       screenshot: t.has_screenshot,
       created: t.created_at.toISOString(),
       words: t.message,
+      replyTo: t.reporter_email, // signed out only; the summary keeps it only if it's a plain ASCII address
     })
     const r = await writeNewFile(summaryPath(env, t.id), md)
     if (r !== "written" && r !== "exists") {
@@ -86,11 +98,16 @@ const applied = new Map<string, string>()
 export async function applyStatusUpdates(): Promise<void> {
   const env = supportEnv()
   const entries = await listJsonEntriesAll(updatesFolder(env))
-  if (!entries) return // no listing, or a partial one: change nothing this run
+  if (!entries) {
+    // No listing, or a partial one (more than 20 pages): change nothing this run, and say so (a folder that only
+    // grows would otherwise go quiet for good).
+    console.error(`support: couldn't list ${updatesFolder(env)} in full; no status changes applied this run`)
+    return
+  }
   for (const e of entries) {
     if (applied.get(e.path) === e.rev) continue
     const id = e.path.slice(e.path.lastIndexOf("/") + 1).replace(/\.json$/, "")
-    if (!UUID.test(id)) {
+    if (!UUID_RE.test(id)) {
       applied.set(e.path, e.rev) // not a ticket's file: ignore it until it changes
       continue
     }

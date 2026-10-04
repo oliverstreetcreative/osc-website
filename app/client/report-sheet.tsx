@@ -1,10 +1,12 @@
 "use client"
 // "Something's wrong?" (SPEC §29 v2, Sam 10/4 16:15): one tap opens the sheet, the text box is focused inside that
 // tap (so iOS raises the keyboard), a screenshot is taken in the background (only if the screenshot library has been
-// installed at /vendor/; until then the report goes without one), and Send makes a support ticket.
-// Everything sent is UNTRUSTED on the server, which keeps a route template, never the path, and caps everything.
+// installed at /vendor/; until then the report goes without one, and the sheet says so), and Send makes a ticket.
+// Everything sent is UNTRUSTED on the server, which keeps a route template, never the path, and caps everything. The
+// browser runs the same redactor first, so a token in an error message never even leaves the device.
 import { useEffect, useRef, useState } from "react"
 import { DIAG_KEY } from "@/lib/support/recorder"
+import { redact } from "@/lib/support/safety"
 
 const OPEN = "osc:report"
 
@@ -54,14 +56,20 @@ function diagnostics() {
   try {
     d = JSON.parse(sessionStorage.getItem(DIAG_KEY) || "{}")
   } catch {}
+  const errors = (Array.isArray(d.errors) ? d.errors.slice(-20) : []).map((e) => {
+    const x = (e && typeof e === "object" ? e : {}) as { kind?: unknown; msg?: unknown; at?: unknown }
+    return { kind: x.kind, msg: typeof x.msg === "string" ? redact(x.msg).slice(0, 300) : "", at: x.at }
+  })
   return {
     viewport: { w: window.innerWidth, h: window.innerHeight, dpr: window.devicePixelRatio },
     scheme: window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light",
     online: navigator.onLine,
-    errors: Array.isArray(d.errors) ? d.errors.slice(-20) : [],
+    errors,
     failed: Array.isArray(d.failed) ? d.failed.slice(-20) : [],
   }
 }
+
+const FOCUSABLE = 'button:not([disabled]), [href], textarea:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 /** The one sheet, rendered once per page chrome (hidden) so its text box exists when the tap needs to focus it.
  *  `followLink` off where "Your reports" isn't reachable (the Scripts pages: someone who only has scripts has no shell). */
@@ -73,12 +81,16 @@ export function ReportSheet({ demo = false, followLink = true }: { demo?: boolea
   const [busy, setBusy] = useState(false)
   const box = useRef<HTMLTextAreaElement>(null)
   const sheet = useRef<HTMLDivElement>(null)
+  const done = useRef<HTMLButtonElement>(null)
+  const opener = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     const onOpen = () => {
+      opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
       setOpen(true)
       setSent(null)
-      // Focus synchronously, inside the tap that opened us: iOS raises the keyboard only then.
+      // Focus synchronously, inside the tap that opened us: iOS raises the keyboard only then. The text box is always
+      // mounted while the sheet is closed (close() puts the form back), so it's there to take the focus.
       if (sheet.current) sheet.current.hidden = false
       box.current?.focus()
       setShot({ state: "taking" })
@@ -88,10 +100,38 @@ export function ReportSheet({ demo = false, followLink = true }: { demo?: boolea
     return () => window.removeEventListener(OPEN, onOpen)
   }, [])
 
+  // After a send, the Done button takes the focus (and the thanks is announced).
+  useEffect(() => {
+    if (sent?.number) done.current?.focus()
+  }, [sent])
+
   const close = () => {
     setOpen(false)
     setText("")
     setShot({ state: "none" })
+    setSent(null) // back to the form, so the next tap has a text box to focus (review 10/4)
+    opener.current?.focus?.()
+  }
+
+  // Escape closes; Tab stays inside the sheet while it's open.
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Escape") {
+      e.preventDefault()
+      close()
+      return
+    }
+    if (e.key !== "Tab" || !sheet.current) return
+    const items = Array.from(sheet.current.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => el.offsetParent !== null)
+    if (!items.length) return
+    const first = items[0]
+    const last = items[items.length - 1]
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault()
+      last.focus()
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault()
+      first.focus()
+    }
   }
 
   async function send() {
@@ -102,7 +142,7 @@ export function ReportSheet({ demo = false, followLink = true }: { demo?: boolea
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: text.slice(0, 2000),
+          message: redact(text).slice(0, 2000),
           route: window.location.pathname,
           context: diagnostics(),
           screenshot: shot.state === "ready" ? shot.url : undefined,
@@ -119,16 +159,25 @@ export function ReportSheet({ demo = false, followLink = true }: { demo?: boolea
   }
 
   return (
-    <div ref={sheet} data-report-sheet className="cs-sheet-wrap" hidden={!open} role="dialog" aria-modal="true" aria-label="Report a problem">
+    <div
+      ref={sheet}
+      data-report-sheet
+      className="cs-sheet-wrap"
+      hidden={!open}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Report a problem"
+      onKeyDown={onKeyDown}
+    >
       <div className="cs-sheet">
         {sent?.number ? (
-          <>
+          <div role="status" aria-live="polite">
             <h2>Thanks: Sam has it.</h2>
             <p>
               Report #{sent.number}.{followLink ? <> You can follow it on <a href="/client/support">Your reports</a>.</> : null}
             </p>
-            <button type="button" className="cs-btn" onClick={close}>Done</button>
-          </>
+            <button ref={done} type="button" className="cs-btn" onClick={close}>Done</button>
+          </div>
         ) : (
           <>
             <h2>Something&rsquo;s wrong?</h2>
@@ -149,7 +198,10 @@ export function ReportSheet({ demo = false, followLink = true }: { demo?: boolea
                 <button type="button" className="cs-link" onClick={() => setShot({ state: "none" })}>Remove screenshot</button>
               </div>
             ) : null}
-            <p className="cs-sheet-note">We also send the page you&rsquo;re on, your device, and any errors the page hit.</p>
+            <p className="cs-sheet-note">
+              {shot.state === "unavailable" ? "No picture of the page this time. " : null}
+              We also send the page you&rsquo;re on, your device, and any errors the page hit.
+            </p>
             {sent?.error ? (
               <p className="cs-sheet-error" role="alert">
                 {sent.error === "busy"

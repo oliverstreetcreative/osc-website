@@ -31,7 +31,9 @@ export default async function Billing() {
     )
   }
   const demo = isDemoSlug(ctx.org.slug) // the staging demo (SPEC §19): placeholder links, buttons off
-  const invoices = await orgInvoices(ctx.org.id)
+  // The money model reads voided invoices too (a leg naming one drops out); every list and total here skips them.
+  const allInvoices = await orgInvoices(ctx.org.id, { withVoid: true })
+  const invoices = allInvoices.filter((i) => i.status !== "void")
   const vendorDocs = (await orgDocuments(ctx.org.id)).filter((d) => d.kind === "w9" || d.kind === "coi")
   const open = invoices.filter((i) => i.status === "open")
   const paid = invoices.filter((i) => i.status === "paid")
@@ -54,7 +56,7 @@ export default async function Billing() {
       <p className="cs-eyebrow">{ctx.org.name}</p>
       <h1 className="cs-title" style={{ marginTop: 6 }}>Billing</h1>
 
-      <BetweenUs jobs={moneyJobs} invoices={invoices} today={todayEastern()} />
+      <BetweenUs jobs={moneyJobs} invoices={allInvoices} today={todayEastern()} />
 
       <section className="cs-section" style={{ marginTop: 20 }}>
         {open.length ? (
@@ -70,7 +72,7 @@ export default async function Billing() {
               demo ? <DemoOff label={`Pay ${money(balance)}`} /> : <a className="cs-btn" href={onlyPay.pay_url} target="_blank" rel="noopener">Pay {money(balance)}</a>
             ) : null}
           </div>
-        ) : (
+        ) : moneyJobs.length ? null : (
           <div className="cs-card cs-calm">
             <span className="cs-calm-dot"><Check size={22} /></span>
             <div>
@@ -109,7 +111,7 @@ export default async function Billing() {
         </section>
       ) : null}
 
-      {paid.length || !open.length ? (
+      {paid.length || (!open.length && !moneyJobs.length) ? (
       <section className="cs-section">
         <SectionTitle>Paid</SectionTitle>
         {paid.length ? (

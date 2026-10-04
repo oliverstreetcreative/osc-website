@@ -113,10 +113,13 @@ export async function eventsForPerson(personId: string, isStaff = false): Promis
   ].sort((a, b) => a.date.getTime() - b.date.getTime())
 }
 
-/** One event, only if it belongs to one of these organizations. */
-export async function eventForOrgs(id: string, orgIds: string[]): Promise<CalEvent | null> {
+/** One event, only if it belongs to one of these organizations. An invoice's due date is money: only from
+ *  `moneyOrgIds`, the orgs where this person sees money (SPEC §28 v2 review: a VIEWER with the id got "$X due"). */
+export async function eventForOrgs(id: string, orgIds: string[], moneyOrgIds: string[]): Promise<CalEvent | null> {
   if (id.startsWith("due-")) {
-    const inv = await db.invoice.findFirst({ where: { id: id.slice(4), organization_id: { in: orgIds }, hidden: false } })
+    const allowed = orgIds.filter((o) => moneyOrgIds.includes(o))
+    if (!allowed.length) return null
+    const inv = await db.invoice.findFirst({ where: { id: id.slice(4), organization_id: { in: allowed }, hidden: false } })
     return inv ? invoiceEvent(inv) : null
   }
   let projectId: string | null = null

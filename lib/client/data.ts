@@ -33,9 +33,11 @@ export async function orgProject(orgId: string, slug: string) {
   })
 }
 
-export async function orgInvoices(orgId: string) {
+/** The org's invoices. `withVoid` for the money model only (SPEC §28 v2): a leg naming a voided invoice drops out
+ *  instead of reading "to confirm" forever; lists and totals never show a voided invoice. */
+export async function orgInvoices(orgId: string, opts: { withVoid?: boolean } = {}) {
   return db.invoice.findMany({
-    where: { organization_id: orgId, ...visible, status: { not: "void" } },
+    where: { organization_id: orgId, ...visible, ...(opts.withVoid ? {} : { status: { not: "void" } }) },
     include: { project: { select: { name: true, slug: true } } },
     orderBy: [{ issued_on: "desc" }],
   })
@@ -156,7 +158,7 @@ export async function needsYou(
   }
   // A proposal waiting for this person's yes (SPEC §24 v2): its named acceptors only (staff viewing see them, read-only),
   // until it's accepted or past its good-until date.
-  const proposals = role === "VIEWER" ? [] : await db.document.findMany({
+  const proposals = !seesMoney(role) ? [] : await db.document.findMany({
     where: { organization_id: orgId, hidden: false, kind: "proposal", ask: "accept", sha256: { not: null }, acceptance: null, OR: [{ project_id: null }, { project: { hidden: false } }] },
     select: { id: true, title: true, good_until: true, acceptors: true, project: { select: { id: true, name: true } } },
   })

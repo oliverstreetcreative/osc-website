@@ -76,7 +76,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
   // SPEC §28 v2: a job with a third-party payer shows who pays whom (only to someone who sees money). A client→OSC leg
   // reads its invoice, which may sit on another of the org's jobs, so the org's invoices are loaded.
   const moneyBlock = seesMoney ? moneyOf(p.money) : null
-  const orgInvs = moneyBlock ? await orgInvoices(org.id) : []
+  const orgInvs = moneyBlock ? await orgInvoices(org.id, { withVoid: true }) : [] // the money model only (voided legs drop out)
   const accepted = seesMoney
     ? await db.proposalAcceptance.findFirst({ where: { project_id: p.id, withdrawn_at: null }, orderBy: { accepted_at: "desc" }, select: { name: true, accepted_at: true } })
     : null
@@ -110,7 +110,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
   ].sort((a, b) => a.when.getTime() - b.when.getTime())
   const calLinks = new Map<string, string>()
   for (const it of items.filter((i) => (i.shoot ? i.when >= today : i.when > today))) {
-    const e = await eventForOrgs(it.calId, [org.id])
+    const e = await eventForOrgs(it.calId, [org.id], seesMoney ? [org.id] : [])
     if (e) calLinks.set(it.calId, googleLink(e, origin))
   }
 

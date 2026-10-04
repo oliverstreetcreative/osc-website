@@ -49,7 +49,7 @@ export default async function Home({ searchParams }: { searchParams: { sign?: st
   // SPEC §28 v2: the one-glance Home, on for its clients first (lib/client/glance.ts).
   const glance = glanceHome(ctx.org.slug)
   const money = seesMoney(ctx.role)
-  const invoices = glance && money ? await orgInvoices(ctx.org.id) : []
+  const invoices = glance && money ? await orgInvoices(ctx.org.id, { withVoid: true }) : []
 
   return (
     <main className="cs-main">
@@ -79,7 +79,7 @@ export default async function Home({ searchParams }: { searchParams: { sign?: st
         ) : null}
         {needs.length ? (
           <div className="cs-list">
-            {needs.map((n) => <NeedCard key={key(n)} n={n} demo={isDemoSlug(ctx.org.slug)} me={me} preview={preview} />)}
+            {needs.map((n) => <NeedCard key={key(n)} n={n} demo={isDemoSlug(ctx.org.slug)} me={me} preview={preview} wordsOnly={glance} />)}
           </div>
         ) : paperUnavailable ? null : (
           <div className="cs-card cs-calm">
@@ -164,7 +164,8 @@ function key(n: NeedsItem) {
 }
 
 // demo: the staging demo org (SPEC §19). Its links are placeholders, so its buttons show "Off in the demo".
-function NeedCard({ n, demo, me, preview }: { n: NeedsItem; demo: boolean; me: string; preview: boolean }) {
+/** `wordsOnly`: the one-glance Home (SPEC §28 v2) shows no amounts, even on an invoice to pay; Billing has them. */
+function NeedCard({ n, demo, me, preview, wordsOnly = false }: { n: NeedsItem; demo: boolean; me: string; preview: boolean; wordsOnly?: boolean }) {
   if (n.kind === "proposal") {
     // SPEC §24 v2: no price on the card (the PDF carries Sam's numbers); only its named acceptors see it.
     return (
@@ -233,11 +234,17 @@ function NeedCard({ n, demo, me, preview }: { n: NeedsItem; demo: boolean; me: s
           <span className="cs-eyebrow"><Receipt size={13} style={{ verticalAlign: -2, marginRight: 6 }} />Invoice {inv.number}</span>
           <span className={`cs-status ${late ? "late" : "due"}`}>{relativeDue(inv.due_on)}</span>
         </div>
-        <h3>{money(inv.amount)} · {inv.title}</h3>
+        <h3>{wordsOnly ? inv.title : `${money(inv.amount)} · ${inv.title}`}</h3>
         {inv.project ? <p>{inv.project.name}</p> : null}
         <div className="cs-need-act">
           {inv.pay_url ? (
-            demo ? <DemoOff label={`Pay ${money(inv.amount)}`} /> : <a className="cs-btn" href={inv.pay_url} target="_blank" rel="noopener">Pay {money(inv.amount)}</a>
+            demo ? (
+              <DemoOff label={wordsOnly ? "Pay" : `Pay ${money(inv.amount)}`} />
+            ) : (
+              <a className="cs-btn" href={inv.pay_url} target="_blank" rel="noopener">
+                {wordsOnly ? "Pay" : `Pay ${money(inv.amount)}`}
+              </a>
+            )
           ) : null}
           <Link className="cs-btn ghost" href="/client/billing">Details</Link>
         </div>

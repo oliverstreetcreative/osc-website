@@ -547,8 +547,9 @@ a.cs-row:hover { background: var(--zebra); }
 .cs .cs-money-job { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
 .cs .cs-sign-needed { color: var(--accent); font-weight: 500; }
 /* "Something's wrong?" (SPEC §29 v2): a quiet link in the shell; a bottom sheet on a phone, a card on a desktop. */
-.cs .cs-report-foot { text-align: center; margin: 4px 0 96px; font-size: 13px; }
-@media (min-width: 720px) { .cs .cs-report-foot { margin-bottom: 32px; } }
+/* Clear of the bottom tab bar, which shows below 900px (an iPad in portrait too) and sits above the home indicator. */
+.cs .cs-report-foot { text-align: center; margin: 4px 0 calc(96px + env(safe-area-inset-bottom)); font-size: 13px; }
+@media (min-width: 900px) { .cs .cs-report-foot { margin-bottom: 32px; } }
 .cs .cs-report-foot .cs-link, .cs .cs-menu-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--mut); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .cs .cs-menu-btn { display: block; width: 100%; text-align: left; padding: 10px 14px; text-decoration: none; color: var(--ink); }
 .cs .cs-sheet-wrap { position: fixed; inset: 0; z-index: 80; background: rgba(0, 0, 0, 0.45); display: flex; align-items: flex-end; justify-content: center; }
