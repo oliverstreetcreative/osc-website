@@ -4,15 +4,14 @@
 // a real client's version. Server only.
 import { db } from "@/lib/db"
 import { IS_PRODUCTION } from "@/lib/site-env"
-import { isRehearsalSlug } from "./rehearsal"
+import { ledgerDir as pureLedgerDir } from "./rehearsal"
 import { writeNewFile } from "./dropbox-write"
 
 /**
  * The ledger folder for one org's records: production writes the real one; every other environment, and a rehearsal
  * client in ANY environment (SPEC §25 v2), writes the -staging one, which the gate and Majordomo never act on.
  */
-const ledgerDir = (name: string, orgSlug: string | null | undefined) =>
-  `/_admin/client-site/ledger/${name}${IS_PRODUCTION && !isRehearsalSlug(orgSlug) ? "" : "-staging"}`
+const ledgerDir = (name: string, orgSlug: string | null | undefined) => pureLedgerDir(name, orgSlug, IS_PRODUCTION)
 const orgSlugOf = async (orgId: string) => (await db.organization.findUnique({ where: { id: orgId }, select: { slug: true } }))?.slug ?? null
 const safe = (s: string) => s.replace(/[^A-Za-z0-9._-]+/g, "-").slice(0, 60) || "x"
 const eastern = (d: Date) =>

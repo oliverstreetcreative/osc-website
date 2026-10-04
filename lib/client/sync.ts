@@ -13,7 +13,8 @@ import { Book } from "./book"
 import { listJson, listJsonEntries, readText } from "./dropbox"
 import { DEMO_ORG_SLUG, demoBook, demoOn, isDemoSlug } from "./demo"
 import { syncLibraries } from "./library"
-import { REHEARSAL_PREFIX, REHEARSAL_PREVIEW, REHEARSAL_PUBLISHED, isRehearsalPerson, isRehearsalSlug, rehearsalFolder } from "./rehearsal"
+import { bookPaths } from "./rehearsal"
+import { REHEARSAL_PREFIX, REHEARSAL_PREVIEW, REHEARSAL_PUBLISHED, isRehearsalPerson, isRehearsalSlug, pathsOutside, rehearsalFolder, rehearsalTraces } from "./rehearsal"
 import { flagReview } from "./ledger"
 import { IS_PRODUCTION, IS_STAGING } from "@/lib/site-env"
 
@@ -137,6 +138,9 @@ async function doSync(): Promise<SyncReport> {
       if (isPreview !== slug.endsWith("--preview")) throw new Error("preview books (and only they) end in --preview")
       if (isDemoSlug(slug)) throw new Error("demo- slugs belong to the staging demo (lib/client/demo.ts), never a Dropbox book")
       if (isRehearsalSlug(slug)) throw new Error("rehearsal- slugs live in the rehearsal tree (SPEC §25), never in published/")
+      // Fail closed on rehearsal data in a real book (a preview is written unlinted; a worker can confuse the trees).
+      const traces = rehearsalTraces(book)
+      if (traces.length) throw new Error(`rehearsal data in a real book (${traces.slice(0, 3).join(", ")}): not synced`)
       if (isPreview) book = { ...book, people: [] } // nobody signs in to a preview; staff open it via View as client
       if (seen.has(slug)) throw new Error(`duplicate org slug ${slug}`)
       seen.add(slug)
@@ -155,7 +159,7 @@ async function doSync(): Promise<SyncReport> {
   // at least one REAL book. Demo orgs are never swept here: the switch above alone decides them.
   if (files.length && seen.size) {
     await db.organization.updateMany({
-      where: { slug: { notIn: [...seen] }, hidden: false, NOT: [{ slug: { startsWith: "demo-" } }, { slug: { startsWith: REHEARSAL_PREFIX } }] },
+      where: { slug: { notIn: [...seen] }, hidden: false, AND: [{ NOT: { slug: { startsWith: "demo-" } } }, { NOT: { slug: { startsWith: REHEARSAL_PREFIX } } }] },
       data: { hidden: true },
     })
   }
@@ -168,22 +172,6 @@ async function doSync(): Promise<SyncReport> {
   lastSync = report
   console.log("client-site sync:", JSON.stringify(report))
   return report
-}
-
-/** Every root-relative file path a book names (documents, films, posters, downloads, invoice PDFs). */
-function bookPaths(book: Book): string[] {
-  const out: string[] = []
-  const walk = (o: unknown) => {
-    if (Array.isArray(o)) o.forEach(walk)
-    else if (o && typeof o === "object") {
-      for (const [k, v] of Object.entries(o)) {
-        if ((k === "path" || k === "file" || k === "poster" || k === "pdf") && typeof v === "string") out.push(v)
-        else walk(v)
-      }
-    }
-  }
-  walk({ projects: book.projects, invoices: book.invoices, documents: book.documents })
-  return out
 }
 
 /**
@@ -209,13 +197,26 @@ async function syncRehearsals(report: SyncReport) {
       if (!isRehearsalSlug(slug)) throw new Error("only rehearsal- slugs live in the rehearsal tree")
       if (file.split("/").pop() !== `${slug}.json`) throw new Error(`file name must be ${slug}.json`)
       if (isPreview !== slug.endsWith("--preview")) throw new Error("preview books (and only they) end in --preview")
-      const outside = bookPaths(book).filter((x) => !x.startsWith(rehearsalFolder(slug)))
+      const outside = pathsOutside(slug, bookPaths(book))
       if (outside.length) throw new Error(`files outside ${rehearsalFolder(slug)}: ${outside.slice(0, 3).join(", ")}`)
+      if (book.invoices.length) throw new Error("no invoices in a rehearsal book (invoice numbers are global keys)")
+      // Never a real client's Review link or Mux id (a rehearsal view must never land on a real record).
+      const ids = book.projects.flatMap((p) => p.films.flatMap((f) => [f.review_url, f.review_asset_id, f.mux_playback_id])).filter((x): x is string => !!x)
+      if (ids.length) {
+        const reused = await db.deliverable.count({
+          where: {
+            OR: [{ review_url: { in: ids } }, { review_asset_id: { in: ids } }, { mux_playback_id: { in: ids } }],
+            project: { organization: { slug: { not: { startsWith: REHEARSAL_PREFIX } } } },
+          },
+        })
+        if (reused) throw new Error("reuses a real client's Review link or Mux id: rehearsals use their own test assets")
+      }
       book = { ...book, people: isPreview ? [] : book.people.filter((x) => isRehearsalPerson(x.email)) }
       if (seen.has(slug)) throw new Error(`duplicate org slug ${slug}`)
       seen.add(slug)
       const dropped: string[] = []
       book = failClosed(book, dropped)
+      if (dropped.length) report.failed.push({ file, error: `held back (internal marker): ${dropped.join(", ")}` })
       await applyBook(book)
       const libBase = isPreview ? `${REHEARSAL_PREVIEW}/library` : `${REHEARSAL_PUBLISHED}/library`
       for (const problem of await syncLibraries(slug, isPreview, libBase)) report.failed.push({ file: `library: ${slug}`, error: problem })

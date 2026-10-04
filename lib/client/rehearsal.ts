@@ -1,6 +1,7 @@
 // Rehearsal clients (SPEC §25 v2): staging-only test clients whose books live in their own tree,
 // _admin/client-site/rehearsal/ (published/, preview/, published/library/, files/<slug>/). Only STAGING reads them;
 // production hides any `rehearsal-` org and never lists the tree. Their records always go to the *-staging ledgers.
+// Pure functions only (tested in rehearsal.test.ts); no database here.
 export const REHEARSAL_PREFIX = "rehearsal-"
 export const isRehearsalSlug = (slug: string | null | undefined) => !!slug && slug.startsWith(REHEARSAL_PREFIX)
 export const REHEARSAL_ROOT = "/_admin/client-site/rehearsal"
@@ -8,8 +9,46 @@ export const REHEARSAL_PUBLISHED = `${REHEARSAL_ROOT}/published`
 export const REHEARSAL_PREVIEW = `${REHEARSAL_ROOT}/preview`
 /** A rehearsal book's files must sit inside its own folder (the base slug, without --preview). */
 export const rehearsalFolder = (slug: string) => `${REHEARSAL_ROOT}/files/${slug.replace(/--preview$/, "")}/`
-/** People in a rehearsal book are OSC plus-addresses only (sam+…@oliverstreetcreative.com). */
+/** People in a rehearsal book are +rehearsal OSC addresses only (sam+rehearsal@oliverstreetcreative.com). */
 export const isRehearsalPerson = (email: string) => {
   const e = email.trim().toLowerCase()
-  return e.endsWith("@oliverstreetcreative.com") && e.split("@")[0].includes("+")
+  return e.endsWith("@oliverstreetcreative.com") && e.split("@")[0].includes("+rehearsal")
 }
+
+/** A plain root-relative path (no "..", ".", empty segments or backslashes): the only kind ever checked by prefix. */
+export const plainPath = (p: string) =>
+  p.startsWith("/") && !p.includes("\\") && !p.includes("\0") && p.split("/").slice(1).every((s) => s !== "" && s !== "." && s !== "..")
+
+/** Every root-relative file path a book names (document, film file/poster, download, project poster, invoice PDF). */
+export function bookPaths(book: { projects?: unknown; invoices?: unknown; documents?: unknown }): string[] {
+  const out: string[] = []
+  const walk = (o: unknown) => {
+    if (Array.isArray(o)) o.forEach(walk)
+    else if (o && typeof o === "object") {
+      for (const [k, v] of Object.entries(o)) {
+        if ((k === "path" || k === "file" || k === "poster" || k === "pdf") && typeof v === "string") out.push(v)
+        else walk(v)
+      }
+    }
+  }
+  walk({ projects: book.projects, invoices: book.invoices, documents: book.documents })
+  return out
+}
+
+/** A rehearsal book's paths that aren't plainly inside its own folder (empty = all good). */
+export const pathsOutside = (slug: string, paths: string[]) => paths.filter((p) => !plainPath(p) || !p.startsWith(rehearsalFolder(slug)))
+
+/** A REAL book's signs of rehearsal data: a 99- job, or a path into the rehearsal tree. */
+export function rehearsalTraces(book: { projects?: { job_number?: string | null }[] } & Parameters<typeof bookPaths>[0]): string[] {
+  const out: string[] = []
+  for (const p of (book.projects ?? []) as { job_number?: string | null }[]) if (p.job_number?.startsWith("99-")) out.push(`job ${p.job_number}`)
+  for (const x of bookPaths(book)) if (x.startsWith(`${REHEARSAL_ROOT}/`)) out.push(x)
+  return out
+}
+
+/**
+ * The ledger folder for one org's records: production writes the real one; every other environment, and a rehearsal
+ * client in ANY environment, writes the -staging one, which the gate and Majordomo never act on.
+ */
+export const ledgerDir = (name: string, orgSlug: string | null | undefined, isProduction: boolean) =>
+  `/_admin/client-site/ledger/${name}${isProduction && !isRehearsalSlug(orgSlug) ? "" : "-staging"}`

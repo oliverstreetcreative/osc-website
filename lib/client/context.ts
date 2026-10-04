@@ -53,7 +53,7 @@ export async function getClientContext(): Promise<ClientContext | null> {
 
   if (user.is_staff) {
     const slug = await viewAsOrgSlug(user.id)
-    if (!slug) return null
+    if (!slug || (!IS_STAGING && isRehearsalSlug(slug))) return null
     const org = await db.organization.findFirst({ where: { slug, hidden: false }, select: orgSelect })
     if (!org) return null
     return {

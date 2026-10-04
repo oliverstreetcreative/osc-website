@@ -56,7 +56,7 @@ class GateBase(unittest.TestCase):
             json.dump(b, f)
 
     def gate(self, *args, **env_extra):
-        env = dict(os.environ, DROPBOX_LOCAL_ROOT=self.root)
+        env = dict(os.environ, DROPBOX_LOCAL_ROOT=self.root, GATE_TEST_SANDBOX="1")
         env.update(getattr(self, "env", {}))
         env.update(env_extra)
         return subprocess.run([sys.executable, GATE, *args], capture_output=True, text=True, env=env)
@@ -858,9 +858,56 @@ class RehearsalTest(GateBase):
         self.assertEqual(outside, [])
         self.assertFalse(os.path.exists(os.path.join(self.site, "published", "rehearsal-osc.json")))
 
+    @unittest.skipUnless(shutil.which("pdftotext") and os.path.isdir(os.path.join(STACKS_ENGINE, "stacks")),
+                         "needs pdftotext and Stacks' engine")
+    def test_a_full_rehearsal_with_footage_and_a_proposal_stays_in_its_tree(self):
+        self.write_draft(book())
+        self.approve_all()  # a real client, live
+        # the rehearsal's own test PDF, marks and Mux fixture
+        full = os.path.join(self.root, RFOLDER.lstrip("/"), "Proposal.pdf")
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        with open(full, "wb") as f:
+            f.write(tiny_pdf(["Total $1,000", "Good until October 31, 2027"]))
+        ev = os.path.join(self.site, "rehearsal", "events", CLIP_ID[:2], CLIP_ID)
+        os.makedirs(ev, exist_ok=True)
+        with open(os.path.join(ev, E1 + ".json"), "w") as f:
+            json.dump(stacks_event(E1, 0, 1000), f)
+        c1 = clip()
+        c2 = clip(500, 700, mux_asset_id="ASSETid00000000002")
+        assets = {ASSET: dict(mux_asset(c1), passthrough=f"99-001/{c1['key']}"),
+                  "ASSETid00000000002": dict(mux_asset(c2), passthrough=f"99-001/{c2['key']}")}
+        with open(os.path.join(self.root, "mux.json"), "w") as f:
+            json.dump(assets, f)
+        self.env = {"GATE_MUX_FIXTURE": os.path.join(self.root, "mux.json"), "STACKS_ENGINE": STACKS_ENGINE}
+        b = rbook()
+        b["documents"] = [{"key": "prop", "project_key": "r1", "kind": "proposal", "title": "Test proposal",
+                           "audience": "client", "path": f"{RFOLDER}/Proposal.pdf", "ask": "accept",
+                           "acceptors": ["sam+rehearsal@oliverstreetcreative.com"], "total": 1000,
+                           "good_until": "2027-10-31"}]
+        self.write_rbook(b)
+        lib = os.path.join(self.site, "rehearsal", "library", "rehearsal-osc")
+        os.makedirs(lib, exist_ok=True)
+        with open(os.path.join(lib, "test-footage.json"), "w") as f:
+            json.dump(package(clips=[c1, c2], org="rehearsal-osc", project="r1", job="99-001", key="test-footage"), f)
+        before = self.snapshot()
+        check = self.gate("ticket", "rehearsal-osc").stdout.split("(check: ")[1][:12]
+        r = self.gate("approve", "rehearsal-osc", "--by", "worker", "--ticket", "rehearsal", "--digest", check)
+        self.assertEqual(r.returncode, 0, r.stderr + self.gate("lint", "rehearsal-osc").stdout)
+        r = self.gate("remove", "rehearsal-osc", "--items", f"clip:test-footage/{c2['key']}", "--by", "worker")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.gate("auto", "rehearsal-osc").returncode, 0)
+        after = self.snapshot()
+        touched = sorted(k for k in set(before) | set(after) if before.get(k) != after.get(k))
+        self.assertTrue(any("rehearsal/published/library" in k for k in touched))
+        self.assertTrue(any(k.startswith("_admin/client-site/frozen/") for k in touched))
+        outside = [k for k in touched if not k.startswith(("_admin/client-site/rehearsal/", "_admin/client-site/frozen/"))]
+        self.assertEqual(outside, [])
+
     def test_rehearsal_rules(self):
         self.write_rbook(rbook(people=("jane@client.org",)))
-        self.assertIn("OSC plus-addresses only", self.gate("lint", "rehearsal-osc").stdout)
+        self.assertIn("+rehearsal OSC addresses only", self.gate("lint", "rehearsal-osc").stdout)
+        self.write_rbook(rbook(people=("sam+client-test@oliverstreetcreative.com",)))
+        self.assertIn("+rehearsal OSC addresses only", self.gate("lint", "rehearsal-osc").stdout)
         self.write_rbook(rbook(job="26-001"))
         self.assertIn("job_number is 99-NNN", self.gate("lint", "rehearsal-osc").stdout)
         self.write_rbook(rbook(invoices=[{"number": "26-0999", "title": "x", "amount": 1, "issued_on": "2026-10-01",
@@ -886,6 +933,37 @@ class RehearsalTest(GateBase):
         b["org"]["folder"] = RFOLDER
         self.write_draft(b)
         self.assertIn("can't be under the rehearsal tree", self.gate("lint", "acme").stdout)
+
+    def test_auto_holds_everything_when_the_org_itself_is_wrong(self):
+        b = book()
+        b["projects"][0]["status_line"] = "Cut 1 is up."
+        self.write_draft(b)
+        self.assertEqual(self.approve_all().returncode, 0)
+        b["org"]["folder"] = RFOLDER  # the confusion the folder rule exists for
+        b["projects"][0]["status_line"] = "Call Sam's cell, 859-555-0100."
+        self.write_draft(b)
+        r = self.gate("auto", "acme")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn("AUTO ", r.stdout)
+        self.assertEqual(self.published()["projects"][0]["status_line"], "Cut 1 is up.")
+
+    def test_a_real_book_never_carries_rehearsal_things(self):
+        self.write_rbook(rbook())
+        self.write_draft(book(film_extra={"review_url": RLINK, "review_asset_id": RASSET}))
+        self.assertIn("carries a rehearsal test link or id", self.gate("lint", "acme").stdout)
+        b = book()
+        b["documents"] = [{"key": "d1", "kind": "other", "title": "x", "audience": "client", "path": f"{RFOLDER}/x.pdf"}]
+        self.write_draft(b)
+        self.assertIn("a rehearsal file in a real client's book", self.gate("lint", "acme").stdout)
+
+    def test_the_book_must_be_linted_under_its_own_slug(self):
+        b = book()
+        b["org"]["slug"] = "rehearsal-x"
+        self.write_draft(b)
+        self.assertIn("isn't 'acme'", self.gate("lint", "acme").stdout)
+        r = self.gate("lint", "rehearsal-x/../../acme")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("not a client slug", r.stderr + r.stdout)
 
     def test_contact_clearances_are_never_for_a_rehearsal(self):
         r = self.gate("clear-contact", "--person", "Sam", "--value", "sam+rehearsal@oliverstreetcreative.com", "--by", "Sam",

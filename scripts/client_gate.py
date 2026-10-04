@@ -99,7 +99,10 @@ MUX_ID = re.compile(r"^[A-Za-z0-9]{10,80}$")
 MAX_CLIPS = 2000
 DURATION_SLACK = 0.15  # seconds: a few frames, so no more than that sits outside Sam's range
 # Test-only overrides are honoured only in a sandbox (DROPBOX_LOCAL_ROOT set), never on the real Dropbox.
-SANDBOX = bool(os.environ.get("DROPBOX_LOCAL_ROOT"))
+# The test harness sets GATE_TEST_SANDBOX=1 with a throwaway DROPBOX_LOCAL_ROOT. DROPBOX_LOCAL_ROOT alone is NOT a
+# sandbox (it's also how the gate is pointed at the real Dropbox on a Mac whose Dropbox lives elsewhere), and a root
+# whose parent holds Matters/ is the real Dropbox whatever the flag says.
+SANDBOX = os.environ.get("GATE_TEST_SANDBOX") == "1" and not os.path.isdir(os.path.join(os.path.dirname(ROOT.rstrip("/")), "Matters"))
 MAX_CLIPS_PER_TICKET = int(os.environ.get("GATE_MAX_CLIPS_PER_TICKET", "300")) if SANDBOX else 300
 # Where Stacks' own rules and marks live (read-only here; the website never reads them). The live Dropbox root is
 # found the way Stacks finds it (engine/stacks/paths.py DROPBOX_ROOTS: the one that holds Matters/), so the gate
@@ -147,34 +150,65 @@ def T(slug):
                 events=STACKS_EVENTS, folder=None)
 
 
-_real_ids = None
+ID_KEYS = ("review_url", "review_asset_id", "mux_playback_id", "mux_asset_id", "watch_url", "url", "share_url", "asset_id")
+_ids_cache = {}
 
 
-def real_ids():
-    """Every Review link, Review asset id and Mux id in a REAL published book or footage snapshot: a rehearsal may
-    never reuse one (a rehearsal view must never land on a real client's Review link or footage)."""
-    global _real_ids
-    if _real_ids is None:
-        _real_ids = set()
+def ids_in(folders):
+    """Every link and media id (Review links and asset ids, Mux ids, watch/download/document urls) in the JSON under
+    `folders`, at any depth. A file that can't be read stops the gate (never a silent pass)."""
+    out = set()
 
-        def walk(o):
-            if isinstance(o, dict):
-                for k, v in o.items():
-                    if k in ("review_url", "review_asset_id", "mux_playback_id", "mux_asset_id") and isinstance(v, str):
-                        _real_ids.add(v)
-                    walk(v)
-            elif isinstance(o, list):
-                for v in o:
-                    walk(v)
-        for d, ds, fs in os.walk(PUBLISHED):
-            ds[:] = [x for x in ds if not x.startswith((".", "_"))]
+    def walk(o):
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if k in ID_KEYS and isinstance(v, str) and v:
+                    out.add(v)
+                walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v)
+    for top in folders:
+        for d, ds, fs in os.walk(top):
+            ds[:] = [x for x in ds if not x.startswith(".")]
             for f in fs:
-                if f.endswith(".json") and not f.startswith((".", "_")):
+                if f.endswith(".json") and not f.startswith("."):
                     try:
                         walk(load(os.path.join(d, f)))
                     except Exception:
-                        pass
-    return _real_ids
+                        raise SystemExit(f"can't read {os.path.join(d, f)} (is it online-only?): stopping rather than guessing")
+    return out
+
+
+def real_ids():
+    """Ids of REAL clients (books, published, preview, footage drafts and snapshots incl. removed): a rehearsal may never
+    reuse one (a rehearsal view must never land on a real client's Review link or footage)."""
+    if "real" not in _ids_cache:
+        _ids_cache["real"] = ids_in([DRAFTS, PUBLISHED, PREVIEW, LIBRARY_DRAFTS])
+    return _ids_cache["real"]
+
+
+def rehearsal_ids():
+    """Ids used anywhere in the rehearsal tree: a real book may never carry one (a test link in a client's book)."""
+    if "rehearsal" not in _ids_cache:
+        _ids_cache["rehearsal"] = ids_in([REHEARSAL])
+    return _ids_cache["rehearsal"]
+
+
+def ids_of(content):
+    found = set()
+
+    def walk(o):
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if k in ID_KEYS and isinstance(v, str) and v:
+                    found.add(v)
+                walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v)
+    walk(content)
+    return found
 
 # ---------------------------------------------------------------- proposals (SPEC §24 v2)
 # A proposal the client may accept is frozen: on publish its PDF is copied (add-only) to frozen/<sha256>.pdf and the
@@ -595,7 +629,12 @@ def lint_item(key, content, org, items=None):
         if not plain_path(p):
             problems.append(f"file path must be a plain root-relative path (no '..', '.', '//' or backslashes): {p}")
             continue
-        inside = (folder and p.startswith(folder.rstrip("/") + "/")) or p in SHARED_FILES or p.startswith(SHARED_PREFIXES)
+        rehearsal_org = is_rehearsal((org or {}).get("slug"))
+        if not rehearsal_org and p.startswith("/_admin/client-site/rehearsal/"):
+            problems.append(f"a rehearsal file in a real client's book: {p}")
+            continue
+        shared = not rehearsal_org and (p in SHARED_FILES or p.startswith(SHARED_PREFIXES))
+        inside = (folder and p.startswith(folder.rstrip("/") + "/")) or shared
         if not inside:
             problems.append(f"file outside this client's folder: {p}")
         if BAD_FILENAME.search(name):
@@ -637,12 +676,11 @@ def reader_problem():
         beat = (load(ACCEPT_READER) or {}).get("heartbeat")
         when = dt.datetime.fromisoformat(str(beat).replace("Z", "+00:00"))
     except Exception:
-        return ("not yet: nothing tells Sam when a client accepts (Majordomo's reader of ledger/acceptances/ writes a "
-                "fresh `heartbeat` into its _reader.json)")
+        return "not yet: nothing tells Sam when a client accepts (Majordomo's reader of client acceptances isn't running)"
     if when.tzinfo is None:
         when = when.replace(tzinfo=dt.timezone.utc)
     if dt.datetime.now(dt.timezone.utc) - when > dt.timedelta(days=2):
-        return "not now: Majordomo's reader of ledger/acceptances/ hasn't checked in for two days"
+        return "not now: Majordomo's reader of client acceptances hasn't checked in for two days"
     return None
 
 
@@ -726,15 +764,19 @@ def tree_rules(key, content, org):
         if not rehearsal and job.startswith("99-"):
             out.append("99- job numbers are for rehearsals only")
     if not rehearsal:
+        if key.startswith("library:") and str(content.get("job") or "").startswith("99-"):
+            out.append("99- job numbers are for rehearsals only")
+        test_ids = sorted(ids_of(content) & rehearsal_ids())
+        if test_ids:
+            out.append(f"carries a rehearsal test link or id ({', '.join(test_ids)}): never in a real client's book")
         return out
     if key.startswith("person:"):
         email = str(content.get("email") or "").lower()
-        if not (email.endswith("@oliverstreetcreative.com") and "+" in email.split("@")[0]):
-            out.append("a rehearsal client's people are OSC plus-addresses only (sam+…@oliverstreetcreative.com)")
+        if not (email.endswith("@oliverstreetcreative.com") and "+rehearsal" in email.split("@")[0]):
+            out.append("a rehearsal client's people are +rehearsal OSC addresses only (sam+rehearsal@oliverstreetcreative.com)")
     if key.startswith("invoice:"):
         out.append("no invoices in a rehearsal book (invoice numbers are global keys)")
-    reused = sorted(v for k, v in content.items() if k in ("review_url", "review_asset_id", "mux_playback_id", "mux_asset_id")
-                    and isinstance(v, str) and v in real_ids()) if isinstance(content, dict) else []
+    reused = sorted(ids_of(content) & real_ids())
     if reused:
         out.append(f"reuses a real client's link or id ({', '.join(reused)}): rehearsals use their own test assets")
     return out
@@ -1035,6 +1077,8 @@ def lint(slug, keys=None, snap=None):
     org = d.get("org", (None, None))[1]
     if org and not org.get("folder"):
         return {"org": ["the book's org needs a 'folder' (its /Clients/... folder) so files can be checked"]}
+    if org and org.get("slug") != slug:
+        return {"org": [f"the book's org.slug {org.get('slug')!r} isn't {slug!r}: a book is linted under its own slug"]}
     tree = T(slug)
     if org and tree.rehearsal and org.get("folder") != tree.folder:
         return {"org": [f"a rehearsal client's folder is {tree.folder}"]}
@@ -1301,7 +1345,8 @@ def cmd_auto(a):
         money = next((m.group(0) for s in strings(d[k][1]) for m in [MONEY_WORDS_FOR_AUTO.search(s)] if m), None)
         if money and k not in held:
             held[k] = [f'mentions money ("{money}"): needs Sam\'s tap']
-    clean = [k for k in candidates if k not in held]
+    # An org-level refusal (folder, slug) holds EVERYTHING: lint returned before checking the items one by one.
+    clean = [] if "org" in held else [k for k in candidates if k not in held]
     if clean:
         extra = {"previous": {k: l[k][1] for k in clean}, "after_digest": {k: digest(d[k][1]) for k in clean}}
         publish(a.org, clean, "auto: lint clean", "auto", extra=extra)
@@ -1558,6 +1603,8 @@ def main():
     s.add_argument("--value", required=True)
     s.add_argument("--by", required=True)
     a = ap.parse_args()
+    if getattr(a, "org", None) and not KEY_RE.match(a.org):
+        raise SystemExit(f"not a client slug: {a.org!r}")
     rc = {"status": cmd_status, "lint": cmd_lint, "preview": cmd_preview, "ticket": cmd_ticket,
           "approve": cmd_approve, "remove": cmd_remove, "auto": cmd_auto, "undo": cmd_undo,
           "clear-contact": cmd_clear_contact, "withdraw-contact": cmd_withdraw_contact}[a.cmd](a)
