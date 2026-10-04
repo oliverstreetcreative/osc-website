@@ -801,5 +801,117 @@ class ProposalTest(GateBase):
         self.assertTrue(os.path.exists(os.path.join(self.site, "frozen", f"{self.sha()}.pdf")))
 
 
+# ---------------------------------------------------------------- rehearsal clients (SPEC §25 v2)
+RLINK = "https://review.oliverstreetcreative.com/share/RehearsalLink0001"
+RASSET = "22222222-3333-4444-5555-666666666666"
+RFOLDER = "/_admin/client-site/rehearsal/files/rehearsal-osc"
+
+
+def rbook(people=("sam+rehearsal@oliverstreetcreative.com",), job="99-001", film_extra=None, **top):
+    film = {"key": "cut", "title": "Test cut", "audience": "client", "approvers": [people[0]], "approval": "any",
+            "review_url": RLINK, "review_asset_id": RASSET, "ask": "ok"}
+    film.update(film_extra or {})
+    b = {"version": 1,
+         "org": {"slug": "rehearsal-osc", "name": "OSC Rehearsal", "folder": RFOLDER, "domains": ["oliverstreetcreative.com"],
+                 "audience": "client"},
+         "people": [{"email": e, "name": "Sam Rehearsal", "role": "OWNER", "audience": "client"} for e in people],
+         "projects": [{"key": "r1", "slug": "rehearsal", "job_number": job, "title": "Rehearsal", "phase": "review",
+                       "audience": "client", "films": [film], "shoots": []}],
+         "invoices": [], "documents": []}
+    b.update(top)
+    return b
+
+
+class RehearsalTest(GateBase):
+    def setUp(self):
+        super().setUp()
+        os.makedirs(os.path.join(self.site, "rehearsal", "books"), exist_ok=True)
+
+    def write_rbook(self, b):
+        with open(os.path.join(self.site, "rehearsal", "books", "rehearsal-osc.json"), "w") as f:
+            json.dump(b, f)
+
+    def snapshot(self):
+        out = {}
+        for d, ds, fs in os.walk(self.root):
+            for f in fs:
+                p = os.path.join(d, f)
+                with open(p, "rb") as fh:
+                    out[os.path.relpath(p, self.root)] = fh.read()
+        return out
+
+    def test_a_rehearsal_writes_nothing_outside_its_own_tree(self):
+        self.write_draft(book())
+        self.approve_all()  # a real client, live
+        self.write_rbook(rbook())
+        before = self.snapshot()
+        check = self.gate("ticket", "rehearsal-osc").stdout.split("(check: ")[1][:12]
+        r = self.gate("approve", "rehearsal-osc", "--by", "worker", "--ticket", "rehearsal", "--digest", check)
+        self.assertEqual(r.returncode, 0, r.stderr + self.gate("lint", "rehearsal-osc").stdout)
+        self.assertEqual(self.gate("auto", "rehearsal-osc").returncode, 0)
+        r = self.gate("remove", "rehearsal-osc", "--items", "film:r1/cut", "--by", "worker")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        after = self.snapshot()
+        touched = sorted(k for k in set(before) | set(after) if before.get(k) != after.get(k))
+        self.assertTrue(touched)
+        outside = [k for k in touched if not k.startswith(("_admin/client-site/rehearsal/", "_admin/client-site/frozen/"))]
+        self.assertEqual(outside, [])
+        self.assertFalse(os.path.exists(os.path.join(self.site, "published", "rehearsal-osc.json")))
+
+    def test_rehearsal_rules(self):
+        self.write_rbook(rbook(people=("jane@client.org",)))
+        self.assertIn("OSC plus-addresses only", self.gate("lint", "rehearsal-osc").stdout)
+        self.write_rbook(rbook(job="26-001"))
+        self.assertIn("job_number is 99-NNN", self.gate("lint", "rehearsal-osc").stdout)
+        self.write_rbook(rbook(invoices=[{"number": "26-0999", "title": "x", "amount": 1, "issued_on": "2026-10-01",
+                                          "status": "open", "audience": "client"}]))
+        self.assertIn("no invoices in a rehearsal book", self.gate("lint", "rehearsal-osc").stdout)
+        b = rbook()
+        b["org"]["folder"] = "/Clients/Acme"
+        self.write_rbook(b)
+        self.assertIn("a rehearsal client's folder is", self.gate("lint", "rehearsal-osc").stdout)
+
+    def test_a_rehearsal_never_reuses_a_real_clients_review_link(self):
+        self.write_draft(book(film_extra={"review_url": RLINK, "review_asset_id": A1}))
+        self.assertEqual(self.approve_all().returncode, 0)
+        self.write_rbook(rbook())
+        self.assertIn("reuses a real client's link or id", self.gate("lint", "rehearsal-osc").stdout)
+
+    def test_the_real_tree_refuses_rehearsal_things(self):
+        b = book()
+        b["projects"][0]["job_number"] = "99-005"
+        self.write_draft(b)
+        self.assertIn("99- job numbers are for rehearsals only", self.gate("lint", "acme").stdout)
+        b = book()
+        b["org"]["folder"] = RFOLDER
+        self.write_draft(b)
+        self.assertIn("can't be under the rehearsal tree", self.gate("lint", "acme").stdout)
+
+    def test_contact_clearances_are_never_for_a_rehearsal(self):
+        r = self.gate("clear-contact", "--person", "Sam", "--value", "sam+rehearsal@oliverstreetcreative.com", "--by", "Sam",
+                      "--ticket", "t", "--org", "rehearsal-osc")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertFalse(os.path.exists(os.path.join(self.site, "cleared-contacts.json")))
+
+    @unittest.skipUnless(shutil.which("pdftotext"), "pdftotext isn't installed")
+    def test_a_rehearsal_proposal_needs_no_reader_and_freezes_into_the_shared_folder(self):
+        full = os.path.join(self.root, RFOLDER.lstrip("/"), "Proposal.pdf")
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        with open(full, "wb") as f:
+            f.write(tiny_pdf(["Total $1,000", "Good until October 31, 2027"]))
+        b = rbook()
+        b["documents"] = [{"key": "prop", "project_key": "r1", "kind": "proposal", "title": "Test proposal",
+                           "audience": "client", "path": f"{RFOLDER}/Proposal.pdf", "ask": "accept",
+                           "acceptors": ["sam+rehearsal@oliverstreetcreative.com"], "total": 1000,
+                           "good_until": "2027-10-31"}]
+        self.write_rbook(b)
+        lint = self.gate("lint", "rehearsal-osc").stdout
+        self.assertNotIn("nothing tells Sam", lint)
+        check = self.gate("ticket", "rehearsal-osc").stdout.split("(check: ")[1][:12]
+        r = self.gate("approve", "rehearsal-osc", "--by", "worker", "--ticket", "rehearsal", "--digest", check)
+        self.assertEqual(r.returncode, 0, r.stderr + lint)
+        self.assertTrue(os.listdir(os.path.join(self.site, "frozen")))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

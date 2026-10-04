@@ -114,6 +114,68 @@ STACKS_EVENTS = [os.environ["STACKS_EVENTS_DIR"]] if SANDBOX and os.environ.get(
     if os.path.isdir(os.path.join(r, "Matters"))]
 TOMBSTONE_NOTE = "previously removed by Sam: publish only by naming it in --items"
 
+# ---------------------------------------------------------------- rehearsal clients (SPEC §25 v2)
+# A `rehearsal-` slug is a staging-only test client. Its tree is picked by the SLUG (never a flag): drafts, published,
+# preview, library and the publish log live under rehearsal/; frozen/ is shared (content-addressed); ledgers are the
+# *-staging folders the staging site writes; footage marks come only from rehearsal/events/. Only staging reads
+# rehearsal/published/. The real tree never holds a rehearsal slug, a rehearsal folder or a 99- job.
+REHEARSAL = os.path.join(SITE, "rehearsal")
+REHEARSAL_PREFIX = "rehearsal-"
+
+
+def is_rehearsal(slug):
+    return bool(slug) and str(slug).startswith(REHEARSAL_PREFIX)
+
+
+class Tree:
+    def __init__(self, **kw):
+        self.__dict__.update(kw)
+
+
+def T(slug):
+    """Every path the gate reads or writes for this client."""
+    if is_rehearsal(slug):
+        pub, pre = os.path.join(REHEARSAL, "published"), os.path.join(REHEARSAL, "preview")
+        return Tree(rehearsal=True, drafts=os.path.join(REHEARSAL, "books"), published=pub, preview=pre,
+                    log=os.path.join(pub, "_log"), lib_drafts=os.path.join(REHEARSAL, "library"),
+                    lib_live=os.path.join(pub, "library"), lib_preview=os.path.join(pre, "library"),
+                    approvals=os.path.join(SITE, "ledger", "approvals-staging"),
+                    acceptances=os.path.join(SITE, "ledger", "acceptances-staging"),
+                    events=[os.path.join(REHEARSAL, "events")], folder=f"/_admin/client-site/rehearsal/files/{slug}")
+    return Tree(rehearsal=False, drafts=DRAFTS, published=PUBLISHED, preview=PREVIEW, log=LOG, lib_drafts=LIBRARY_DRAFTS,
+                lib_live=LIBRARY_LIVE, lib_preview=LIBRARY_PREVIEW, approvals=LEDGER, acceptances=ACCEPTANCES,
+                events=STACKS_EVENTS, folder=None)
+
+
+_real_ids = None
+
+
+def real_ids():
+    """Every Review link, Review asset id and Mux id in a REAL published book or footage snapshot: a rehearsal may
+    never reuse one (a rehearsal view must never land on a real client's Review link or footage)."""
+    global _real_ids
+    if _real_ids is None:
+        _real_ids = set()
+
+        def walk(o):
+            if isinstance(o, dict):
+                for k, v in o.items():
+                    if k in ("review_url", "review_asset_id", "mux_playback_id", "mux_asset_id") and isinstance(v, str):
+                        _real_ids.add(v)
+                    walk(v)
+            elif isinstance(o, list):
+                for v in o:
+                    walk(v)
+        for d, ds, fs in os.walk(PUBLISHED):
+            ds[:] = [x for x in ds if not x.startswith((".", "_"))]
+            for f in fs:
+                if f.endswith(".json") and not f.startswith((".", "_")):
+                    try:
+                        walk(load(os.path.join(d, f)))
+                    except Exception:
+                        pass
+    return _real_ids
+
 # ---------------------------------------------------------------- proposals (SPEC §24 v2)
 # A proposal the client may accept is frozen: on publish its PDF is copied (add-only) to frozen/<sha256>.pdf and the
 # published document carries frozen_sha256; the site serves ONLY that copy, hash-checked. An accepted proposal (the
@@ -145,12 +207,13 @@ def accepted_documents(slug):
     good (withdrawn or not: the site keeps one acceptance per document); a revision is a new key. A ledger file the
     gate can't read (an online-only placeholder) stops the gate rather than quietly unlocking anything."""
     out = set()
-    if not os.path.isdir(ACCEPTANCES):
+    folder = T(slug).acceptances
+    if not os.path.isdir(folder):
         return out
-    for name in os.listdir(ACCEPTANCES):
+    for name in os.listdir(folder):
         if name.endswith(".json") and not name.startswith((".", "_")):
             try:
-                rec = load(os.path.join(ACCEPTANCES, name)) or {}
+                rec = load(os.path.join(folder, name)) or {}
             except Exception:
                 raise SystemExit(f"can't read the acceptance record {name} (is it online-only?): nothing published")
             if rec.get("org") == slug and rec.get("document"):
@@ -314,16 +377,17 @@ def digest(content):
 
 
 def diff(slug):
-    draft = proposed(load(os.path.join(DRAFTS, f"{slug}.json")))
-    live = load(os.path.join(PUBLISHED, f"{slug}.json"))
+    t = T(slug)
+    draft = proposed(load(os.path.join(t.drafts, f"{slug}.json")))
+    live = load(os.path.join(t.published, f"{slug}.json"))
     d, l = flatten(draft), flatten(live)
     # Footage packages (SPEC §23 v2): virtual items beside the book's, only once the client details exist.
     if draft:
-        drafts, not_ready = read_packages(LIBRARY_DRAFTS, slug)
+        drafts, not_ready = read_packages(t.lib_drafts, slug)
         d.update(flatten_libraries(drafts))
     else:
         not_ready = []
-    l.update(flatten_libraries(read_packages(LIBRARY_LIVE, slug)[0]))
+    l.update(flatten_libraries(read_packages(t.lib_live, slug)[0]))
     # Proposals are bound to their bytes (SPEC §24 v2): the draft's file hash is part of the item, so a PDF
     # re-rendered at the same path shows up as CHANGED and needs Sam's tap.
     accepted = {f"document:{x}" for x in accepted_documents(slug)}
@@ -547,8 +611,10 @@ def lint_item(key, content, org, items=None):
             problems.append(f"link isn't https: {u}")
         if TEAM_FRAMEIO.search(u):
             problems.append(f"Frame.io team link, not a client share: {u}")
-    if key.startswith("person:") and content.get("email", "").lower().endswith("@oliverstreetcreative.com"):
+    if key.startswith("person:") and content.get("email", "").lower().endswith("@oliverstreetcreative.com") \
+            and not is_rehearsal((org or {}).get("slug")):
         problems.append("an OSC address in a client's people list")
+    problems += tree_rules(key, content, org or {})
     if key.startswith("project:"):
         problems += team_problems(content, (org or {}).get("slug"))
     if key.startswith("film:"):
@@ -643,9 +709,34 @@ def document_problems(key, doc, org, items):
             and k.split(":", 1)[1] not in taken]
     if len(same) > 1:
         out.append(f"one open Accept per project (this one has {len(same)}: {', '.join(same)})")
-    why = reader_problem()
+    why = None if is_rehearsal((org or {}).get("slug")) else reader_problem()  # a rehearsal has no reader (§25 v2)
     if why:
         out.append(why)
+    return out
+
+
+def tree_rules(key, content, org):
+    """What differs between a real client and a rehearsal one (SPEC §25 v2), checked on every item."""
+    rehearsal = is_rehearsal(org.get("slug"))
+    out = []
+    if key.startswith("project:"):
+        job = str(content.get("job_number") or "")
+        if rehearsal and not re.match(r"^99-\d{3}$", job):
+            out.append("a rehearsal project's job_number is 99-NNN")
+        if not rehearsal and job.startswith("99-"):
+            out.append("99- job numbers are for rehearsals only")
+    if not rehearsal:
+        return out
+    if key.startswith("person:"):
+        email = str(content.get("email") or "").lower()
+        if not (email.endswith("@oliverstreetcreative.com") and "+" in email.split("@")[0]):
+            out.append("a rehearsal client's people are OSC plus-addresses only (sam+…@oliverstreetcreative.com)")
+    if key.startswith("invoice:"):
+        out.append("no invoices in a rehearsal book (invoice numbers are global keys)")
+    reused = sorted(v for k, v in content.items() if k in ("review_url", "review_asset_id", "mux_playback_id", "mux_asset_id")
+                    and isinstance(v, str) and v in real_ids()) if isinstance(content, dict) else []
+    if reused:
+        out.append(f"reuses a real client's link or id ({', '.join(reused)}): rehearsals use their own test assets")
     return out
 
 
@@ -722,7 +813,7 @@ def clip_problems(key, c, items):
         out.append("sam_event must be a Stacks event id")
     if out:
         return out
-    why = sam_favorite_problem(clip_id, c["sam_event"], a, b, fps)
+    why = sam_favorite_problem(clip_id, c["sam_event"], a, b, fps, T((items.get("org", (None, {}))[1] or {}).get("slug")).events)
     if why:
         out.append(why)
     job = (items.get(f"library:{lib}", (None, {}))[1] or {}).get("job")
@@ -748,7 +839,7 @@ def stacks_fold():
     return _fold or None
 
 
-def sam_favorite_problem(clip_id, sam_event, a, b, fps=None):
+def sam_favorite_problem(clip_id, sam_event, a, b, fps=None, roots=None):
     """None when frames a..b sit inside a favorite SAM marked himself (event `sam_event`), still standing after every
     later mark, edit, unrate and retraction. AI, sam-on-set, client and unrated ranges never pass. The raw event must
     itself be Sam's favorite rate (Stacks lets an admin `edit` anyone's mark while keeping its author, so an edit by
@@ -756,7 +847,7 @@ def sam_favorite_problem(clip_id, sam_event, a, b, fps=None):
     fold = stacks_fold()
     if not fold:
         return f"can't check it's Sam's pick: Stacks' engine isn't at {STACKS_ENGINE}"
-    root = next((p for p in STACKS_EVENTS if os.path.isdir(p)), None)
+    root = next((p for p in (roots if roots is not None else STACKS_EVENTS) if os.path.isdir(p)), None)
     if not root:
         return "can't check it's Sam's pick: Stacks' marks (Vault Archive Records/events) aren't reachable"
     folder = os.path.join(root, clip_id[:2], clip_id)
@@ -944,6 +1035,11 @@ def lint(slug, keys=None, snap=None):
     org = d.get("org", (None, None))[1]
     if org and not org.get("folder"):
         return {"org": ["the book's org needs a 'folder' (its /Clients/... folder) so files can be checked"]}
+    tree = T(slug)
+    if org and tree.rehearsal and org.get("folder") != tree.folder:
+        return {"org": [f"a rehearsal client's folder is {tree.folder}"]}
+    if org and not tree.rehearsal and str(org.get("folder")).startswith("/_admin/client-site/rehearsal"):
+        return {"org": ["a real client's folder can't be under the rehearsal tree"]}
     return {k: probs for k in keys if k in d for probs in [lint_item(k, d[k][1], org, d)] if probs}
 
 # ---------------------------------------------------------------- write
@@ -958,21 +1054,23 @@ def write_json(path, data):
 
 
 def log(slug, entry):
-    os.makedirs(LOG, exist_ok=True)
+    LOG_DIR = T(slug).log
+    os.makedirs(LOG_DIR, exist_ok=True)
     entry = {"at": dt.datetime.now().astimezone().isoformat(timespec="seconds"), **entry}
-    with open(os.path.join(LOG, f"{slug}.jsonl"), "a", encoding="utf-8") as f:
+    with open(os.path.join(LOG_DIR, f"{slug}.jsonl"), "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
-def approved_job_versions():
+def approved_job_versions(folder=None):
     """Job-version keys ("<job>/<film-key>/<n>") a client has approved, from the portal's ledger files."""
+    folder = folder or LEDGER
     out = set()
-    if not os.path.isdir(LEDGER):
+    if not os.path.isdir(folder):
         return out
-    for name in os.listdir(LEDGER):
+    for name in os.listdir(folder):
         if name.endswith(".json") and not name.startswith((".", "_")):
             try:
-                rec = load(os.path.join(LEDGER, name)) or {}
+                rec = load(os.path.join(folder, name)) or {}
             except Exception:
                 continue
             if rec.get("job") and rec.get("film") and rec.get("n") is not None and not rec.get("withdrawn"):
@@ -993,7 +1091,7 @@ def protected_items(items):
     slug = (items.get("org", (None, {}))[1] or {}).get("slug")
     accepted = accepted_documents(slug) if slug else set()
     out_docs = {k: digest(c) for k, (_, c) in items.items() if k.startswith("document:") and k.split(":", 1)[1] in accepted}
-    approved = approved_job_versions()
+    approved = approved_job_versions(T(slug).approvals)
     films = {k.rsplit("/", 1)[0] for k in approved}
     out = {}
     for key, (_, content) in items.items():
@@ -1039,7 +1137,7 @@ def publish(slug, keys, by, ticket, removing=(), extra=None, snap=None, tombston
                          "Review link and asset it was approved on; new cuts go up as new versions of that asset, and "
                          "a different asset needs a new film): " + ", ".join(broken))
     freeze_proposals(slug, keys, d)
-    write_json(os.path.join(PUBLISHED, f"{slug}.json"), book)
+    write_json(os.path.join(T(slug).published, f"{slug}.json"), book)
     write_libraries(slug, items, order, l, by, tombstone)
     log(slug, {"by": by, "ticket": ticket, "published": list(keys), "removed": list(removing), **(extra or {})})
     write_preview(slug)
@@ -1075,7 +1173,7 @@ def write_libraries(slug, items, order, before, by, tombstone=()):
     """Footage (SPEC §23 v2): every published library is a frozen snapshot file the site syncs. A library that left
     moves to _removed/ (kept, never deleted). What Sam pulled by hand (`tombstone`: clips, or a library and all its
     live clips) is tombstoned, so it can only come back by being named in --items, on a ticket that says so."""
-    folder = os.path.join(LIBRARY_LIVE, slug)
+    folder = os.path.join(T(slug).lib_live, slug)
     libs = assemble_libraries(items, order)
     for key, pkg in libs.items():
         path = os.path.join(folder, f"{key}.json")
@@ -1109,7 +1207,7 @@ def footage_withdrawals(slug, d, l):
     libraries whose package left the drafts folder. Removal never needs Sam's tap (SPEC §23 v2); nothing here is
     tombstoned, because a later pick in Stacks is Sam's own new choice. Never while the draft book or the drafts
     folder is missing (a sync glitch must not empty a client's library)."""
-    if "org" not in d or not os.path.isdir(os.path.join(LIBRARY_DRAFTS, slug)):
+    if "org" not in d or not os.path.isdir(os.path.join(T(slug).lib_drafts, slug)):
         return []
     out = []
     for k in l:
@@ -1126,14 +1224,14 @@ def pending_digest(d, keys):
 
 
 def tombstones(slug):
-    return load(os.path.join(LIBRARY_LIVE, slug, "_tombstones.json")) or {}
+    return load(os.path.join(T(slug).lib_live, slug, "_tombstones.json")) or {}
 
 
 def write_preview(slug):
     """A preview exists only while something is waiting for Sam; otherwise it's removed (and the site hides it)."""
     draft, live, d, l, new, changed, removed = diff(slug)
-    path = os.path.join(PREVIEW, f"{slug}--preview.json")
-    lib_folder = os.path.join(LIBRARY_PREVIEW, f"{slug}--preview")
+    path = os.path.join(T(slug).preview, f"{slug}--preview.json")
+    lib_folder = os.path.join(T(slug).lib_preview, f"{slug}--preview")
     if not d or not (new or changed):
         if os.path.exists(path):
             os.remove(path)
@@ -1148,7 +1246,7 @@ def write_preview(slug):
     # Staff (and Sam's ticket frames) read a pending proposal from its frozen copy too: named by hash, reachable only
     # through a book that names it.
     freeze_proposals(slug, [k for k in items if k.startswith("document:")], d)
-    write_json(os.path.join(PREVIEW, f"{slug}--preview.json"), book)
+    write_json(path, book)
     # Staff see pending footage on the preview site too (the worker's screenshots come from there).
     libs = assemble_libraries(items, list(d))
     for key, pkg in libs.items():
@@ -1217,7 +1315,7 @@ def cmd_auto(a):
 
 
 def read_log(slug):
-    path = os.path.join(LOG, f"{slug}.jsonl")
+    path = os.path.join(T(slug).log, f"{slug}.jsonl")
     if not os.path.exists(path):
         return []
     with open(path, encoding="utf-8") as f:
@@ -1228,7 +1326,7 @@ def cmd_undo(a):
     entry = next((e for e in read_log(a.org) if e.get("at") == a.at and e.get("ticket") == "auto"), None)
     if not entry or not entry.get("previous"):
         raise SystemExit(f"no automatic publish at {a.at} in {a.org}'s log")
-    live = load(os.path.join(PUBLISHED, f"{a.org}.json"))
+    live = load(os.path.join(T(a.org).published, f"{a.org}.json"))
     l = flatten(live)
     items = dict(l)
     put_back, moved_on = [], []
@@ -1239,7 +1337,7 @@ def cmd_undo(a):
         else:
             moved_on.append(k)  # changed again (or removed) since: undoing would clobber newer content
     if put_back:
-        write_json(os.path.join(PUBLISHED, f"{a.org}.json"), assemble(live, items, list(l)))
+        write_json(os.path.join(T(a.org).published, f"{a.org}.json"), assemble(live, items, list(l)))
         log(a.org, {"by": a.by, "ticket": "undo", "undid": a.at, "published": put_back, "removed": []})
         write_preview(a.org)
     note = f"; left {len(moved_on)} that changed since: {', '.join(moved_on)}" if moved_on else ""
@@ -1251,6 +1349,8 @@ def _contact_value(raw):
 
 
 def cmd_clear_contact(a):
+    if a.org and is_rehearsal(a.org):
+        raise SystemExit("refused: contact clearances are for real clients only (a rehearsal uses OSC addresses)")
     value = _contact_value(a.value)
     if not value:
         raise SystemExit(f"not a phone number or an email: {a.value}")

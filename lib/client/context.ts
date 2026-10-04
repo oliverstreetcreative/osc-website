@@ -12,6 +12,8 @@ import { jwtVerify } from "jose"
 import { getPortalUser, type PortalUser } from "@/lib/portal-auth"
 import { db } from "@/lib/db"
 import { demoOn, isDemoSlug } from "./demo"
+import { isRehearsalSlug } from "./rehearsal"
+import { IS_STAGING } from "@/lib/site-env"
 
 export const ORG_COOKIE = "cs_org"
 export const VIEW_COOKIE = "cs_view"
@@ -71,7 +73,12 @@ export async function getClientContext(): Promise<ClientContext | null> {
   // The staging demo (SPEC §19): a demo org exists only while the switch is on, and a person who belongs ONLY to
   // demo orgs is the demo visitor: read-only, from who they are, never from a cookie.
   const demo = demoOn()
-  const orgs = ms.map((m) => m.organization).filter((o) => demo || !isDemoSlug(o.slug))
+  // Rehearsal clients (SPEC §25 v2) exist only on staging: anywhere else their memberships count for nothing, even
+  // if a staging database were ever restored somewhere it shouldn't be.
+  const orgs = ms
+    .map((m) => m.organization)
+    .filter((o) => demo || !isDemoSlug(o.slug))
+    .filter((o) => IS_STAGING || !isRehearsalSlug(o.slug))
   if (!orgs.length) return null
   const demoVisitor = orgs.every((o) => isDemoSlug(o.slug))
   const roles = new Map(ms.map((m) => [m.organization.id, m.role]))

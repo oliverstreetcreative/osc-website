@@ -10,9 +10,10 @@
 // marker, so a bad edit renders as nothing rather than as a leak.
 import { db } from "@/lib/db"
 import { Book } from "./book"
-import { listJson, readText } from "./dropbox"
+import { listJson, listJsonEntries, readText } from "./dropbox"
 import { DEMO_ORG_SLUG, demoBook, demoOn, isDemoSlug } from "./demo"
 import { syncLibraries } from "./library"
+import { REHEARSAL_PREFIX, REHEARSAL_PREVIEW, REHEARSAL_PUBLISHED, isRehearsalPerson, isRehearsalSlug, rehearsalFolder } from "./rehearsal"
 import { flagReview } from "./ledger"
 import { IS_PRODUCTION, IS_STAGING } from "@/lib/site-env"
 
@@ -135,6 +136,7 @@ async function doSync(): Promise<SyncReport> {
       if (file.split("/").pop() !== `${slug}.json`) throw new Error(`file name must be ${slug}.json`)
       if (isPreview !== slug.endsWith("--preview")) throw new Error("preview books (and only they) end in --preview")
       if (isDemoSlug(slug)) throw new Error("demo- slugs belong to the staging demo (lib/client/demo.ts), never a Dropbox book")
+      if (isRehearsalSlug(slug)) throw new Error("rehearsal- slugs live in the rehearsal tree (SPEC §25), never in published/")
       if (isPreview) book = { ...book, people: [] } // nobody signs in to a preview; staff open it via View as client
       if (seen.has(slug)) throw new Error(`duplicate org slug ${slug}`)
       seen.add(slug)
@@ -153,13 +155,79 @@ async function doSync(): Promise<SyncReport> {
   // at least one REAL book. Demo orgs are never swept here: the switch above alone decides them.
   if (files.length && seen.size) {
     await db.organization.updateMany({
-      where: { slug: { notIn: [...seen] }, hidden: false, NOT: { slug: { startsWith: "demo-" } } },
+      where: { slug: { notIn: [...seen] }, hidden: false, NOT: [{ slug: { startsWith: "demo-" } }, { slug: { startsWith: REHEARSAL_PREFIX } }] },
       data: { hidden: true },
     })
+  }
+  // Rehearsal clients (SPEC §25 v2): STAGING ONLY, their own pass over their own tree; every deployed non-staging
+  // server hides them, the way it hides demo orgs.
+  if (IS_STAGING) await syncRehearsals(report)
+  else if (deployed) {
+    await db.organization.updateMany({ where: { slug: { startsWith: REHEARSAL_PREFIX }, hidden: false }, data: { hidden: true } })
   }
   lastSync = report
   console.log("client-site sync:", JSON.stringify(report))
   return report
+}
+
+/** Every root-relative file path a book names (documents, films, posters, downloads, invoice PDFs). */
+function bookPaths(book: Book): string[] {
+  const out: string[] = []
+  const walk = (o: unknown) => {
+    if (Array.isArray(o)) o.forEach(walk)
+    else if (o && typeof o === "object") {
+      for (const [k, v] of Object.entries(o)) {
+        if ((k === "path" || k === "file" || k === "poster" || k === "pdf") && typeof v === "string") out.push(v)
+        else walk(v)
+      }
+    }
+  }
+  walk({ projects: book.projects, invoices: book.invoices, documents: book.documents })
+  return out
+}
+
+/**
+ * The staging-only rehearsal pass (SPEC §25 v2): rehearsal/published/ and rehearsal/preview/, `rehearsal-` slugs only,
+ * people limited to OSC plus-addresses, every file inside rehearsal/files/<slug>/. Hides only rehearsal orgs, and only
+ * when its own listings worked.
+ */
+async function syncRehearsals(report: SyncReport) {
+  const pub = await listJsonEntries(REHEARSAL_PUBLISHED)
+  const pre = await listJsonEntries(REHEARSAL_PREVIEW)
+  if (pub === null || pre === null) {
+    report.failed.push({ file: REHEARSAL_PUBLISHED, error: "couldn't list the rehearsal tree (nothing hidden)" })
+    return
+  }
+  const seen = new Set<string>()
+  for (const { path: file } of [...pub, ...pre]) {
+    try {
+      const parsed = Book.safeParse(JSON.parse(await readText(file)))
+      if (!parsed.success) throw new Error(parsed.error.issues.slice(0, 5).map((i) => `${i.path.join(".")}: ${i.message}`).join("; "))
+      let book = parsed.data
+      const slug = book.org.slug
+      const isPreview = pre.some((e) => e.path === file)
+      if (!isRehearsalSlug(slug)) throw new Error("only rehearsal- slugs live in the rehearsal tree")
+      if (file.split("/").pop() !== `${slug}.json`) throw new Error(`file name must be ${slug}.json`)
+      if (isPreview !== slug.endsWith("--preview")) throw new Error("preview books (and only they) end in --preview")
+      const outside = bookPaths(book).filter((x) => !x.startsWith(rehearsalFolder(slug)))
+      if (outside.length) throw new Error(`files outside ${rehearsalFolder(slug)}: ${outside.slice(0, 3).join(", ")}`)
+      book = { ...book, people: isPreview ? [] : book.people.filter((x) => isRehearsalPerson(x.email)) }
+      if (seen.has(slug)) throw new Error(`duplicate org slug ${slug}`)
+      seen.add(slug)
+      const dropped: string[] = []
+      book = failClosed(book, dropped)
+      await applyBook(book)
+      const libBase = isPreview ? `${REHEARSAL_PREVIEW}/library` : `${REHEARSAL_PUBLISHED}/library`
+      for (const problem of await syncLibraries(slug, isPreview, libBase)) report.failed.push({ file: `library: ${slug}`, error: problem })
+      report.ok.push(slug)
+    } catch (err) {
+      report.failed.push({ file, error: String((err as Error)?.message ?? err).slice(0, 500) })
+    }
+  }
+  await db.organization.updateMany({
+    where: { slug: { startsWith: REHEARSAL_PREFIX, notIn: [...seen] }, hidden: false },
+    data: { hidden: true },
+  })
 }
 
 export async function applyBook(book: Book) {

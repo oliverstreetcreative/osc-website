@@ -16,10 +16,11 @@ const day = (s?: string) => (s ? new Date(`${s}T12:00:00Z`) : null)
 const CHUNK = 100
 
 /** Sync one org's footage. Returns problems for the sync report (never throws for one bad package). */
-export async function syncLibraries(slug: string, preview: boolean): Promise<string[]> {
+export async function syncLibraries(slug: string, preview: boolean, base?: string): Promise<string[]> {
   const org = await db.organization.findUnique({ where: { slug }, select: { id: true } })
   if (!org) return []
-  const folder = `${preview ? LIBRARY_PREVIEW_FOLDER : LIBRARY_FOLDER}/${slug}`
+  // `base`: the rehearsal tree's library folder for a rehearsal client (SPEC §25 v2); the real one otherwise.
+  const folder = `${base ?? (preview ? LIBRARY_PREVIEW_FOLDER : LIBRARY_FOLDER)}/${slug}`
   const entries = await listJsonEntries(folder)
   if (entries === null) return [`${folder}: couldn't list (nothing hidden)`]
   const problems: string[] = []

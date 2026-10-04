@@ -4,10 +4,16 @@
 // a real client's version. Server only.
 import { db } from "@/lib/db"
 import { IS_PRODUCTION } from "@/lib/site-env"
+import { isRehearsalSlug } from "./rehearsal"
 import { writeNewFile } from "./dropbox-write"
 
-const FOLDER = IS_PRODUCTION ? "/_admin/client-site/ledger/approvals" : "/_admin/client-site/ledger/approvals-staging"
-const FLAGS = IS_PRODUCTION ? "/_admin/client-site/ledger/flags" : "/_admin/client-site/ledger/flags-staging"
+/**
+ * The ledger folder for one org's records: production writes the real one; every other environment, and a rehearsal
+ * client in ANY environment (SPEC §25 v2), writes the -staging one, which the gate and Majordomo never act on.
+ */
+const ledgerDir = (name: string, orgSlug: string | null | undefined) =>
+  `/_admin/client-site/ledger/${name}${IS_PRODUCTION && !isRehearsalSlug(orgSlug) ? "" : "-staging"}`
+const orgSlugOf = async (orgId: string) => (await db.organization.findUnique({ where: { id: orgId }, select: { slug: true } }))?.slug ?? null
 const safe = (s: string) => s.replace(/[^A-Za-z0-9._-]+/g, "-").slice(0, 60) || "x"
 const eastern = (d: Date) =>
   d.toLocaleString("en-US", { timeZone: "America/New_York", dateStyle: "medium", timeStyle: "short" }) + " Eastern"
@@ -20,7 +26,7 @@ export async function writeLedger(approvalId: string): Promise<boolean> {
   if (!a || a.ledger_written_at) return !!a
   // Named by the approval's own id: a retry lands on the same name, and no other approval can ever share it (a
   // re-uploaded asset restarts Review's numbering; two projects without a job number may share a film key).
-  const path = `${FOLDER}/${safe(a.job ?? "no-job")}_${safe(a.film_key)}_${a.review_version_n}_${a.id}.json`
+  const path = `${ledgerDir("approvals", await orgSlugOf(a.organization_id))}/${safe(a.job ?? "no-job")}_${safe(a.film_key)}_${a.review_version_n}_${a.id}.json`
   const record = {
     job: a.job,
     film: a.film_key,
@@ -47,7 +53,6 @@ export async function writeLedger(approvalId: string): Promise<boolean> {
   return true
 }
 
-const ACCEPTANCES = IS_PRODUCTION ? "/_admin/client-site/ledger/acceptances" : "/_admin/client-site/ledger/acceptances-staging"
 
 /**
  * A client's yes to a proposal (SPEC §24 v2) → one add-only file Majordomo reads (it tickets Sam) and the gate's lock
@@ -56,7 +61,7 @@ const ACCEPTANCES = IS_PRODUCTION ? "/_admin/client-site/ledger/acceptances" : "
 export async function writeAcceptanceLedger(id: string): Promise<boolean> {
   const a = await db.proposalAcceptance.findUnique({ where: { id } })
   if (!a || a.ledger_written_at) return !!a
-  const path = `${ACCEPTANCES}/${safe(a.job ?? "no-job")}_${safe(a.doc_key)}_${a.id}.json`
+  const path = `${ledgerDir("acceptances", a.org_slug)}/${safe(a.job ?? "no-job")}_${safe(a.doc_key)}_${a.id}.json`
   const record = {
     org: a.org_slug,
     document: a.doc_key,
@@ -92,7 +97,6 @@ export async function writePendingLedgers() {
   for (const p of pending) await writeLedger(p.id).catch((err) => console.error("approvals: ledger retry failed", err))
 }
 
-const HEARTS = IS_PRODUCTION ? "/_admin/client-site/ledger/library-hearts" : "/_admin/client-site/ledger/library-hearts-staging"
 
 /**
  * Footage hearts (SPEC §23 v2) → one portal-shaped record per row, for Stacks' importer to turn into its own `client`
@@ -129,7 +133,7 @@ export async function writePendingHearts() {
       person: { email: who?.email.toLowerCase() ?? null, name: who?.name ?? null, org: org?.slug ?? null, org_name: org?.name ?? null },
       at: r.at.toISOString(),
     }
-    const res = await writeNewFile(`${HEARTS}/${String(r.seq).padStart(10, "0")}_${r.id}.json`, JSON.stringify(record, null, 2) + "\n")
+    const res = await writeNewFile(`${ledgerDir("library-hearts", org?.slug)}/${String(r.seq).padStart(10, "0")}_${r.id}.json`, JSON.stringify(record, null, 2) + "\n")
     if (res !== "written" && res !== "exists") {
       console.error(`library: heart ledger write failed for ${r.id}: ${res}`)
       return // try the rest next run, in order
@@ -158,7 +162,7 @@ export function flagReview(kind: FlagKind, film: string, title: string) {
   if (tried.has(name)) return
   tried.add(name)
   const body = { what: FLAG_WORDS[kind], kind, film, film_title: title, seen_at: new Date().toISOString() }
-  void writeNewFile(`${FLAGS}/${name}`, JSON.stringify(body, null, 2) + "\n")
+  void writeNewFile(`${ledgerDir("flags", film.split("/")[0])}/${name}`, JSON.stringify(body, null, 2) + "\n")
     .then((r) => {
       if (r !== "written" && r !== "exists") console.error(`review: flag write failed for ${film}: ${r}`)
     })
