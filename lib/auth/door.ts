@@ -2,22 +2,38 @@
 // parallel burst can't read stale numbers), the alarms, and the two emails (the sign-in link + code; the new-device
 // notice). The routes are thin: app/api/auth/{request-magic-link,verify,code}.
 import type { NextRequest, NextResponse } from "next/server"
+import type { Prisma } from "@/generated/prisma"
 import { db } from "@/lib/db"
 import { clientIp } from "@/lib/client/ip"
 import { isSecure } from "@/lib/client/host"
 import { writeNewFile } from "@/lib/client/dropbox-write"
 import { ledgerDir } from "@/lib/client/rehearsal"
 import { IS_PRODUCTION, IS_STAGING } from "@/lib/site-env"
-import { alarmFor, countingHash, deviceHash, maySendLink, mayTryCode, newDeviceId, signinIpKey } from "./front-door"
-import { DEVICE_COOKIE, DEVICE_COOKIE_MAX_AGE } from "./session"
+import { LINK_LIMITS, alarmFor, countingHash, deviceHash, maySendLink, mayTryCode, newDeviceId, signinIpKey } from "./front-door"
+export { homeFor } from "./front-door"
+import { DEVICE_COOKIE_MAX_AGE } from "./session"
 
 const LOCK = "SELECT pg_advisory_xact_lock(290430)" // a constant: sign-in's own lock (support reports use 290429)
+// Built review: a pile of waiting transactions could park every pooled connection. So the wait is bounded (lock
+// timeout), at most a few sign-in transactions run per process, and a network already over its cap never enters.
+const LOCK_TIMEOUT = "SET LOCAL lock_timeout = '3s'"
+const MAX_IN_FLIGHT = 3
+let inFlight = 0
 
 const secret = () => process.env.SESSION_JWT_SECRET || ""
 
+/** The device cookie: `__Host-` wherever the site is served over https (a sibling subdomain can't toss one in and
+ *  pin a victim's device; built review); the plain name only on localhost. Not a credential either way. */
+export const DEVICE_COOKIE_SECURE = "__Host-osc_device"
+export const DEVICE_COOKIE_PLAIN = "osc_device"
+const isLocalhost = (req: NextRequest) => {
+  const h = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "").split(",")[0].split(":")[0].trim().toLowerCase()
+  return h === "localhost" || h === "127.0.0.1"
+}
+
 /** This browser's device id, if it carries a well-formed one. */
 export function deviceFrom(req: NextRequest): string | null {
-  const v = req.cookies.get(DEVICE_COOKIE)?.value ?? ""
+  const v = req.cookies.get(DEVICE_COOKIE_SECURE)?.value ?? (isLocalhost(req) ? req.cookies.get(DEVICE_COOKIE_PLAIN)?.value : undefined) ?? ""
   return /^[A-Za-z0-9_-]{32}$/.test(v) ? v : null
 }
 
@@ -26,7 +42,8 @@ export function ensureDevice(req: NextRequest, res: NextResponse): string {
   const have = deviceFrom(req)
   if (have) return have
   const id = newDeviceId()
-  res.cookies.set(DEVICE_COOKIE, id, { path: "/", httpOnly: true, sameSite: "lax", secure: isSecure(req), maxAge: DEVICE_COOKIE_MAX_AGE })
+  const secure = isSecure(req)
+  res.cookies.set(secure ? DEVICE_COOKIE_SECURE : DEVICE_COOKIE_PLAIN, id, { path: "/", httpOnly: true, sameSite: "lax", secure, maxAge: DEVICE_COOKIE_MAX_AGE })
   return id
 }
 
@@ -41,59 +58,82 @@ export function hashesFor(req: NextRequest, email: string, deviceId: string | nu
   }
 }
 
-/** Has this browser signed in as this person before (any session, live or ended, in the last 90 days)? */
+/** Has this browser signed in as this person before (a person session, live or ended, kept 90 days)? */
 async function knownDevice(tx: Pick<typeof db, "portalSession">, personId: string | null, device: string | null) {
   if (!personId || !device) return false
   return (await tx.portalSession.count({ where: { person_id: personId, device_hash: device, kind: "person" } })) > 0
 }
 
-/** Record a link request and decide whether an email goes. The answer to the person is the same either way. */
+/** Run `fn` under the sign-in lock, bounded; `busy` when the lock or the process is too busy (a flood). */
+async function locked<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>, busy: T): Promise<T> {
+  if (inFlight >= MAX_IN_FLIGHT) return busy
+  inFlight++
+  try {
+    return await db.$transaction(
+      async (tx) => {
+        await tx.$executeRawUnsafe(LOCK_TIMEOUT)
+        await tx.$executeRawUnsafe(LOCK)
+        return fn(tx)
+      },
+      { timeout: 10_000, maxWait: 5_000 },
+    )
+  } catch (err) {
+    console.error("sign-in: the counts were too busy to take", String((err as Error)?.message ?? err).slice(0, 200))
+    return busy
+  } finally {
+    inFlight--
+  }
+}
+
+const hourAgo = () => new Date(Date.now() - 3600_000)
+
+/** Record a link request and decide whether an email goes. The answer to the person is the same either way. A browser
+ *  that has signed in as this person before is TRUSTED: it skips the per-address and per-network caps and never
+ *  counts toward its network's (built review: a crew on one hotspot must not lock each other out). */
 export async function decideLink(h: Hashes, personId: string | null): Promise<{ send: boolean; alarm: string | null }> {
   const known = !!personId
-  return db.$transaction(
-    async (tx) => {
-      await tx.$executeRawUnsafe(LOCK)
-      const now = Date.now()
-      const since = (ms: number) => new Date(now - ms)
-      const [address15, addressDay, ipHour, sendsHour, device] = await Promise.all([
-        tx.authEvent.count({ where: { kind: "link_request", email_hash: h.email, created_at: { gte: since(15 * 60_000) } } }),
-        tx.authEvent.count({ where: { kind: "link_request", email_hash: h.email, created_at: { gte: since(86400_000) } } }),
-        h.ip ? tx.authEvent.count({ where: { kind: "link_request", ip_hash: h.ip, created_at: { gte: since(3600_000) } } }) : 0,
-        tx.authEvent.count({ where: { kind: "link_sent", created_at: { gte: since(3600_000) } } }),
-        knownDevice(tx, personId, h.device),
-      ])
-      await tx.authEvent.create({ data: { kind: "link_request", email_hash: h.email, ip_hash: h.ip, device_hash: h.device, known } })
-      const send = known && maySendLink({ address15, addressDay, ipHour, knownDevice: device })
-      if (send) await tx.authEvent.create({ data: { kind: "link_sent", email_hash: h.email, ip_hash: h.ip, device_hash: h.device, known } })
-      return { send, alarm: send ? alarmFor({ sendsHour: sendsHour + 1, codeFailsDay: 0 }) : null }
-    },
-    { timeout: 15_000, maxWait: 15_000 },
-  )
+  const trusted = await knownDevice(db, personId, h.device)
+  // A network already over its cap never takes the lock (the same answer, no transaction).
+  if (!trusted && h.ip) {
+    const ipHour = await db.authEvent.count({ where: { kind: "link_request", ip_hash: h.ip, trusted: false, created_at: { gte: hourAgo() } } })
+    if (ipHour >= LINK_LIMITS.ipPerHour) return { send: false, alarm: null }
+  }
+  return locked(async (tx) => {
+    const now = Date.now()
+    const since = (ms: number) => new Date(now - ms)
+    const [address15, addressDay, ipHour, sendsHour] = await Promise.all([
+      tx.authEvent.count({ where: { kind: "link_request", email_hash: h.email, created_at: { gte: since(15 * 60_000) } } }),
+      tx.authEvent.count({ where: { kind: "link_request", email_hash: h.email, created_at: { gte: since(86400_000) } } }),
+      h.ip ? tx.authEvent.count({ where: { kind: "link_request", ip_hash: h.ip, trusted: false, created_at: { gte: since(3600_000) } } }) : 0,
+      tx.authEvent.count({ where: { kind: "link_sent", created_at: { gte: since(3600_000) } } }),
+    ])
+    await tx.authEvent.create({ data: { kind: "link_request", email_hash: h.email, ip_hash: h.ip, device_hash: h.device, known, trusted } })
+    const send = known && maySendLink({ address15, addressDay, ipHour, knownDevice: trusted })
+    if (send) await tx.authEvent.create({ data: { kind: "link_sent", email_hash: h.email, ip_hash: h.ip, device_hash: h.device, known, trusted } })
+    return { send, alarm: send ? alarmFor({ sendsHour: sendsHour + 1, codeFailsDay: 0 }) : null }
+  }, { send: false, alarm: null })
 }
 
 export type CodeTry = { ok: true } | { ok: false; why: "too_many" }
 
-/** May this code be tried now? Counts under the lock; only guesses against a LIVE code ever count. */
-export async function decideCodeTry(h: Hashes, personId: string, codeTries: number): Promise<CodeTry> {
-  return db.$transaction(
-    async (tx) => {
-      await tx.$executeRawUnsafe(LOCK)
-      const now = Date.now()
-      const [addressFailsDay, ipFailsHour, device] = await Promise.all([
-        tx.authEvent.count({ where: { kind: "code_fail", email_hash: h.email, created_at: { gte: new Date(now - 86400_000) } } }),
-        h.ip ? tx.authEvent.count({ where: { kind: "code_fail", ip_hash: h.ip, created_at: { gte: new Date(now - 3600_000) } } }) : 0,
-        knownDevice(tx, personId, h.device),
-      ])
-      return mayTryCode({ codeTries, addressFailsDay, ipFailsHour, knownDevice: device }) ? ({ ok: true } as const) : ({ ok: false, why: "too_many" } as const)
-    },
-    { timeout: 15_000, maxWait: 15_000 },
-  )
+/** May a code be checked now? The same counting for a real address and an unknown one (nothing says which exists). */
+export async function decideCodeTry(h: Hashes, personId: string | null, codeTries: number): Promise<CodeTry> {
+  const trusted = await knownDevice(db, personId, h.device)
+  return locked(async (tx) => {
+    const now = Date.now()
+    const [addressFailsDay, ipFailsHour] = await Promise.all([
+      tx.authEvent.count({ where: { kind: "code_fail", email_hash: h.email, created_at: { gte: new Date(now - 86400_000) } } }),
+      h.ip ? tx.authEvent.count({ where: { kind: "code_fail", ip_hash: h.ip, created_at: { gte: new Date(now - 3600_000) } } }) : 0,
+    ])
+    return mayTryCode({ codeTries, addressFailsDay, ipFailsHour, knownDevice: trusted }) ? ({ ok: true } as const) : ({ ok: false, why: "too_many" } as const)
+  }, { ok: false, why: "too_many" } as CodeTry)
 }
 
-/** A wrong guess at a live code: counted, and maybe an alarm. */
-export async function recordCodeFail(h: Hashes): Promise<void> {
-  await db.authEvent.create({ data: { kind: "code_fail", email_hash: h.email, ip_hash: h.ip, device_hash: h.device, known: true } })
-  const day = await db.authEvent.count({ where: { kind: "code_fail", created_at: { gte: new Date(Date.now() - 86400_000) } } })
+/** A wrong code: counted per address and network either way; only a guess at a LIVE code counts toward the alarm. */
+export async function recordCodeFail(h: Hashes, live: boolean): Promise<void> {
+  await db.authEvent.create({ data: { kind: "code_fail", email_hash: h.email, ip_hash: h.ip, device_hash: h.device, known: live } })
+  if (!live) return
+  const day = await db.authEvent.count({ where: { kind: "code_fail", known: true, created_at: { gte: new Date(Date.now() - 86400_000) } } })
   const alarm = alarmFor({ sendsHour: 0, codeFailsDay: day })
   if (alarm) raiseAlarm(alarm)
 }

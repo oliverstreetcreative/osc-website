@@ -4,7 +4,7 @@
 //   no row, revoked, past its absolute end, idle more than 30 days, a token that isn't the row's, or a person switched
 //   off → null. The Edge middleware only pre-filters on the JWT's signature and claims.
 import { cache } from "react"
-import { cookies } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { createHash } from "crypto"
 import { jwtVerify } from "jose"
 import { db } from "@/lib/db"
@@ -35,10 +35,20 @@ export type Session = {
   demo?: string
 }
 
-/** The cookie's token: the `__Host-` name first, the plain name (http localhost) second. */
+/** The cookie's token: the `__Host-` name; the plain name ONLY on localhost (built review: anywhere else a sibling
+ *  subdomain could toss a domain-wide one at a signed-out visitor). */
 export async function sessionToken(): Promise<string | null> {
   const jar = await cookies()
-  return jar.get(SESSION_COOKIE_SECURE)?.value ?? jar.get(SESSION_COOKIE_PLAIN)?.value ?? null
+  const secure = jar.get(SESSION_COOKIE_SECURE)?.value
+  if (secure) return secure
+  const host = ((await headers()).get("x-forwarded-host") ?? (await headers()).get("host") ?? "").split(",")[0].split(":")[0].trim().toLowerCase()
+  return host === "localhost" || host === "127.0.0.1" ? jar.get(SESSION_COOKIE_PLAIN)?.value ?? null : null
+}
+
+/** A staging preview sign-in (the screenshot harness): read-only everywhere. From the session, not a header. */
+export async function isPreviewSession(): Promise<boolean> {
+  const s = await sessionUser()
+  return !!s && (s.preview || s.kind === "preview")
 }
 
 export const sessionUser = cache(async (): Promise<Session | null> => {

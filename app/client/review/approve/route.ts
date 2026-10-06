@@ -6,6 +6,7 @@ import { getClientContext } from "@/lib/client/context"
 import { approveVersion, clientIp, filmKeyOf } from "@/lib/client/approvals"
 import { publicOrigin } from "@/lib/client/host"
 import { db } from "@/lib/db"
+import { isPreviewSession } from "@/lib/auth/require-session"
 
 export const dynamic = "force-dynamic"
 
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
     ip: clientIp(req.headers),
     userAgent: req.headers.get("user-agent"),
     // A staging screenshot sign-in (/api/auth/preview) can look at everything and approve nothing.
-    preview: req.headers.get("x-user-preview") === "true",
+    preview: (await isPreviewSession()),
   })
   if (!r.ok) return NextResponse.redirect(`${back}?why=${r.code}${r.at ? `&at=${encodeURIComponent(r.at)}` : ""}`, 303)
   return NextResponse.redirect(`${origin}/client/approvals/${r.approvalId}`, 303)

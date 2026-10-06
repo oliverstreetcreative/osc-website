@@ -3,7 +3,7 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import {
-  ALARMS, CODE_LIMITS, LINK_LIMITS, alarmFor, codeHash, codeMatches, deviceHash, emailHash, maySendLink, mayTryCode, newCode,
+  ALARMS, CODE_LIMITS, LINK_LIMITS, alarmFor, codeHash, codeMatches, deviceHash, emailHash, homeFor, maySendLink, mayTryCode, newCode,
   newDeviceId, normalizeCode, parseScope, safeRedirect, scopeAllows, signinIpKey,
 } from "./front-door"
 
@@ -46,15 +46,15 @@ test("a script scope: its own script, its print view, its API, and the way out",
   assert.equal(parseScope(7), "bad")
 })
 
-test("link requests: per address and per network; a known device skips the per-address caps", () => {
+test("link requests: per address and per network; a known device skips both", () => {
   const ok = { address15: 0, addressDay: 0, ipHour: 0 }
   assert.ok(maySendLink(ok))
   assert.ok(!maySendLink({ ...ok, address15: LINK_LIMITS.addressPer15Min }))
   assert.ok(!maySendLink({ ...ok, addressDay: LINK_LIMITS.addressPerDay }))
   assert.ok(!maySendLink({ ...ok, ipHour: LINK_LIMITS.ipPerHour }))
-  // Someone asking for Sam's crew's links all day can't lock them out of their own phone.
+  // Someone asking for Sam's crew's links all day, or junk from the same hotspot, can't lock them out of their own phone.
   assert.ok(maySendLink({ ...ok, addressDay: 99, address15: 99, knownDevice: true }))
-  assert.ok(!maySendLink({ ...ok, ipHour: LINK_LIMITS.ipPerHour, knownDevice: true }))
+  assert.ok(maySendLink({ ...ok, ipHour: LINK_LIMITS.ipPerHour, knownDevice: true }))
 })
 
 test("code tries: per code and per network always; per address unless it's a known device", () => {
@@ -107,4 +107,14 @@ test("the code: six digits, bound to its invite, checked in constant time", () =
   assert.equal(emailHash(" Jane@Client.org ", "k"), emailHash("jane@client.org", "k"))
   assert.notEqual(emailHash("jane@client.org", "k"), emailHash("jane@client.org", "k2"))
   assert.doesNotMatch(emailHash("jane@client.org", "k"), /jane/)
+})
+
+test("where a sign-in lands when nothing asked for a page", () => {
+  assert.equal(homeFor("CLIENT", false, "oliverstreetcreative.com"), "/client")
+  assert.equal(homeFor("CREW", false, "oliverstreetcreative.com"), "/crew")
+  assert.equal(homeFor("STAFF", true, "login.oliverstreetcreative.com"), "/admin")
+  assert.equal(homeFor("CLIENT", true, "oliverstreetcreative.com"), "/client/view-as")
+  // On crew.* everyone lands on the crew home (the host rewrites "/" to /crew).
+  assert.equal(homeFor("STAFF", true, "crew.oliverstreetcreative.com"), "/")
+  assert.equal(homeFor("CREW", false, "crew.oliverstreetcreative.com"), "/")
 })

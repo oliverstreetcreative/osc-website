@@ -18,8 +18,7 @@ import { countingHash, deviceHash, signinIpKey } from "./front-door"
 export const SESSION_COOKIE_SECURE = "__Host-osc_session"
 export const SESSION_COOKIE_PLAIN = "osc_session" // http localhost only
 export const sessionCookieName = (secure: boolean) => (secure ? SESSION_COOKIE_SECURE : SESSION_COOKIE_PLAIN)
-/** The browser's device id (not a credential): pairs a link's tap with the browser that asked for it. */
-export const DEVICE_COOKIE = "osc_device"
+/** The device cookie's life (the cookie itself: lib/auth/door.ts, `__Host-osc_device` on https). */
 export const DEVICE_COOKIE_MAX_AGE = 400 * 86400
 
 export type SessionKind = "person" | "preview" | "demo" | "script"

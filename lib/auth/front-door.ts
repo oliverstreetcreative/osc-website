@@ -16,12 +16,13 @@ export const ALARMS = { sendsPerHour: 300, codeFailsPerDay: 500 } as const
 
 /**
  * Send a link? The answer to the person is the same either way; this only decides whether an email goes. A browser
- * that has signed in as this person before (`knownDevice`) skips the per-address caps, so nobody can lock someone out
- * by asking for their links (review 10/4).
+ * that has signed in as this person before (`knownDevice`) skips the per-address AND per-network caps: nobody can lock
+ * someone out by asking for their links, and a crew on one hotspot can't lock each other out (design + built review).
+ * `ipHour` counts only requests from devices that aren't known.
  */
 export function maySendLink(c: { address15: number; addressDay: number; ipHour: number; knownDevice?: boolean }): boolean {
-  if (c.ipHour >= LINK_LIMITS.ipPerHour) return false
   if (c.knownDevice) return true
+  if (c.ipHour >= LINK_LIMITS.ipPerHour) return false
   return c.address15 < LINK_LIMITS.addressPer15Min && c.addressDay < LINK_LIMITS.addressPerDay
 }
 
@@ -61,8 +62,6 @@ export function countingHash(kind: "email" | "ip" | "device", value: string, key
 
 // ---------------------------------------------------------------- the 6-digit code
 
-export const CODE_TTL_MINUTES = 10
-
 /** Six digits from the CSPRNG ("004219" is a code like any other). */
 export const newCode = () => String(randomInt(0, 1_000_000)).padStart(6, "0")
 
@@ -94,3 +93,12 @@ export const deviceHash = (deviceId: string) => createHash("sha256").update(`osc
 
 /** A fresh device id for the osc_device cookie (not a credential: it only pairs a tap with the browser that asked). */
 export const newDeviceId = () => randomBytes(24).toString("base64url")
+
+/** Where a person lands after signing in, when nothing asked for a page. On crew.* everyone lands on the crew home
+ *  (built review: staff landing on /client/view-as there hit /crew/client/view-as, a 404). */
+export function homeFor(role: string, isStaff: boolean, host: string): string {
+  if (host.startsWith("crew.")) return "/"
+  if (isStaff || role === "STAFF") return host.startsWith("login.") ? "/admin" : "/client/view-as"
+  if (role === "CREW") return "/crew"
+  return "/client"
+}

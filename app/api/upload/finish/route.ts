@@ -25,8 +25,9 @@ function uploadContextToFolder(uploadContext?: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const userId = (await getPortalUser())?.id ?? null;
-    const userEmail = (await getPortalUser())?.email ?? "unknown";
+    const user = await getPortalUser();
+    const userId = user?.id ?? null;
+    const userEmail = user?.email ?? "unknown";
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

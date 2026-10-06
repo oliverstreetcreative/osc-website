@@ -84,6 +84,7 @@ CREATE TABLE "auth_events" (
     "ip_hash" TEXT,
     "device_hash" TEXT,
     "known" BOOLEAN NOT NULL DEFAULT false,
+    "trusted" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "auth_events_pkey" PRIMARY KEY ("id")

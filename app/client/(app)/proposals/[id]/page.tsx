@@ -11,6 +11,7 @@ import { isDemoSlug } from "@/lib/client/demo"
 import { db } from "@/lib/db"
 import { day, dayET } from "@/lib/client/format"
 import { HelpFooter, OSC_SMS } from "@/app/client/ui"
+import { isPreviewSession } from "@/lib/auth/require-session"
 
 export const metadata = { title: "Proposal" }
 
@@ -20,7 +21,7 @@ export default async function ProposalPage({ params, searchParams }: { params: {
   if (!found) notFound()
   const { doc } = found
   const org = ctx.orgs.find((o) => o.id === doc.organization_id)
-  const preview = (await headers()).get("x-user-preview") === "true"
+  const preview = (await isPreviewSession())
   // A staging PREVIEW sign-in (the screenshot camera) sees the acceptor's real form with the button off; the POST
   // refuses preview sessions anyway.
   const readOnly = !!ctx.viewing || isDemoSlug(org?.slug)

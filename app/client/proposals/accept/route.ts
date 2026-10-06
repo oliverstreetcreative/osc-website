@@ -5,6 +5,7 @@ import { getClientContext } from "@/lib/client/context"
 import { acceptProposal } from "@/lib/client/proposals"
 import { clientIp } from "@/lib/client/approvals"
 import { publicOrigin } from "@/lib/client/host"
+import { isPreviewSession } from "@/lib/auth/require-session"
 
 export const dynamic = "force-dynamic"
 
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
   const r = await acceptProposal(ctx, id, sha, {
     ip: clientIp(req.headers),
     userAgent: req.headers.get("user-agent"),
-    preview: req.headers.get("x-user-preview") === "true",
+    preview: (await isPreviewSession()),
   }).catch((err) => {
     console.error("proposals: accept failed", err)
     return { ok: false as const, code: "unavailable" as const }

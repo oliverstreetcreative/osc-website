@@ -5,8 +5,9 @@ import { getPortalUser } from '@/lib/portal-auth'
 
 export async function GET() {
   const hdrs = await headers()
-  const userId = (await getPortalUser())?.id ?? null
-  const userRole = (await getPortalUser())?.role ?? 'CLIENT'
+  const user = await getPortalUser()
+  const userId = user?.id ?? null
+  const userRole = user?.role ?? 'CLIENT'
 
   if (!userId) {
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 })

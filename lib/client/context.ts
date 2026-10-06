@@ -26,7 +26,7 @@ export type ClientContext = {
   orgs: OrgSummary[]
   role: "OWNER" | "APPROVER" | "BILLING" | "VIEWER" | "STAFF"
   /** Set when the site is read-only for this session: OSC staff viewing a client's site, or the demo (SPEC §19). */
-  viewing: { orgName: string; preview: boolean; legacy?: boolean; demo?: boolean } | null
+  viewing: { orgName: string; preview: boolean; demo?: boolean } | null
 }
 
 const orgSelect = { id: true, slug: true, name: true, short_name: true, logo_path: true } as const

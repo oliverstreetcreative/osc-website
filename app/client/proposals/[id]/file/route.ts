@@ -9,6 +9,7 @@ import { findProposal, frozenPdf } from "@/lib/client/proposals"
 import { isDemoSlug } from "@/lib/client/demo"
 import { streamFile } from "@/lib/client/serve"
 import { db } from "@/lib/db"
+import { isPreviewSession } from "@/lib/auth/require-session"
 
 export const dynamic = "force-dynamic"
 
@@ -31,7 +32,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   const bytes = await frozenPdf(sha)
   if (!bytes) return new NextResponse("The proposal file isn't available right now.", { status: 404 })
   // Log a CLIENT opening it: never staff viewing, never a staging preview sign-in.
-  if (!ctx.viewing && req.headers.get("x-user-preview") !== "true") {
+  if (!ctx.viewing && !(await isPreviewSession())) {
     await db.proposalView.create({ data: { document_id: doc.id, person_id: ctx.user.id, sha256: sha } }).catch((err) => console.error("proposals: view log failed", err))
   }
   const name = `${doc.title.replace(/[^\w .()-]+/g, " ").trim().slice(0, 80) || "Proposal"}.pdf`

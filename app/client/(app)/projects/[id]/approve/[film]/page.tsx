@@ -13,6 +13,7 @@ import { shareToken, versionStream } from "@/lib/client/review"
 import { db } from "@/lib/db"
 import { dayET } from "@/lib/client/format"
 import { ReviewPlayer } from "./review-player"
+import { isPreviewSession } from "@/lib/auth/require-session"
 
 export const metadata = { title: "Review" }
 
@@ -36,7 +37,7 @@ export default async function ApprovePage({ params, searchParams }: { params: { 
   // Sam reads that log as the client's own activity.
   const stream =
     state.kind === "ok" && token && film.review_asset_id && !ctx.viewing ? await versionStream(token, film.review_asset_id, state.newest.id) : null
-  const preview = (await headers()).get("x-user-preview") === "true"
+  const preview = (await isPreviewSession())
   // A staging PREVIEW sign-in (the screenshot camera) sees the approver's real form with the button off; the POST
   // refuses preview sessions anyway. Staff viewing never see the form.
   const approver = !ctx.viewing && isApprover(film, ctx.user.email)

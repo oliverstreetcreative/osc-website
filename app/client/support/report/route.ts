@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getClientContext } from "@/lib/client/context"
 import { clientIp } from "@/lib/client/ip"
-import { getPortalUser } from "@/lib/portal-auth"
+import { isPreviewSession, sessionUser } from "@/lib/auth/require-session"
 import { MAX_BODY, createTicket } from "@/lib/support/store"
 import { mirrorTickets } from "@/lib/support/mirror"
 import { readJsonCapped } from "@/lib/support/http"
@@ -13,15 +13,16 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 export async function POST(req: NextRequest) {
-  // Staff viewing as a client (either way), and preview sign-ins, are read-only. Checked here too, not only in the
-  // middleware, because someone with no client context never gets a `viewing` flag (review 10/4).
-  if (req.cookies.get("cs_view")?.value || req.headers.get("x-impersonating") === "true" || req.headers.get("x-user-preview") === "true") {
+  // Staff viewing as a client, and preview sign-ins, are read-only. Checked here too, not only in the middleware,
+  // because someone with no client context never gets a `viewing` flag (review 10/4).
+  if (req.cookies.get("cs_view")?.value || (await isPreviewSession())) {
     return NextResponse.json({ error: "read_only" }, { status: 403 })
   }
   const ctx = await getClientContext()
-  // Staff outside View as, and people who only have scripts, have no client context: they report as themselves,
-  // with no client attached.
-  const user = ctx ? ctx.user : await getPortalUser()
+  // Staff outside View as, people who only have scripts, and a script invite's session (SPEC §27 P0 v2) have no
+  // client context: they report as themselves, with no client attached.
+  const s = ctx ? null : await sessionUser()
+  const user = ctx ? ctx.user : s ? s.person : null
   if (!user) return NextResponse.json({ error: "sign_in" }, { status: 401 })
   if (ctx?.viewing) return NextResponse.json({ error: "read_only" }, { status: 403 })
   const read = await readJsonCapped(req, MAX_BODY)
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
   const r = await createTicket({
     personId: user.id,
     orgId: ctx?.org.id,
-    role: ctx ? ctx.role : user.is_staff ? "STAFF" : null,
+    role: ctx ? ctx.role : user.is_staff && !s?.scope ? "STAFF" : null,
     message: body.message,
     route: body.route,
     onClientHost: host.startsWith("client."),

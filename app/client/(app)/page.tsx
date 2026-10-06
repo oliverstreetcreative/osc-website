@@ -16,6 +16,7 @@ import { GlanceSections } from "@/app/client/glance"
 import { orgInvoices } from "@/lib/client/data"
 import { seesMoney } from "@/lib/client/money"
 import { todayEastern } from "@/lib/client/proposals"
+import { isPreviewSession } from "@/lib/auth/require-session"
 
 export const metadata = { title: "Home" }
 
@@ -36,7 +37,7 @@ export default async function Home({ searchParams }: { searchParams: { sign?: st
   const signNotice = searchParams.sign ? SIGN_NOTICE[searchParams.sign] ?? null : null
   const me = ctx.viewing ? "" : ctx.user.email.toLowerCase()
   // A staging screenshot sign-in sees the real Sign button, switched off (the start route refuses it too).
-  const preview = (await headers()).get("x-user-preview") === "true"
+  const preview = (await isPreviewSession())
   const orgName = ctx.org.short_name ?? ctx.org.name
   const active = projects.filter((p) => p.phase !== "paid" && p.phase !== "delivered")
   // When nothing needs them: lead with the latest film, and list the rest below it.

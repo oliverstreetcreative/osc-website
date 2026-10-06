@@ -15,6 +15,8 @@ export const metadata: Metadata = { title: "Scripts" }
 export default async function ScriptsPage() {
   const facts = await sessionFacts()
   if (!facts) redirect(`/login?redirect=${encodeURIComponent("/client/scripts")}`)
+  // A script invite's session opens its own script and nothing else (SPEC §27 P0 v2): never the list.
+  if (facts.scopeScriptId) redirect(`/client/scripts/${facts.scopeScriptId}`)
   const select = {
     id: true,
     title: true,

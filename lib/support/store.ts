@@ -38,6 +38,8 @@ export async function createTicket(t: NewTicket): Promise<TicketResult> {
   const email = typeof t.reporterEmail === "string" ? t.reporterEmail.trim().toLowerCase().slice(0, 200) : null
   return db.$transaction(
     async (tx) => {
+      // A bounded wait (P0's built review: a pile of waiters must never park the whole connection pool).
+      await tx.$executeRawUnsafe("SET LOCAL lock_timeout = '3s'")
       // $executeRaw, not $queryRaw: the lock function returns void, which a query can't read back.
       await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(290429)") // a constant: nothing user-supplied
       const hour = new Date(Date.now() - 3600_000)
@@ -68,6 +70,9 @@ export async function createTicket(t: NewTicket): Promise<TicketResult> {
       })
       return { ok: true, id: created.id, number: created.number } as const
     },
-    { timeout: 15_000, maxWait: 15_000 },
-  )
+    { timeout: 10_000, maxWait: 5_000 },
+  ).catch((err) => {
+    console.error("support: too busy to take a report", String((err as Error)?.message ?? err).slice(0, 200))
+    return { ok: false, why: "limit" } as const
+  })
 }

@@ -9,19 +9,12 @@ import { createHash } from "crypto"
 import { db } from "@/lib/db"
 import { clientHome, startSession, deviceLabel } from "@/lib/auth/session"
 import { deviceHash } from "@/lib/auth/front-door"
-import { deviceFrom, hashesFor, noticeIfNewDevice, recordEvent } from "@/lib/auth/door"
+import { deviceFrom, hashesFor, homeFor, noticeIfNewDevice, recordEvent } from "@/lib/auth/door"
 import { publicOrigin } from "@/lib/client/host"
 import { sameOrigin } from "@/lib/support/http"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-
-function homeFor(role: string, isStaff: boolean, host: string): string {
-  // Staff: the admin on the login host; anywhere else, the client site's "View as client" picker on the same host.
-  if (isStaff || role === "STAFF") return host.startsWith("login.") ? "/admin" : "/client/view-as"
-  if (role === "CREW") return "/crew"
-  return "/client"
-}
 
 export async function POST(req: NextRequest) {
   const origin = publicOrigin(req)

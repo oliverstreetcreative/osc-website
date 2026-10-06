@@ -6,11 +6,14 @@ import { scopeAllows, type Scope } from '@/lib/auth/paths'
 import { edgeSession, type EdgeSession } from '@/lib/auth/session-rules'
 
 // SPEC §27 P0 v2: `__Host-osc_session` wherever the site is served over https (no subdomain's domain-wide cookie can
-// override it); plain `osc_session` on http localhost. Both are read; the __Host- one wins.
+// override it). The plain `osc_session` counts ONLY on localhost (built review: anywhere else a sibling subdomain could
+// toss one at a signed-out visitor and sign them in as someone else).
 const SESSION_COOKIE_SECURE = '__Host-osc_session'
 const SESSION_COOKIE_PLAIN = 'osc_session'
+const isLocalhost = (req: NextRequest) => ['localhost', '127.0.0.1'].includes(requestHost(req).split(':')[0])
 const sessionCookie = (req: NextRequest) =>
-  req.cookies.get(SESSION_COOKIE_SECURE)?.value ?? req.cookies.get(SESSION_COOKIE_PLAIN)?.value
+  req.cookies.get(SESSION_COOKIE_SECURE)?.value ?? (isLocalhost(req) ? req.cookies.get(SESSION_COOKIE_PLAIN)?.value : undefined)
+const PREVIEW_ALLOWED_WRITES = new Set(['/client/signout', '/client/view-as/exit'])
 const VIEW_AS_ALLOWED_WRITES = new Set([
   '/client/view-as/start',
   '/client/view-as/exit',
@@ -191,7 +194,7 @@ function redirectToLogin(req: NextRequest): NextResponse {
   if (subdomain === 'crew') {
     const url = req.nextUrl.clone()
     url.pathname = '/login'
-    url.search = `?redirect=${encodeURIComponent(returnPath)}`
+    url.search = `?redirect=${encodeURIComponent(pathMatches(returnPath, '/crew') ? returnPath : `/crew${returnPath === '/' ? '' : returnPath}`)}`
     return NextResponse.redirect(url)
   }
   if (subdomain && subdomain !== 'login') {
@@ -233,11 +236,17 @@ export async function middleware(req: NextRequest) {
       if (!fingerprint || String(claims.demo) !== fingerprint || !claims.sid) return endDemoSession(req)
       if (!demoMayRequest(req)) return new NextResponse(null, { status: 404 })
     }
+    // A staging preview sign-in (the screenshot harness) may read everything and change nothing but its own sign-out.
+    if (claims?.preview === true && isWrite && !PREVIEW_ALLOWED_WRITES.has(req.nextUrl.pathname) && !req.nextUrl.pathname.startsWith('/api/auth/')) {
+      return new NextResponse('Read-only: this is a preview sign-in.', { status: 403, headers: { 'content-type': 'text/plain; charset=utf-8' } })
+    }
   }
 
   // Staff looking at a client's site is READ-ONLY: while the "View as client" cookie (cs_view) exists, refuse every
-  // write except the few that end the view or sign out. (The older admin impersonation is retired, SPEC §27 P0 v2.)
-  if (isWrite && req.cookies.get('cs_view')?.value && !VIEW_AS_ALLOWED_WRITES.has(req.nextUrl.pathname)) {
+  // write except the few that end the view or sign out, and signing in itself (a leftover cs_view must never block
+  // the way back in; built review). (The older admin impersonation is retired, SPEC §27 P0 v2.)
+  const signingIn = req.nextUrl.pathname.startsWith('/api/auth/') || req.nextUrl.pathname === '/support/signin-trouble'
+  if (isWrite && req.cookies.get('cs_view')?.value && !signingIn && !VIEW_AS_ALLOWED_WRITES.has(req.nextUrl.pathname)) {
     return new NextResponse('Read-only: you are viewing the site as a client. Exit the view to make changes.', {
       status: 403,
       headers: { 'content-type': 'text/plain; charset=utf-8' },
@@ -377,7 +386,7 @@ async function route(req: NextRequest): Promise<NextResponse> {
       return setUserHeaders(NextResponse.next(), user)
     }
 
-    return NextResponse.next()
+    return protectedRoute(req, pathname)
   }
 
   // --- No subdomain (marketing site / direct access) ---
@@ -396,7 +405,12 @@ async function route(req: NextRequest): Promise<NextResponse> {
   }
 
   if (isPublicPath(pathname)) return NextResponse.next()
+  return protectedRoute(req, pathname)
+}
 
+/** The apex's (and login.*'s) rules for everything that isn't public: a session for the protected prefixes, a script
+ *  invite's session only on its own script, staff for /admin, and no Bible-era APIs for clients. */
+async function protectedRoute(req: NextRequest, pathname: string): Promise<NextResponse> {
   // The shoot-day hub reads a script server to server with a key in a header, no session (client-website SPEC §14
   // v4 #9); the route checks the key. Nothing else under /api/scripts is open.
   if (/^\/api\/scripts\/[0-9a-f-]{36}\/render$/i.test(pathname) && req.method === 'GET') return NextResponse.next()

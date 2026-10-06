@@ -6,6 +6,7 @@ import { getClientContext } from "@/lib/client/context"
 import { publicOrigin } from "@/lib/client/host"
 import { isDemoSlug } from "@/lib/client/demo"
 import { db } from "@/lib/db"
+import { isPreviewSession } from "@/lib/auth/require-session"
 
 export const dynamic = "force-dynamic"
 
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
   })
   if (!clip?.library.project.slug) return NextResponse.redirect(`${origin}/client/projects`, 303)
   const back = `${origin}/client/projects/${clip.library.project.slug}/footage/${clip.library.id}/${clip.id}`
-  const readOnly = !!ctx.viewing || req.headers.get("x-user-preview") === "true" || isDemoSlug(clip.library.project.organization?.slug)
+  const readOnly = !!ctx.viewing || (await isPreviewSession()) || isDemoSlug(clip.library.project.organization?.slug)
   if (readOnly) return NextResponse.redirect(back, 303)
   await db.libraryHeart.create({
     data: { clip_id: clip.id, person_id: ctx.user.id, organization_id: clip.library.organization_id, favorite: on },

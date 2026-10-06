@@ -5,9 +5,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { readInvite, spendInvite } from "@/lib/scripts/server/invites"
 import { startSession } from "@/lib/auth/session"
-import { sessionUser } from "@/lib/auth/require-session"
+import { revokeSession, sessionUser } from "@/lib/auth/require-session"
 import { deviceFrom } from "@/lib/auth/door"
 import { publicOrigin } from "@/lib/client/host"
+import { sameOrigin } from "@/lib/support/http"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -17,6 +18,7 @@ export async function POST(req: NextRequest) {
   const token = String(form?.get("token") ?? "")
   const origin = publicOrigin(req)
   const page = `${origin}/client/scripts/invite/${encodeURIComponent(token)}`
+  if (!sameOrigin(req)) return NextResponse.redirect(page, 303)
   const inv = await readInvite(token)
   if (!inv.ok) return NextResponse.redirect(page, 303)
   const current = await sessionUser()
@@ -26,6 +28,8 @@ export async function POST(req: NextRequest) {
   const res = NextResponse.redirect(`${origin}/client/scripts/${inv.scriptId}`, 303)
   // Already signed in as this person (a full session, or this script's own): keep it.
   if (same && (!current!.scope || current!.scope.id === inv.scriptId.toLowerCase())) return res
+  // Replacing someone else's session, or another script's: that one ends, not lingers as a live device.
+  if (current) await revokeSession(current.sid)
   await startSession(req, res, inv.person, { kind: "script", scope: `script:${inv.scriptId.toLowerCase()}`, deviceId: deviceFrom(req) })
   return res
 }

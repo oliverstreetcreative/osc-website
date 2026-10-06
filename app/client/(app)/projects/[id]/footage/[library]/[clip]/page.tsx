@@ -12,6 +12,7 @@ import { isDemoSlug } from "@/lib/client/demo"
 import { db } from "@/lib/db"
 import { OSC_SMS } from "@/app/client/ui"
 import { FootagePlayer } from "../../footage-player"
+import { isPreviewSession } from "@/lib/auth/require-session"
 
 export const metadata = { title: "Footage" }
 
@@ -31,7 +32,7 @@ export default async function ClipPage({ params, searchParams }: { params: { id:
   const [playback, poster] = ready
     ? await Promise.all([playbackToken(clip.mux_playback_id), stillToken(clip.mux_playback_id, { time: clip.thumb_s ?? 1, width: 1280 })])
     : [null, null]
-  const preview = (await headers()).get("x-user-preview") === "true"
+  const preview = (await isPreviewSession())
   // A staging PREVIEW sign-in (the screenshot camera) sees the heart, switched off; the POST refuses it anyway.
   const canHeart = !ctx.viewing && !isDemoSlug(lib.project.organization?.slug)
   const hearted = canHeart ? (await heartsOf(ctx.user.id, [clip.id])).has(clip.id) : false

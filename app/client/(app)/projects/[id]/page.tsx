@@ -20,6 +20,7 @@ import { pageOrigin } from "@/lib/client/host"
 import { PosterImage, PhaseTracker, DocRow, HelpFooter, AddToCalendar, SectionTitle, DemoOff } from "@/app/client/ui"
 import { isDemoSlug } from "@/lib/client/demo"
 import { e164, isOscMember, prettyPhone, teamOf } from "@/lib/client/team"
+import { isPreviewSession } from "@/lib/auth/require-session"
 
 type Dl = { label: string; url?: string; path?: string; size?: string; note?: string }
 
@@ -53,7 +54,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
   const paperUnavailable = signing.unavailable.has(p.id)
   const me = ctx.viewing ? "" : ctx.user.email.toLowerCase()
   // A staging screenshot sign-in sees the real Sign button, switched off (the start route refuses it too).
-  const preview = (await headers()).get("x-user-preview") === "true"
+  const preview = (await isPreviewSession())
   const origin = await pageOrigin()
   const orgName = org.short_name ?? org.name
   const dates = (Array.isArray(p.dates) ? p.dates : []) as { label: string; date: string; note?: string }[]

@@ -41,27 +41,32 @@ export async function POST(req: NextRequest) {
   if (alarm) raiseAlarm(alarm)
   if (!send || !eligible) return res
 
-  // One live invite per person: older unspent ones end now.
-  await db.portalInvite.updateMany({
-    where: { person_id: eligible.id, accepted_at: null, expires_at: { gt: new Date() } },
-    data: { expires_at: new Date() },
-  })
-  const id = randomUUID()
-  const token = randomBytes(32).toString("hex")
-  const code = newCode()
-  await db.portalInvite.create({
-    data: {
-      id,
-      person_id: eligible.id,
-      magic_link_hash: createHash("sha256").update(token).digest("hex"),
-      expires_at: new Date(Date.now() + TTL_MINUTES * 60_000),
-      device_hash: h.device,
-      code_hash: codeHash(id, code, secret),
-      redirect: safeRedirect(read.body.redirect),
-    },
-  })
-  // The link points at the host the person will use (fixed hosts in production, SPEC §26 v2 / §27 P0 #8).
+  // The invite's writes and the email happen AFTER the answer: a real address must not take longer to answer than an
+  // unknown one (built review). A failure here is logged; the person asks again.
   const origin = magicLinkOrigin({ isProduction: IS_PRODUCTION, requestOrigin: publicOrigin(req), role: eligible.role, isStaff: eligible.is_staff })
-  sendSignIn(email, `${origin}/magic?token=${token}`, code, TTL_MINUTES)
+  const redirect = safeRedirect(read.body.redirect)
+  void (async () => {
+    // One live invite per person: older unspent ones end now.
+    await db.portalInvite.updateMany({
+      where: { person_id: eligible.id, accepted_at: null, expires_at: { gt: new Date() } },
+      data: { expires_at: new Date() },
+    })
+    const id = randomUUID()
+    const token = randomBytes(32).toString("hex")
+    const code = newCode()
+    await db.portalInvite.create({
+      data: {
+        id,
+        person_id: eligible.id,
+        magic_link_hash: createHash("sha256").update(token).digest("hex"),
+        expires_at: new Date(Date.now() + TTL_MINUTES * 60_000),
+        device_hash: h.device,
+        code_hash: codeHash(id, code, secret),
+        redirect,
+      },
+    })
+    // The link points at the host the person will use (fixed hosts in production, SPEC §26 v2 / §27 P0 #8).
+    sendSignIn(email, `${origin}/magic?token=${token}`, code, TTL_MINUTES)
+  })().catch((err) => console.error("sign-in: the invite wasn't made:", err))
   return res
 }
