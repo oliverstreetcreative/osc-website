@@ -111,11 +111,12 @@ export async function clientSignatures(
 }
 
 /** What needs the client, most urgent first. */
-/** Scripts this org (or this person) can open: shared by Sam, not archived (SPEC §14). */
-export function visibleScriptsWhere(orgId: string, personId?: string) {
+/** Scripts this org (or this person) can open: shared by Sam, not archived (SPEC §14). `includeArchived`: for records
+ *  that outlive the wrap (Documents' script approvals, SPEC §30 v2); an archived script still opens read-only. */
+export function visibleScriptsWhere(orgId: string, personId?: string, opts: { includeArchived?: boolean } = {}) {
   const now = new Date()
   return {
-    archived_at: null,
+    ...(opts.includeArchived ? {} : { archived_at: null }),
     audience: { not: "office" },
     access: {
       some: {

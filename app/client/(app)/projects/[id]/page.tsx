@@ -14,7 +14,7 @@ import { glanceHome } from "@/lib/client/glance"
 import { todayEastern } from "@/lib/client/proposals"
 import { signingReady, stillUrl } from "@/lib/client/mux-sign"
 import { db } from "@/lib/db"
-import { KIND_LABEL, isDone, signedNotCleared, type SignViewer } from "@/lib/client/sign"
+import { KIND_LABEL, isDone, signedDay, signedNotCleared, type SignViewer } from "@/lib/client/sign"
 import { SignButton } from "@/app/client/sign-button"
 import { day, dayET, duration, money, relativeDue, muxThumb, daysFromToday, todayUTC } from "@/lib/client/format"
 import { eventForOrgs, googleLink } from "@/lib/client/calendar"
@@ -362,10 +362,10 @@ export default async function ProjectPage({ params }: { params: { id: string } }
                           {done ? (
                             <>
                               <span className="cs-status paid">
-                                Signed{s.signed_at ? ` ${day(new Date(s.signed_at), { month: "short", day: "numeric" })}` : ""}
+                                Signed{signedDay(s.signed_at) ? ` ${signedDay(s.signed_at)}` : ""}
                               </span>
                               {mine && s.agreement_id ? (
-                                <a className="cs-link" href={`/client/sign/receipt/${encodeURIComponent(s.agreement_id)}`} target="_blank" rel="noopener">Your copy</a>
+                                <a className="cs-link" href={`/client/sign/receipt/${encodeURIComponent(s.agreement_id)}?org=${encodeURIComponent(org.slug)}`} target="_blank" rel="noopener">Your copy</a>
                               ) : null}
                             </>
                           ) : s.state === "signed_sample" ? (
@@ -374,20 +374,20 @@ export default async function ProjectPage({ params }: { params: { id: string } }
                             <>
                               <span className="cs-status">Sample signed (doesn&rsquo;t count)</span>
                               {mine && s.agreement_id ? (
-                                <a className="cs-link" href={`/client/sign/receipt/${encodeURIComponent(s.agreement_id)}`} target="_blank" rel="noopener">Your copy</a>
+                                <a className="cs-link" href={`/client/sign/receipt/${encodeURIComponent(s.agreement_id)}?org=${encodeURIComponent(org.slug)}`} target="_blank" rel="noopener">Your copy</a>
                               ) : null}
                             </>
                           ) : signedNotCleared(s) ? (
                             // Signed by them; OSC's side isn't finished (a countersignature, more days). Nothing to do here.
                             <span className="cs-status">
-                              Signed{s.signed_at ? ` ${day(new Date(s.signed_at), { month: "short", day: "numeric" })}` : ""}
+                              Signed{signedDay(s.signed_at) ? ` ${signedDay(s.signed_at)}` : ""}
                             </span>
                           ) : mine ? (
                             <>
                               {s.overdue ? <span className="cs-status late">Overdue</span> : s.due ? (
                                 <span className="cs-status due">Due {day(new Date(s.due), { month: "short", day: "numeric" })}</span>
                               ) : null}
-                              <SignButton job={s.job} itemId={s.id} disabled={!s.can_start} preview={preview} />
+                              <SignButton job={s.job} itemId={s.id} org={org.slug} disabled={!s.can_start} preview={preview} />
                             </>
                           ) : (
                             <span className="cs-status due">Waiting on {s.who.name.split(" ")[0]}</span>

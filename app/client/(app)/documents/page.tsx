@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { BadgeCheck, ChevronRight, Search } from "lucide-react"
 import { requireClientContext } from "@/lib/client/context"
-import { orgDocuments } from "@/lib/client/data"
+import { orgDocuments, visibleScriptsWhere } from "@/lib/client/data"
 import { DOC_KIND_LABEL } from "@/lib/client/format"
 import { DocRow, HelpFooter } from "@/app/client/ui"
 import { db } from "@/lib/db"
@@ -24,6 +24,19 @@ export default async function Documents({ searchParams }: { searchParams: { q?: 
     include: { deliverable: { select: { project: { select: { name: true } } } } },
     orderBy: { approved_at: "desc" },
   })
+  // So are script approvals (SPEC §30 v2): only THIS org's scripts that this person can open, archived ones included
+  // (the record outlives the wrap; the script still opens read-only), never an office-only one. Anyone's approval, as
+  // cut approvals list every member's. Never the approver's email, IP, browser or note: name, version, date.
+  const scriptApprovals = await db.scriptApproval.findMany({
+    where: {
+      script: {
+        organization_id: ctx.org.id,
+        ...visibleScriptsWhere(ctx.org.id, ctx.viewing ? undefined : ctx.user.id, { includeArchived: true }),
+      },
+    },
+    select: { id: true, version_n: true, name: true, created_at: true, script: { select: { id: true, title: true, project: { select: { name: true } } } } },
+    orderBy: { created_at: "desc" },
+  })
   // So are proposal acceptances (SPEC §24 v2).
   const acceptances = money
     ? await db.proposalAcceptance.findMany({
@@ -34,7 +47,7 @@ export default async function Documents({ searchParams }: { searchParams: { q?: 
     : []
   const q = (searchParams.q ?? "").trim().toLowerCase()
   const kind = searchParams.kind ?? ""
-  const kinds = [...new Set(all.map((d) => d.kind)), ...(approvals.length ? [APPROVAL] : []), ...(acceptances.length ? [ACCEPTANCE] : [])]
+  const kinds = [...new Set(all.map((d) => d.kind)), ...(approvals.length || scriptApprovals.length ? [APPROVAL] : []), ...(acceptances.length ? [ACCEPTANCE] : [])]
   const label = (k: string) => (k === APPROVAL ? "Approvals" : k === ACCEPTANCE ? "Accepted proposals" : DOC_KIND_LABEL[k] ?? k)
   const matches = (words: (string | null | undefined)[]) => !q || words.filter(Boolean).join(" ").toLowerCase().includes(q)
   const rows = [
@@ -44,6 +57,9 @@ export default async function Documents({ searchParams }: { searchParams: { q?: 
     ...approvals
       .filter((a) => (!kind || kind === APPROVAL) && matches([a.film_title, a.deliverable.project.name, a.name, "approval approved"]))
       .map((a) => ({ at: a.approved_at.getTime(), row: <ApprovalRow key={a.id} a={a} project={a.deliverable.project.name} /> })),
+    ...scriptApprovals
+      .filter((a) => (!kind || kind === APPROVAL) && matches([a.script.title, a.script.project?.name, firstName(a.name), "script approval approved"]))
+      .map((a) => ({ at: a.created_at.getTime(), row: <ScriptApprovalRow key={`s-${a.id}`} a={a} /> })),
     ...acceptances
       .filter((a) => (!kind || kind === ACCEPTANCE) && matches([a.title, a.document.project?.name, a.name, "proposal accepted"]))
       .map((a) => ({
@@ -68,7 +84,7 @@ export default async function Documents({ searchParams }: { searchParams: { q?: 
         ),
       })),
   ].sort((x, y) => y.at - x.at)
-  const total = all.length + approvals.length + acceptances.length
+  const total = all.length + approvals.length + scriptApprovals.length + acceptances.length
   const href = (k: string) => {
     const p = new URLSearchParams()
     if (q) p.set("q", q)
@@ -124,6 +140,28 @@ function ApprovalRow({ a, project }: { a: { id: string; film_title: string; revi
           {a.film_title} · version {a.review_version_n}
         </strong>
         <small>{[a.withdrawn_at ? "Approval (withdrawn)" : "Approval", `${a.name}`, project, when].join(" · ")}</small>
+      </span>
+      <span className="cs-row-end" aria-hidden style={{ color: "var(--mut)" }}>
+        <ChevronRight size={18} />
+      </span>
+    </Link>
+  )
+}
+
+const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? ""
+
+function ScriptApprovalRow({ a }: { a: { version_n: number; name: string; created_at: Date; script: { id: string; title: string; project: { name: string } | null } } }) {
+  const when = a.created_at.toLocaleDateString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric" })
+  return (
+    <Link className="cs-row" href={`/client/scripts/${a.script.id}`}>
+      <span className="cs-ico" aria-hidden>
+        <BadgeCheck />
+      </span>
+      <span className="cs-row-main">
+        <strong>
+          {a.script.title} · version {a.version_n}
+        </strong>
+        <small>{["Script approval", firstName(a.name), a.script.project?.name, when].filter(Boolean).join(" · ")}</small>
       </span>
       <span className="cs-row-end" aria-hidden style={{ color: "var(--mut)" }}>
         <ChevronRight size={18} />

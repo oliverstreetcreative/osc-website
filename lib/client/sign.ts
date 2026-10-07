@@ -197,4 +197,13 @@ export async function receipt(agreementId: string, slug: string, email: string):
   }
 }
 
+/** When something was signed, as the person would say it (SPEC §30 v2): a plain date is that calendar day; a
+ *  timestamp is its day in Eastern (9 PM on the 3rd never reads as the 4th); a value that won't parse says nothing. */
+export function signedDay(v: string | null | undefined): string {
+  if (!v) return ""
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(v) ? new Date(`${v}T12:00:00Z`) : new Date(v)
+  if (Number.isNaN(d.getTime())) return ""
+  return d.toLocaleDateString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric" })
+}
+
 export const signBase = base

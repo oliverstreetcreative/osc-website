@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { forClient, isDone, neededForJob, signBase, startSigning } from "@/lib/client/sign"
 import { publicOrigin } from "@/lib/client/host"
 import { isPreviewSession } from "@/lib/auth/require-session"
+import { memberOrg } from "@/lib/client/orgs"
 
 export const dynamic = "force-dynamic"
 
@@ -20,19 +21,23 @@ export async function POST(req: Request) {
   const form = await req.formData()
   const job = String(form.get("job") ?? "")
   const itemId = String(form.get("item") ?? "")
+  // The paper's own org (SPEC §30 v2), only when it's one of theirs; none named = the selected org, as before.
+  const named = form.get("org")
+  const org = memberOrg(ctx, typeof named === "string" ? named : null)
+  if (!org) return NextResponse.redirect(back, 303)
 
   const project = await db.project.findFirst({
-    where: { organization_id: ctx.org.id, hidden: false, job_number: job },
+    where: { organization_id: org.id, hidden: false, job_number: job },
     select: { id: true },
   })
   if (!project) return NextResponse.redirect(back, 303)
   const viewer = { email: ctx.user.email }
-  const list = await neededForJob(job, ctx.org.slug, viewer)
+  const list = await neededForJob(job, org.slug, viewer)
   if (!list || !list.ok) return NextResponse.redirect(`${back}?sign=unavailable`, 303)
   const mine = forClient(list.items, viewer).find((i) => i.id === itemId)
   if (!mine || !mine.can_start || isDone(mine)) return NextResponse.redirect(back, 303)
 
-  const started = await startSigning(job, ctx.org.slug, ctx.user.email, itemId)
+  const started = await startSigning(job, org.slug, ctx.user.email, itemId)
   if (!started.ok) return NextResponse.redirect(`${back}?sign=${started.reason}`, 303)
   // The engine answers with its own URL (absolute or root-relative); only ever send the browser to the engine.
   const url = new URL(started.sign_url, `${signBase()}/`)

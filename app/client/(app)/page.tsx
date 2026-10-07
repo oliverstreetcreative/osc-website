@@ -80,7 +80,7 @@ export default async function Home({ searchParams }: { searchParams: { sign?: st
         ) : null}
         {needs.length ? (
           <div className="cs-list">
-            {needs.map((n) => <NeedCard key={key(n)} n={n} demo={isDemoSlug(ctx.org.slug)} me={me} preview={preview} wordsOnly={glance} />)}
+            {needs.map((n) => <NeedCard key={key(n)} n={n} org={ctx.org.slug} demo={isDemoSlug(ctx.org.slug)} me={me} preview={preview} wordsOnly={glance} />)}
           </div>
         ) : paperUnavailable ? null : (
           <div className="cs-card cs-calm">
@@ -166,7 +166,7 @@ function key(n: NeedsItem) {
 
 // demo: the staging demo org (SPEC §19). Its links are placeholders, so its buttons show "Off in the demo".
 /** `wordsOnly`: the one-glance Home (SPEC §28 v2) shows no amounts, even on an invoice to pay; Billing has them. */
-function NeedCard({ n, demo, me, preview, wordsOnly = false }: { n: NeedsItem; demo: boolean; me: string; preview: boolean; wordsOnly?: boolean }) {
+function NeedCard({ n, org, demo, me, preview, wordsOnly = false }: { n: NeedsItem; org: string; demo: boolean; me: string; preview: boolean; wordsOnly?: boolean }) {
   if (n.kind === "proposal") {
     // SPEC §24 v2: no price on the card (the PDF carries Sam's numbers); only its named acceptors see it.
     return (
@@ -218,7 +218,7 @@ function NeedCard({ n, demo, me, preview, wordsOnly = false }: { n: NeedsItem; d
         <p>{mine ? "For you" : `For ${s.who.name}`}</p>
         <div className="cs-need-act">
           {mine ? (
-            <SignButton job={s.job} itemId={s.id} disabled={!s.can_start} preview={preview} />
+            <SignButton job={s.job} itemId={s.id} org={org} disabled={!s.can_start} preview={preview} />
           ) : (
             <span className="cs-status">Read-only while viewing</span>
           )}

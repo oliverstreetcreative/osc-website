@@ -3,7 +3,7 @@
 // "Needs you" holds. Pure: no engine, no database.
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { forClient, needsSigning, showSamples, signOrgFor, signedNotCleared, type NeededSignature } from "./sign"
+import { signedDay, forClient, needsSigning, showSamples, signOrgFor, signedNotCleared, type NeededSignature } from "./sign"
 import { SIGN_TWIN } from "./rehearsal"
 
 test("staging: ONLY the signing twin asks, as Sign Here's bundled test org", () => {
@@ -85,4 +85,12 @@ test("signed but not cleared: the engine's plain 'signed' with satisfied false; 
   assert.equal(signedNotCleared(item({ state: "signed_sample", status: "signed", satisfied: false })), false)
   assert.equal(signedNotCleared(item({ state: "signed", status: "signed", satisfied: true })), false)
   assert.equal(signedNotCleared(item({ state: "sent", status: "sent" })), false)
+})
+
+test("a signed date as the person would say it: a plain date is that day; a timestamp is its Eastern day", () => {
+  assert.equal(signedDay("2026-10-03"), "Oct 3")
+  assert.equal(signedDay("2026-10-04T01:00:00Z"), "Oct 3") // 9 PM Eastern on the 3rd
+  assert.equal(signedDay("2026-10-03T14:00:00-04:00"), "Oct 3")
+  assert.equal(signedDay("not a date"), "")
+  assert.equal(signedDay(null), "")
 })
