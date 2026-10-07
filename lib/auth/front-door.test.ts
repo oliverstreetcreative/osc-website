@@ -13,6 +13,10 @@ test("a sign-in lands only on this host, under /client, /crew or /admin", () => 
   assert.equal(safeRedirect("/crew"), "/crew")
   assert.equal(safeRedirect("/admin/support"), "/admin/support")
   assert.equal(safeRedirect("/client/../admin"), "/admin") // resolved, then judged
+  assert.equal(safeRedirect("/id/deputies"), "/id/deputies")
+  assert.equal(safeRedirect("/id/sign-in/aB3_-x"), "/id/sign-in/aB3_-x")
+  assert.equal(safeRedirect("/id/deputies/../../work"), null)
+  assert.equal(safeRedirect("/id/token"), null) // only the two IdP pages, never an IdP endpoint
   for (const bad of [
     "", "client", "https://evil.example/client", "//evil.example/client", "/\\evil.example", "/%2F%2Fevil.example",
     "%2F%2Fevil.example", "/clientx", "/work/x", "/client/../work", "javascript:alert(1)", "/client\u0000x",

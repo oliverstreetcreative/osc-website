@@ -33,6 +33,9 @@ export type Session = {
   person: SessionPersonRow
   preview: boolean
   demo?: string
+  /** When this sign-in happened, and how it was proved (SPEC §27 P1 v2 #5: the IdP reports these, never refreshes). */
+  createdAt: Date
+  amr: string | null
 }
 
 /** The cookie's token: the `__Host-` name; the plain name ONLY on localhost (built review: anywhere else a sibling
@@ -74,6 +77,8 @@ export const sessionUser = cache(async (): Promise<Session | null> => {
       token_hash: true,
       scope: true,
       kind: true,
+      created_at: true,
+      amr: true,
       person: { select: { id: true, name: true, first_name: true, email: true, role: true, is_staff: true, portal_allowed: true } },
     },
   })
@@ -90,6 +95,8 @@ export const sessionUser = cache(async (): Promise<Session | null> => {
     person: row.person,
     preview: payload.preview === true,
     demo: typeof payload.demo === "string" ? payload.demo : undefined,
+    createdAt: row.created_at,
+    amr: row.amr ?? null,
   }
 })
 

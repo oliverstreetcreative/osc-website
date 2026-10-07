@@ -162,7 +162,7 @@ export function raiseAlarm(what: string): void {
 /** Staging never emails a client: only OSC addresses there (the standing rule). */
 export const mayEmail = (email: string) => !IS_STAGING || email.endsWith("@oliverstreetcreative.com")
 
-async function sendEmail(to: string, subject: string, html: string): Promise<void> {
+export async function sendEmail(to: string, subject: string, html: string): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) throw new Error("RESEND_API_KEY not configured")
   const res = await fetch("https://api.resend.com/emails", {

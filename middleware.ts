@@ -245,7 +245,10 @@ export async function middleware(req: NextRequest) {
   // Staff looking at a client's site is READ-ONLY: while the "View as client" cookie (cs_view) exists, refuse every
   // write except the few that end the view or sign out, and signing in itself (a leftover cs_view must never block
   // the way back in; built review). (The older admin impersonation is retired, SPEC §27 P0 v2.)
-  const signingIn = req.nextUrl.pathname.startsWith('/api/auth/') || req.nextUrl.pathname === '/support/signin-trouble'
+  const signingIn =
+    req.nextUrl.pathname.startsWith('/api/auth/') ||
+    req.nextUrl.pathname === '/support/signin-trouble' ||
+    req.nextUrl.pathname.startsWith('/id/sign-in/')
   if (isWrite && req.cookies.get('cs_view')?.value && !signingIn && !VIEW_AS_ALLOWED_WRITES.has(req.nextUrl.pathname)) {
     return new NextResponse('Read-only: you are viewing the site as a client. Exit the view to make changes.', {
       status: 403,
@@ -284,7 +287,11 @@ export async function middleware(req: NextRequest) {
   // The client site is never framed by another page (SPEC §24 built review): Accept, Approve and Pay are one tap, and
   // a sibling subdomain counts as same-SITE for the session cookie, so it could frame a page and steer that tap.
   // Same-origin frames (the proposal PDF) still work.
-  if (req.nextUrl.pathname.startsWith('/client') || getSubdomain(req.headers.get('host') ?? '') === 'client') {
+  if (
+    req.nextUrl.pathname.startsWith('/client') ||
+    req.nextUrl.pathname.startsWith('/id/') || // the one sign-in's pages (the deputies page's one-tap revoke)
+    getSubdomain(req.headers.get('host') ?? '') === 'client'
+  ) {
     res.headers.set('X-Frame-Options', 'SAMEORIGIN')
     res.headers.set('Content-Security-Policy', "frame-ancestors 'self'")
   }

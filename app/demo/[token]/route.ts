@@ -57,6 +57,7 @@ export async function GET(req: NextRequest, { params }: { params: { token: strin
     kind: "demo",
     ttlSeconds: DEMO_TTL_SECONDS,
     claims: { demo: fingerprint },
+    amr: "demo",
   })
   // A staff view or the older impersonation in this browser ends here: the demo is its own session.
   // AFTER res.cookies.set: Next's cookie API rewrites the whole Set-Cookie header (one entry per name), and

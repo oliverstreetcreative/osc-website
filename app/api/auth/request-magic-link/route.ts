@@ -14,6 +14,7 @@ import { magicLinkOrigin } from "@/lib/auth/link-origin"
 import { codeHash, newCode, safeRedirect } from "@/lib/auth/front-door"
 import { decideLink, ensureDevice, hashesFor, mayEmail, raiseAlarm, sendSignIn } from "@/lib/auth/door"
 import { readJsonCapped, sameOrigin } from "@/lib/support/http"
+import { subjectFor } from "@/lib/idp/subjects"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -54,10 +55,12 @@ export async function POST(req: NextRequest) {
     const id = randomUUID()
     const token = randomBytes(32).toString("hex")
     const code = newCode()
+    const subject = await subjectFor({ email, personId: eligible.id })
     await db.portalInvite.create({
       data: {
         id,
         person_id: eligible.id,
+        subject_id: subject.id,
         magic_link_hash: createHash("sha256").update(token).digest("hex"),
         expires_at: new Date(Date.now() + TTL_MINUTES * 60_000),
         device_hash: h.device,

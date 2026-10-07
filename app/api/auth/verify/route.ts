@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
   // A client whose only business with us is a script lands on their scripts, not an empty portal (SPEC §14).
   if (dest === "/client") dest = await clientHome(person.id)
   const res = to(dest)
-  const { sid } = await startSession(req, res, person, { deviceId })
+  const { sid } = await startSession(req, res, person, { deviceId, amr: "link" })
   void recordEvent("link_ok", hashesFor(req, person.email, deviceId))
   void noticeIfNewDevice(person, deviceId, deviceLabel(req.headers.get("user-agent")), sid).catch(() => {})
   return res

@@ -566,3 +566,5 @@ a.cs-row:hover { background: var(--zebra); }
 .cs .cs-sheet-error { font-size: 14px; color: var(--red-ink, #b3261e); margin: 8px 0 0; }
 .cs .cs-sheet-act { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 12px; }
 .cs .cs-sheet-act .cs-link { background: none; border: 0; font: inherit; color: var(--mut); cursor: pointer; }
+/* A text field as wide as its card (the deputies page; SPEC §27 P1). */
+.cs .cs-wide { width: 100%; }

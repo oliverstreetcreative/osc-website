@@ -59,6 +59,7 @@ model Person {
   portal_invites        PortalInvite[]
   portal_sessions       PortalSession[]
   support_tickets       SupportTicket[]
+  idp_subject           IdpSubject?
   testimonials          Testimonial[]
   trips                 Trip[]
   assigned_tasks        Task[]
@@ -560,9 +561,12 @@ model PortalInvite {
   code_hash       String?
   code_tries      Int       @default(0)
   redirect        String?
+  // SPEC §27 P1 v2 #4: the one sign-in's subject this invite is for (set on every new invite).
+  subject_id      String?   @db.Uuid
 
   // Relations
-  person Person @relation(fields: [person_id], references: [id], onDelete: Cascade)
+  person  Person      @relation(fields: [person_id], references: [id], onDelete: Cascade)
+  subject IdpSubject? @relation(fields: [subject_id], references: [id], onDelete: SetNull)
 
   @@index([person_id, accepted_at])
   @@map("portal_invites")
@@ -585,9 +589,14 @@ model PortalSession {
   device_hash    String? // the browser's osc_device cookie, hashed (the new-device notice; the devices page)
   device_label   String? // enums only: "iPhone · Safari"
   ip_hash        String?
+  // SPEC §27 P1 v2 #4-#5: the one sign-in's subject (set on every new row), and how this sign-in proved itself:
+  // link | code | invite | preview | demo. The IdP reports the row's own time and amr; it never refreshes them.
+  subject_id     String?   @db.Uuid
+  amr            String?
 
   // Relations
-  person Person @relation(fields: [person_id], references: [id], onDelete: Cascade)
+  person  Person      @relation(fields: [person_id], references: [id], onDelete: Cascade)
+  subject IdpSubject? @relation(fields: [subject_id], references: [id], onDelete: SetNull)
 
   @@index([person_id, revoked_at])
   @@index([person_id, device_hash])
@@ -1212,4 +1221,86 @@ model SupportAttachment {
 
   @@index([ticket_id])
   @@map("support_attachments")
+}
+
+// ---------------------------------------------------------------------------
+// The one sign-in's identity provider (client-website SPEC §27 P1 v2)
+// ---------------------------------------------------------------------------
+
+/// One stable `sub` per email, owned by the IdP, never reused (P1 v2 #2). A person's subject is tied to the person.
+model IdpSubject {
+  id         String          @id @default(uuid()) @db.Uuid // the `sub`
+  email      String          @unique // lowercased
+  person_id  String?         @unique @db.Uuid
+  created_at DateTime        @default(now())
+  updated_at DateTime        @updatedAt
+  person     Person?         @relation(fields: [person_id], references: [id], onDelete: SetNull)
+  sessions   PortalSession[]
+  invites    PortalInvite[]
+
+  @@map("idp_subjects")
+}
+
+/// Who may act for the owner, where, until when (P1 v2 #8). Written ONLY on the owner's page.
+model DeputyGrant {
+  id         String    @id @default(uuid()) @db.Uuid
+  email      String // lowercased
+  surfaces   String[] // ["sign"] in v1
+  scope      Json // "all" | ["26-012", ...]
+  until      DateTime
+  reason     String?
+  granted_by String // the owner's email
+  granted_at DateTime  @default(now())
+  revoked_at DateTime?
+  revoked_by String?
+
+  @@index([email, revoked_at])
+  @@map("deputy_grants")
+}
+
+/// What the IdP issued to which surface (P1 v2 #3): session status and logout resolve through it.
+model IdpSidClient {
+  id         String   @id @default(uuid()) @db.Uuid
+  session_id String   @db.Uuid // portal_sessions.id
+  client_id  String
+  sid        String // the library's per-client sid
+  sub        String   @db.Uuid
+  created_at DateTime @default(now())
+
+  @@unique([client_id, sid])
+  @@index([session_id])
+  @@map("idp_sid_clients")
+}
+
+/// The IdP's audit (P1 v2 #9): grants, revokes, step-ups, sign-ins per surface, logouts. No raw IPs.
+model IdpAudit {
+  id         String   @id @default(uuid()) @db.Uuid
+  action     String // grant | revoke | step_up | signin | logout
+  actor      String? // email
+  subject    String? // email or sub
+  client_id  String?
+  detail     Json?
+  created_at DateTime @default(now())
+
+  @@index([created_at])
+  @@map("idp_audit")
+}
+
+/// The OIDC library's own storage (node-oidc-provider adapter, P1 v2 #1).
+model IdpPayload {
+  id          String
+  type        String // the library's model name
+  payload     Json
+  grant_id    String?
+  user_code   String?
+  uid         String?
+  expires_at  DateTime?
+  consumed_at DateTime?
+  created_at  DateTime  @default(now())
+
+  @@id([id, type])
+  @@index([grant_id])
+  @@index([uid])
+  @@index([expires_at])
+  @@map("idp_payloads")
 }
