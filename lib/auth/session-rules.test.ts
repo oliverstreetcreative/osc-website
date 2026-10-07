@@ -35,21 +35,20 @@ const row = (over: Partial<SessionRow> = {}): SessionRow => ({
   last_active_at: new Date("2026-10-04T12:00:00Z"),
   token_hash: "h",
   scope: null,
-  person: { portal_allowed: true },
   ...over,
 })
 const NOW = Date.parse("2026-10-05T12:00:00Z")
 
 test("a row counts only while it's live, for its own token, for its own scope", () => {
-  assert.equal(rowProblem(row(), "h", null, NOW), null)
-  assert.equal(rowProblem(null, "h", null, NOW), "no such session")
-  assert.equal(rowProblem(row({ revoked_at: new Date() }), "h", null, NOW), "signed out")
-  assert.equal(rowProblem(row({ expires_at: new Date("2026-10-01T00:00:00Z") }), "h", null, NOW), "expired")
-  assert.equal(rowProblem(row(), "someone else's", null, NOW), "not this token's session")
-  assert.equal(rowProblem(row({ last_active_at: new Date(NOW - IDLE_MS - 1) }), "h", null, NOW), "idle too long")
-  assert.equal(rowProblem(row({ person: { portal_allowed: false } }), "h", null, NOW), "switched off")
+  assert.equal(rowProblem(row(), "h", null, NOW, true), null)
+  assert.equal(rowProblem(null, "h", null, NOW, true), "no such session")
+  assert.equal(rowProblem(row({ revoked_at: new Date() }), "h", null, NOW, true), "signed out")
+  assert.equal(rowProblem(row({ expires_at: new Date("2026-10-01T00:00:00Z") }), "h", null, NOW, true), "expired")
+  assert.equal(rowProblem(row(), "someone else's", null, NOW, true), "not this token's session")
+  assert.equal(rowProblem(row({ last_active_at: new Date(NOW - IDLE_MS - 1) }), "h", null, NOW, true), "idle too long")
+  assert.equal(rowProblem(row(), "h", null, NOW, false), "switched off") // the caller's admission says no
   // A full token can't ride a scoped row, nor the other way round.
-  assert.equal(rowProblem(row({ scope: `script:${SCRIPT}` }), "h", null, NOW), "scope mismatch")
-  assert.equal(rowProblem(row(), "h", { kind: "script", id: SCRIPT }, NOW), "scope mismatch")
-  assert.equal(rowProblem(row({ scope: `script:${SCRIPT}` }), "h", { kind: "script", id: SCRIPT }, NOW), null)
+  assert.equal(rowProblem(row({ scope: `script:${SCRIPT}` }), "h", null, NOW, true), "scope mismatch")
+  assert.equal(rowProblem(row(), "h", { kind: "script", id: SCRIPT }, NOW, true), "scope mismatch")
+  assert.equal(rowProblem(row({ scope: `script:${SCRIPT}` }), "h", { kind: "script", id: SCRIPT }, NOW, true), null)
 })
