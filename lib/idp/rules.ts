@@ -8,6 +8,18 @@ export const SURFACES = ["sign"] as const // v1: deputies act on Sign Here only
 export type Surface = (typeof SURFACES)[number] | "hub" | "review"
 
 export const normEmail = (e: string) => e.trim().toLowerCase()
+
+/** Only real sign-ins are IdP sessions: a person's, or (P1a part 2) a person-less deputy's "subject" row. Never a
+ *  script invite's, a preview's or the demo's. */
+export const IDP_KINDS = new Set(["person", "subject"])
+/** How an IdP sign-in proved the address (contract §2 `amr`). A row with no `amr` predates p1a: P0 didn't record
+ *  whether it was a link or a code, so the IdP asks for a fresh one rather than guess (decided 10/6). */
+export const IDP_AMR = new Set(["link", "code"])
+
+/** Is this session row one the IdP can stand behind: a real sign-in, with its subject and its proof recorded? */
+export function idpGrade(row: { kind: string; amr: string | null; subject_id: string | null }): boolean {
+  return IDP_KINDS.has(row.kind) && !!row.amr && IDP_AMR.has(row.amr) && !!row.subject_id
+}
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const JOB = /^\d{2}-\d{3}$/
 
@@ -33,7 +45,9 @@ export type OscAdmin = { role: "owner" | "deputy"; surfaces: string[]; scope: "a
 
 /**
  * The `osc_admin` claim for one surface (P1 v2 #5): the owner, or the live grants that cover this surface, and ONLY
- * while the sign-in itself is under 12 hours old. Its `until` is the earlier of the grant's end and that 12 hours.
+ * while the sign-in itself is under 12 hours old. Its `until` is the EARLIEST end among those grants and that 12
+ * hours: with two grants, the merged scope never outlives the shorter one (10/6). After it, the next session-status
+ * call answers with what is still live.
  */
 export function oscAdmin(input: { owner: boolean; grants: GrantLite[]; surface: string; authTime: Date; now: Date }): OscAdmin | null {
   const sessionEnd = new Date(input.authTime.getTime() + ADMIN_HOURS * 3600_000)
@@ -43,7 +57,7 @@ export function oscAdmin(input: { owner: boolean; grants: GrantLite[]; surface: 
   if (!covering.length) return null
   const all = covering.some((g) => g.scope === "all")
   const jobs = all ? "all" : [...new Set(covering.flatMap((g) => (Array.isArray(g.scope) ? g.scope : [])))].sort()
-  const grantEnd = new Date(Math.max(...covering.map((g) => g.until.getTime())))
+  const grantEnd = new Date(Math.min(...covering.map((g) => g.until.getTime())))
   const until = grantEnd < sessionEnd ? grantEnd : sessionEnd
   return { role: "deputy", surfaces: [input.surface], scope: jobs, until: until.toISOString() }
 }

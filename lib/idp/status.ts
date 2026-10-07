@@ -3,28 +3,24 @@
 import { createHash, timingSafeEqual } from "crypto"
 import { rowProblem, type SessionRow } from "@/lib/auth/session-rules"
 import { registry, type IdpClient, type IdpEnv } from "./clients"
-import { oscAdmin, type Admission, type OscAdmin } from "./rules"
+import { idpGrade, oscAdmin, type Admission, type OscAdmin } from "./rules"
 
 export type StatusAnswer = { active: boolean; sub: string | null; osc_admin: OscAdmin | null }
 export const INACTIVE: StatusAnswer = { active: false, sub: null, osc_admin: null }
-
-/** Only real sign-ins are IdP sessions: a person's, or (P1a part 2) a person-less deputy's "subject" row. Never a
- *  script invite's, a preview's or the demo's. */
-const IDP_KINDS = new Set(["person", "subject"])
 
 /**
  * The answer for one surface: the row must be live (its own rules) and its subject admitted NOW (a switch-off or a
  * lapsed grant counts at once); `osc_admin` follows the 12-hour rule from the row's own sign-in time.
  */
 export function statusFor(input: {
-  row: (SessionRow & { created_at: Date; kind: string }) | null
+  row: (SessionRow & { created_at: Date; kind: string; amr: string | null; subject_id: string | null }) | null
   sub: string | null
   admission: Admission | null
   surface: string
   now: Date
 }): StatusAnswer {
   const { row, sub, admission } = input
-  if (!row || !sub || !admission || !IDP_KINDS.has(row.kind)) return INACTIVE
+  if (!row || !sub || !admission || !idpGrade(row) || row.subject_id !== sub) return INACTIVE
   if (rowProblem(row, row.token_hash, null, input.now.getTime(), admission.ok)) return INACTIVE
   if (!admission.ok) return INACTIVE
   return {

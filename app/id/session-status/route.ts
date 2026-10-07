@@ -52,6 +52,8 @@ export async function POST(req: NextRequest) {
       scope: true,
       created_at: true,
       kind: true,
+      amr: true,
+      subject_id: true,
       subject: { select: { email: true } },
     },
   })

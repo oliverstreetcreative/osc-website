@@ -45,7 +45,11 @@ test("osc_admin: the owner or a covering grant, and only while the sign-in is un
   })
   assert.deepEqual(d?.scope, ["26-012", "26-033"])
   assert.equal(d?.role, "deputy")
-  assert.equal(d?.until, new Date(fresh.getTime() + ADMIN_HOURS * 3600_000).toISOString()) // the session's 12 hours end first
+  // The earliest end wins: the 22:00 grant ends before the session's 12 hours, and the merged scope never outlives
+  // it (the next session-status call answers with what's still live).
+  assert.equal(d?.until, "2026-10-06T22:00:00.000Z")
+  const long = oscAdmin({ owner: false, grants: [grant()], surface: "sign", authTime: fresh, now: NOW })
+  assert.equal(long?.until, new Date(fresh.getTime() + ADMIN_HOURS * 3600_000).toISOString()) // the session's 12 hours end first
   assert.equal(oscAdmin({ owner: false, grants: [grant({ surfaces: ["hub"] })], surface: "sign", authTime: fresh, now: NOW }), null)
   assert.equal(oscAdmin({ owner: false, grants: [grant(), grant({ scope: ["26-012"] })], surface: "sign", authTime: fresh, now: NOW })?.scope, "all")
 })
@@ -105,6 +109,8 @@ test("session status: a live row, an admitted subject, and osc_admin by the 12-h
     scope: null,
     created_at: new Date(NOW.getTime() - 3600_000),
     kind: "person",
+    amr: "code",
+    subject_id: "sub-1",
   }
   const deputy = admit({ person: null, owner: false, grants: [grant()], now: NOW })
   const a = statusFor({ row: live, sub: "sub-1", admission: deputy, surface: "sign", now: NOW })
@@ -119,6 +125,9 @@ test("session status: a live row, an admitted subject, and osc_admin by the 12-h
   const lapsed = admit({ person: null, owner: false, grants: [grant({ until: new Date("2026-10-01") })], now: NOW })
   assert.deepEqual(statusFor({ row: live, sub: "sub-1", admission: lapsed, surface: "sign", now: NOW }), INACTIVE)
   assert.deepEqual(statusFor({ row: { ...live, kind: "script" }, sub: "sub-1", admission: deputy, surface: "sign", now: NOW }), INACTIVE)
+  // A row from before p1a (no amr) or one whose subject isn't the sid's: inactive.
+  assert.deepEqual(statusFor({ row: { ...live, amr: null }, sub: "sub-1", admission: deputy, surface: "sign", now: NOW }), INACTIVE)
+  assert.deepEqual(statusFor({ row: live, sub: "sub-2", admission: deputy, surface: "sign", now: NOW }), INACTIVE)
   // 12 hours after the sign-in: still active (a person's own session), but no admin.
   const old = { ...live, created_at: new Date(NOW.getTime() - 13 * 3600_000) }
   const b = statusFor({ row: old, sub: "sub-1", admission: deputy, surface: "sign", now: NOW })
