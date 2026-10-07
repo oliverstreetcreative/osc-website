@@ -4,7 +4,7 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import {
-  balance, balanceLine, groupLegs, jobState, legLine, legProblem, resolveBlock, seesMoney,
+  balance, balanceLine, groupLegs, jobOpenTotal, jobState, legLine, legProblem, resolveBlock, seesMoney,
   type InvoiceFact, type MoneyBlock,
 } from "./money"
 
@@ -178,4 +178,27 @@ test("the balance: two numbers, never netted; unknowns counted, never added; 'Al
 test("a malformed leg is never shown as fact", () => {
   const bad: MoneyBlock = { as_of: TODAY, pattern: "campaign_pays_osc", legs: [{ key: "x", from: "osc", to: "client", status: "paid", amount: 9 }] }
   assert.equal(legLine(resolveBlock(bad, none, TODAY)[0], TODAY), "OSC → you: to confirm")
+})
+
+test("one job's balance: its own open invoices plus the open invoice its legs name, each once; a to-confirm leg adds nothing", () => {
+  const invs = [
+    { number: "2026-0829", amount: "3000", status: "open", project_id: "other-job" }, // Gex's invoice, filed on another job
+    { number: "2026-0901", amount: "500", status: "open", project_id: "gex" },
+    { number: "2026-0902", amount: "700", status: "paid", project_id: "gex" },
+    { number: "2026-0903", amount: "900", status: "open", project_id: "someone-else" },
+  ]
+  const facts = new Map<string, InvoiceFact>([
+    ["2026-0829", { number: "2026-0829", amount: 3000, status: "open", issued_on: "2026-08-29" }],
+  ])
+  const gexResolved = resolveBlock(gex, facts, TODAY)
+  assert.equal(jobOpenTotal(gexResolved, invs, "gex"), 3500)
+  assert.equal(balanceLine(balance(gexResolved, jobOpenTotal(gexResolved, invs, "gex"))), "You owe OSC $3,500 · OSC owes you $0")
+  // The same invoice filed on this job AND named by its leg counts once.
+  assert.equal(jobOpenTotal(gexResolved, [{ number: "2026-0829", amount: "3000", status: "open", project_id: "gex" }], "gex"), 3000)
+  // A leg that can't stand behind its invoice (here: one we don't have) reads "to confirm" and adds nothing.
+  const unknown = resolveBlock(gex, none, TODAY)
+  assert.equal(jobOpenTotal(unknown, invs.slice(0, 1), "gex"), 0)
+  // Moore: no invoices to the client; one share to confirm.
+  const m = resolveBlock(moore, none, TODAY)
+  assert.equal(balanceLine(balance(m, jobOpenTotal(m, invs, "moore"))), "Nothing open that we know of · 1 to confirm")
 })

@@ -3,12 +3,14 @@ import { headers } from "next/headers"
 import { notFound } from "next/navigation"
 import { ChevronLeft, Download, ExternalLink, MapPin, Clock, Phone, MessageSquare, Mail, UserPlus } from "lucide-react"
 import { requireClientContext } from "@/lib/client/context"
-import { orgProject, orgInvoices, clientSignatures, visibleScriptsWhere } from "@/lib/client/data"
+import { orgProject, orgInvoices, clientSignatures, visibleScriptsWhere, needsYou, needsProjectId } from "@/lib/client/data"
 import { labelFor, reviewState, type ReviewState } from "@/lib/client/approvals"
 import { dayRange } from "@/lib/client/library"
 import { roleIn, seesProposals } from "@/lib/client/proposals"
 import { MONEY_DOC_KINDS, moneyOf } from "@/lib/client/money"
 import { MoneySection } from "@/app/client/money-section"
+import { WhereItStands } from "@/app/client/job-needs"
+import { glanceHome } from "@/lib/client/glance"
 import { todayEastern } from "@/lib/client/proposals"
 import { signingReady, stillUrl } from "@/lib/client/mux-sign"
 import { db } from "@/lib/db"
@@ -72,12 +74,25 @@ export default async function ProjectPage({ params }: { params: { id: string } }
   })
   // Proposals are money (SPEC §24 v2): never listed for a VIEWER; an acceptance shows as "accepted" until Sam moves
   // the phase on.
-  const seesMoney = seesProposals((await roleIn(ctx, org.id)) ?? "VIEWER")
+  const role = (await roleIn(ctx, org.id)) ?? "VIEWER"
+  const seesMoney = seesProposals(role)
   const files = p.documents.filter((d) => seesMoney || !MONEY_DOC_KINDS.includes(d.kind))
   // SPEC §28 v2: a job with a third-party payer shows who pays whom (only to someone who sees money). A client→OSC leg
   // reads its invoice, which may sit on another of the org's jobs, so the org's invoices are loaded.
   const moneyBlock = seesMoney ? moneyOf(p.money) : null
   const orgInvs = moneyBlock ? await orgInvoices(org.id, { withVoid: true }) : [] // the money model only (voided legs drop out)
+  // SPEC §28 v2, "Where it stands": for the one-glance clients (lib/client/glance.ts), this job's own Needs-you items,
+  // so Home's "1 thing for you" lands on the thing. An invoice the job's money lines say is owed counts here even when
+  // it's filed on another of their jobs (the page never shows a debt without its Pay).
+  const glance = glanceHome(org.slug)
+  const named = new Set(
+    (moneyBlock?.legs ?? []).filter((l) => l.from === "client" && l.to === "osc" && l.invoice).map((l) => l.invoice!),
+  )
+  const jobNeeds = glance
+    ? (await needsYou(org.id, [p], signing, ctx.viewing ? undefined : ctx.user.id, ctx.viewing ? undefined : ctx.user.email, role)).filter(
+        (n) => needsProjectId(n) === p.id || (n.kind === "invoice" && named.has(n.invoice.number)),
+      )
+    : []
   const accepted = seesMoney
     ? await db.proposalAcceptance.findFirst({ where: { project_id: p.id, withdrawn_at: null }, orderBy: { accepted_at: "desc" }, select: { name: true, accepted_at: true } })
     : null
@@ -140,8 +155,11 @@ export default async function ProjectPage({ params }: { params: { id: string } }
       <main className="cs-main" style={{ paddingTop: 8 }}>
         <div className="cs-cols">
           <div>
-            {/* Where it stands (SPEC §28 v2): what's next, right under what's happening (the hero line). */}
-            {p.next_step ? (
+            {/* Where it stands (SPEC §28 v2): what's next, right under what's happening (the hero line); for the one-glance
+                clients, the job's own Needs-you list too. */}
+            {glance ? (
+              <WhereItStands next={p.next_step} items={jobNeeds} slug={p.slug} paperUnavailable={paperUnavailable} />
+            ) : p.next_step ? (
               <div className="cs-card cs-pad" style={{ marginTop: 14 }}>
                 <p style={{ fontSize: 15 }}>
                   <b>Next</b> · {p.next_step}
@@ -258,7 +276,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
 
           <div>
             {items.length ? (
-              <section className="cs-section">
+              <section className="cs-section" id="dates">
                 <SectionTitle>Key dates</SectionTitle>
                 <div className="cs-card cs-dates">
                   {items.map((it) => {
@@ -322,7 +340,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
             ) : null}
 
             {paper.length || paperUnavailable ? (
-              <section className="cs-section">
+              <section className="cs-section" id="paperwork">
                 <SectionTitle>Paperwork</SectionTitle>
                 <div className="cs-rows">
                   {paperUnavailable ? (

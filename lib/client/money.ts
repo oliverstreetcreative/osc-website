@@ -229,6 +229,29 @@ export function balance(allResolved: Resolved[], openInvoiceTotal: number) {
   return { owedToOsc: openInvoiceTotal, owedToClient, toConfirm }
 }
 
+/**
+ * What the client owes OSC on ONE job (the job page's balance; Billing's covers every job): the job's own open
+ * invoices, plus any open invoice this job's legs say is owed (it may sit on another of their jobs), each counted
+ * once. A leg that names an invoice but reads "to confirm" adds nothing: the page never shows one number two ways.
+ */
+export function jobOpenTotal(
+  resolved: Resolved[],
+  invoices: { number: string; amount: unknown; status: string; project_id?: string | null }[],
+  projectId: string,
+): number {
+  const named = new Set(
+    resolved.filter((r) => r.leg.from === "client" && r.leg.to === "osc" && r.leg.invoice && r.status === "invoiced").map((r) => r.leg.invoice!),
+  )
+  const open = new Map<string, number>()
+  for (const i of invoices) {
+    if (i.status !== "open") continue
+    if (i.project_id === projectId || named.has(i.number)) open.set(i.number, Number(String(i.amount)))
+  }
+  let total = 0
+  for (const v of open.values()) if (Number.isFinite(v)) total += v
+  return total
+}
+
 /** The balance in words: two plain numbers, "· N to confirm", and "All square" only when nothing is unknown. */
 export function balanceLine(b: { owedToOsc: number; owedToClient: number; toConfirm: number }): string {
   const unknown = b.toConfirm ? ` · ${b.toConfirm} to confirm` : ""

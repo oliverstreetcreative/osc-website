@@ -1,6 +1,6 @@
 // A job's money with a third-party payer (SPEC §28 v2): who pays whom, as dated plain lines grouped by the campaign's
 // invoice, with the date the open legs were last checked. Only for someone who sees money; never on Home.
-import { balance, balanceLine, groupLegs, invoiceFacts, jobState, legLine, resolveBlock, type MoneyBlock, type JobMoneyState } from "@/lib/client/money"
+import { balance, balanceLine, groupLegs, invoiceFacts, jobOpenTotal, jobState, legLine, resolveBlock, type MoneyBlock, type JobMoneyState } from "@/lib/client/money"
 import { SectionTitle } from "@/app/client/ui"
 
 const FLOW: Record<MoneyBlock["pattern"], string> = {
@@ -63,10 +63,13 @@ export function MoneySection({ block, invoices, today, projectId }: { block: Mon
   if (!resolved.length) return null
   const open = invoices.filter((i) => i.project_id === projectId && i.status === "open").length
   const state = jobState(resolved, open)
+  // SPEC §28 v2: the job's balance, two numbers never netted (Billing has the same across every job; never on Home).
+  const b = balance(resolved, jobOpenTotal(resolved, invoices, projectId))
   return (
     <section className="cs-section">
       <SectionTitle>Money</SectionTitle>
       <div className="cs-card cs-pad cs-money">
+        <p className="cs-money-balance">{balanceLine(b)}</p>
         <p className="cs-eyebrow">{FLOW[block.pattern]}</p>
         {groupLegs(resolved).map((g) => (
           <ul key={g[0].leg.key} className="cs-money-group">
