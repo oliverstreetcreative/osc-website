@@ -3,7 +3,9 @@
 
 // ---------------------------------------------------------------- where a sign-in lands
 
-const LANDING = /^\/(client|crew|admin)(\/|$)/
+// The client site, the crew portal, the admin, and two IdP pages: the owner's deputies page, and the IdP's sign-in
+// bridge (SPEC §27 P1 v2 #4).
+const LANDING = /^\/(client|crew|admin)(\/|$)|^\/id\/deputies$|^\/id\/sign-in\/[A-Za-z0-9_-]{1,64}$/
 export const hasControl = (s: string) => [...s].some((c) => c.charCodeAt(0) < 0x20 || c.charCodeAt(0) === 0x7f)
 
 /**

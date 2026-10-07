@@ -636,3 +636,5 @@ a.cs-row:hover { background: var(--zebra); }
 .cs .cs-req-row { flex-wrap: wrap; }
 .cs .cs-req-row-link { display: flex; align-items: center; gap: 12px; flex: 1; color: inherit; text-decoration: none; min-width: 0; }
 .cs .cs-req-row .cs-req-nudge { flex-basis: 100%; padding-top: 4px; }
+/* A text field as wide as its card (the deputies page; SPEC §27 P1). */
+.cs .cs-wide { width: 100%; }

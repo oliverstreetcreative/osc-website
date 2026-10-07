@@ -335,6 +335,7 @@ CREATE TABLE "portal_invites" (
     "code_hash" TEXT,
     "code_tries" INTEGER NOT NULL DEFAULT 0,
     "redirect" TEXT,
+    "subject_id" UUID,
 
     CONSTRAINT "portal_invites_pkey" PRIMARY KEY ("id")
 );
@@ -353,6 +354,8 @@ CREATE TABLE "portal_sessions" (
     "device_hash" TEXT,
     "device_label" TEXT,
     "ip_hash" TEXT,
+    "subject_id" UUID,
+    "amr" TEXT,
 
     CONSTRAINT "portal_sessions_pkey" PRIMARY KEY ("id")
 );
@@ -839,6 +842,73 @@ CREATE TABLE "support_attachments" (
     CONSTRAINT "support_attachments_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "idp_subjects" (
+    "id" UUID NOT NULL,
+    "email" TEXT NOT NULL,
+    "person_id" UUID,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "idp_subjects_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "deputy_grants" (
+    "id" UUID NOT NULL,
+    "email" TEXT NOT NULL,
+    "surfaces" TEXT[],
+    "scope" JSONB NOT NULL,
+    "until" TIMESTAMP(3) NOT NULL,
+    "reason" TEXT,
+    "granted_by" TEXT NOT NULL,
+    "granted_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "revoked_at" TIMESTAMP(3),
+    "revoked_by" TEXT,
+
+    CONSTRAINT "deputy_grants_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "idp_sid_clients" (
+    "id" UUID NOT NULL,
+    "session_id" UUID NOT NULL,
+    "client_id" TEXT NOT NULL,
+    "sid" TEXT NOT NULL,
+    "sub" UUID NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "idp_sid_clients_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "idp_audit" (
+    "id" UUID NOT NULL,
+    "action" TEXT NOT NULL,
+    "actor" TEXT,
+    "subject" TEXT,
+    "client_id" TEXT,
+    "detail" JSONB,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "idp_audit_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "idp_payloads" (
+    "id" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "payload" JSONB NOT NULL,
+    "grant_id" TEXT,
+    "user_code" TEXT,
+    "uid" TEXT,
+    "expires_at" TIMESTAMP(3),
+    "consumed_at" TIMESTAMP(3),
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "idp_payloads_pkey" PRIMARY KEY ("id","type")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "people_email_key" ON "people"("email");
 
@@ -1112,6 +1182,33 @@ CREATE INDEX "support_tickets_created_at_idx" ON "support_tickets"("created_at")
 -- CreateIndex
 CREATE INDEX "support_attachments_ticket_id_idx" ON "support_attachments"("ticket_id");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "idp_subjects_email_key" ON "idp_subjects"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "idp_subjects_person_id_key" ON "idp_subjects"("person_id");
+
+-- CreateIndex
+CREATE INDEX "deputy_grants_email_revoked_at_idx" ON "deputy_grants"("email", "revoked_at");
+
+-- CreateIndex
+CREATE INDEX "idp_sid_clients_session_id_idx" ON "idp_sid_clients"("session_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "idp_sid_clients_client_id_sid_key" ON "idp_sid_clients"("client_id", "sid");
+
+-- CreateIndex
+CREATE INDEX "idp_audit_created_at_idx" ON "idp_audit"("created_at");
+
+-- CreateIndex
+CREATE INDEX "idp_payloads_grant_id_idx" ON "idp_payloads"("grant_id");
+
+-- CreateIndex
+CREATE INDEX "idp_payloads_uid_idx" ON "idp_payloads"("uid");
+
+-- CreateIndex
+CREATE INDEX "idp_payloads_expires_at_idx" ON "idp_payloads"("expires_at");
+
 -- AddForeignKey
 ALTER TABLE "projects" ADD CONSTRAINT "projects_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
@@ -1182,7 +1279,13 @@ ALTER TABLE "portal_events" ADD CONSTRAINT "portal_events_person_id_fkey" FOREIG
 ALTER TABLE "portal_invites" ADD CONSTRAINT "portal_invites_person_id_fkey" FOREIGN KEY ("person_id") REFERENCES "people"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "portal_invites" ADD CONSTRAINT "portal_invites_subject_id_fkey" FOREIGN KEY ("subject_id") REFERENCES "idp_subjects"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "portal_sessions" ADD CONSTRAINT "portal_sessions_person_id_fkey" FOREIGN KEY ("person_id") REFERENCES "people"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "portal_sessions" ADD CONSTRAINT "portal_sessions_subject_id_fkey" FOREIGN KEY ("subject_id") REFERENCES "idp_subjects"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "portal_error_reports" ADD CONSTRAINT "portal_error_reports_reporter_id_fkey" FOREIGN KEY ("reporter_id") REFERENCES "people"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -1291,4 +1394,7 @@ ALTER TABLE "support_tickets" ADD CONSTRAINT "support_tickets_organization_id_fk
 
 -- AddForeignKey
 ALTER TABLE "support_attachments" ADD CONSTRAINT "support_attachments_ticket_id_fkey" FOREIGN KEY ("ticket_id") REFERENCES "support_tickets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "idp_subjects" ADD CONSTRAINT "idp_subjects_person_id_fkey" FOREIGN KEY ("person_id") REFERENCES "people"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 

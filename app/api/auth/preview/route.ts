@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
   await withPass(res)
   // A preview session has a row like any other (SPEC §27 P0 v2), 12 hours, marked `preview` (read-only everywhere).
   // Minted last: it's the one cookie that must survive.
-  await startSession(req, res, person, { kind: "preview", claims: { preview: true } })
+  await startSession(req, res, person, { kind: "preview", claims: { preview: true }, amr: "preview" })
   return res
 }
 

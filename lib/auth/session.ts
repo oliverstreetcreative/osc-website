@@ -13,6 +13,7 @@ import { REHEARSAL_PREFIX } from "@/lib/client/rehearsal"
 import { IS_STAGING } from "@/lib/site-env"
 import { deviceOf } from "@/lib/support/safety"
 import { countingHash, deviceHash, signinIpKey } from "./front-door"
+import { subjectFor } from "@/lib/idp/subjects"
 
 /** `__Host-` wherever the site is served over https: no subdomain's domain-wide cookie can override it (review 10/4). */
 export const SESSION_COOKIE_SECURE = "__Host-osc_session"
@@ -34,6 +35,8 @@ export type StartOptions = {
   deviceId?: string | null
   /** Extra claims for the middleware's pre-filter: { preview: true } or { demo: <fingerprint> }. */
   claims?: Record<string, unknown>
+  /** How this sign-in proved itself (SPEC §27 P1 v2 #5): link | code | invite | preview | demo. */
+  amr: "link" | "code" | "invite" | "preview" | "demo"
 }
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex")
@@ -53,7 +56,7 @@ export function deviceLabel(ua: string | null | undefined): string {
 }
 
 /** Start a session on `res` for `person`. Returns the new session id. */
-export async function startSession(req: NextRequest, res: NextResponse, person: SessionPerson, opts: StartOptions = {}): Promise<{ sid: string }> {
+export async function startSession(req: NextRequest, res: NextResponse, person: SessionPerson, opts: StartOptions): Promise<{ sid: string }> {
   const secret = process.env.SESSION_JWT_SECRET
   if (!secret) throw new Error("SESSION_JWT_SECRET not configured")
   const kind = opts.kind ?? "person"
@@ -70,10 +73,14 @@ export async function startSession(req: NextRequest, res: NextResponse, person: 
     .setExpirationTime(Math.floor(expires.getTime() / 1000))
     .sign(new TextEncoder().encode(secret))
   const ip = clientIp(req.headers)
+  // Every session belongs to the one sign-in's subject (SPEC §27 P1 v2 #4): a stable `sub` per address.
+  const subject = await subjectFor({ email: person.email, personId: person.id })
   await db.portalSession.create({
     data: {
       id: sid,
       person_id: person.id,
+      subject_id: subject.id,
+      amr: opts.amr,
       token_hash: sha256(jwt),
       expires_at: expires,
       last_active_at: new Date(),

@@ -30,6 +30,6 @@ export async function POST(req: NextRequest) {
   if (same && (!current!.scope || current!.scope.id === inv.scriptId.toLowerCase())) return res
   // Replacing someone else's session, or another script's: that one ends, not lingers as a live device.
   if (current) await revokeSession(current.sid)
-  await startSession(req, res, inv.person, { kind: "script", scope: `script:${inv.scriptId.toLowerCase()}`, deviceId: deviceFrom(req) })
+  await startSession(req, res, inv.person, { kind: "script", scope: `script:${inv.scriptId.toLowerCase()}`, deviceId: deviceFrom(req), amr: "invite" })
   return res
 }

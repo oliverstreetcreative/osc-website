@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
   let dest = invite.redirect ?? safeRedirect(read.body.redirect) ?? homeFor(person.role, person.is_staff, host)
   if (dest === "/client") dest = await clientHome(person.id)
   const res = reply({ redirectTo: dest })
-  const { sid } = await startSession(req, res, person, { deviceId })
+  const { sid } = await startSession(req, res, person, { deviceId, amr: "code" })
   void recordEvent("code_ok", h)
   void noticeIfNewDevice(person, deviceId, deviceLabel(req.headers.get("user-agent")), sid).catch(() => {})
   return res
