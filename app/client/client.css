@@ -545,9 +545,8 @@ a.cs-row:hover { background: var(--zebra); }
 .cs .cs-money-asof { margin: 10px 0 0; font-size: 13px; color: var(--mut); }
 .cs .cs-money-balance { font-size: 17px; font-weight: 600; margin: 0 0 6px; font-variant-numeric: tabular-nums; }
 .cs .cs-money-job { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
-.cs .cs-job-calm { font-size: 14px; color: var(--mut); }
-.cs .cs-job-calm:not(:first-child) { margin-top: 6px; }
-.cs .cs-section[id] { scroll-margin-top: 72px; } /* in-page links land clear of the sticky top bar (56px) */
+/* In-page links land clear of the sticky bars: the top bar (56px) plus, for staff, the view-as bar (44px+). */
+.cs .cs-section[id] { scroll-margin-top: 128px; }
 .cs .cs-sign-needed { color: var(--accent); font-weight: 500; }
 /* "Something's wrong?" (SPEC §29 v2): a quiet link in the shell; a bottom sheet on a phone, a card on a desktop. */
 /* Clear of the bottom tab bar, which shows below 900px (an iPad in portrait too) and sits above the home indicator. */

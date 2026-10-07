@@ -78,6 +78,8 @@ export const ALLOWED: Record<string, LegStatus[]> = {
   "campaign>client": ["direct", "to_confirm"],
 }
 const OPEN = new Set<LegStatus>(["invoiced", "owed", "after_campaign_pays", "after_acceptance"])
+/** Open, but not owed yet: it becomes a debt when something else happens (the campaign pays, or accepts the spots). */
+const PENDING = new Set<LegStatus>(["after_campaign_pays", "after_acceptance"])
 export const STALE_DAYS = 7
 
 /** What's wrong with a leg's shape (null = fine). Mirrors the gate's lint, so a bad leg never renders as fact. */
@@ -217,16 +219,28 @@ export function resolveBlock(block: MoneyBlock | null | undefined, invoices: Map
 export function balance(allResolved: Resolved[], openInvoiceTotal: number) {
   let owedToClient = 0
   let toConfirm = 0
+  let pending = 0
   for (const r of allResolved) {
     const ours = r.leg.from === "osc" || r.leg.to === "osc"
     if (!ours) continue
     if (r.status === "to_confirm") toConfirm++
+    else if (PENDING.has(r.status)) pending++
     else if (r.leg.from === "osc" && r.status === "owed") {
       if (r.amount === undefined) toConfirm++
       else owedToClient += r.amount
     }
   }
-  return { owedToOsc: openInvoiceTotal, owedToClient, toConfirm }
+  return { owedToOsc: openInvoiceTotal, owedToClient, toConfirm, pending }
+}
+
+/**
+ * The invoices this job's money lines say are owed NOW: client→OSC legs that resolved to "invoiced" (their invoice is
+ * open; one source per debt). One rule for the job page's list, its balance, and Home's "N things for you".
+ */
+export function namedOpenInvoices(resolved: Resolved[]): Set<string> {
+  return new Set(
+    resolved.filter((r) => r.leg.from === "client" && r.leg.to === "osc" && r.leg.invoice && r.status === "invoiced").map((r) => r.leg.invoice!),
+  )
 }
 
 /**
@@ -239,9 +253,7 @@ export function jobOpenTotal(
   invoices: { number: string; amount: unknown; status: string; project_id?: string | null }[],
   projectId: string,
 ): number {
-  const named = new Set(
-    resolved.filter((r) => r.leg.from === "client" && r.leg.to === "osc" && r.leg.invoice && r.status === "invoiced").map((r) => r.leg.invoice!),
-  )
+  const named = namedOpenInvoices(resolved)
   const open = new Map<string, number>()
   for (const i of invoices) {
     if (i.status !== "open") continue
@@ -252,10 +264,16 @@ export function jobOpenTotal(
   return total
 }
 
-/** The balance in words: two plain numbers, "· N to confirm", and "All square" only when nothing is unknown. */
-export function balanceLine(b: { owedToOsc: number; owedToClient: number; toConfirm: number }): string {
+/**
+ * The balance in words: two plain numbers, "· N to confirm", and "All square" only when nothing is unknown AND nothing
+ * is waiting to become a debt (review 10/6: "All square" above "OSC invoices you $3,000 once…" reads wrong).
+ */
+export function balanceLine(b: { owedToOsc: number; owedToClient: number; toConfirm: number; pending?: number }): string {
   const unknown = b.toConfirm ? ` · ${b.toConfirm} to confirm` : ""
-  if (!b.owedToOsc && !b.owedToClient) return b.toConfirm ? `Nothing open that we know of${unknown}` : "All square"
+  if (!b.owedToOsc && !b.owedToClient) {
+    if (b.toConfirm) return `Nothing open that we know of${unknown}`
+    return b.pending ? "Nothing owed right now" : "All square"
+  }
   return `You owe OSC ${usd(b.owedToOsc)} · OSC owes you ${usd(b.owedToClient)}${unknown}`
 }
 

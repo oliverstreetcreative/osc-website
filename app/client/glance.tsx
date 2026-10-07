@@ -5,7 +5,7 @@ import Link from "next/link"
 import { ChevronRight, Receipt } from "lucide-react"
 import type { NeedsItem, ProjectWithAll } from "@/lib/client/data"
 import { needsProjectId } from "@/lib/client/data"
-import { balance, invoiceFacts, jobState, moneyOf, resolveBlock, type Resolved } from "@/lib/client/money"
+import { balance, invoiceFacts, jobState, moneyOf, namedOpenInvoices, resolveBlock, type Resolved } from "@/lib/client/money"
 import { PhasePill, SectionTitle } from "@/app/client/ui"
 
 type Inv = { number: string; amount: unknown; status: string; issued_on?: Date | null; paid_on?: Date | null; project_id?: string | null }
@@ -13,11 +13,11 @@ type Inv = { number: string; amount: unknown; status: string; issued_on?: Date |
 /** Each job's money, resolved once: the per-job state decides Finished, the counts feed the money line. */
 export function jobMoney(projects: ProjectWithAll[], invoices: Inv[], today: string) {
   const facts = invoiceFacts(invoices)
-  const byProject = new Map<string, { resolved: Resolved[]; openInvoices: number }>()
+  const byProject = new Map<string, { resolved: Resolved[]; openInvoices: number; named: Set<string> }>()
   for (const p of projects) {
     const resolved = resolveBlock(moneyOf(p.money), facts, today)
     const openInvoices = invoices.filter((i) => i.project_id === p.id && i.status === "open").length
-    byProject.set(p.id, { resolved, openInvoices })
+    byProject.set(p.id, { resolved, openInvoices, named: namedOpenInvoices(resolved) })
   }
   return byProject
 }
@@ -46,8 +46,12 @@ export function GlanceSections({
   const active = projects.filter((p) => !finished.includes(p))
   const forYou = new Map<string, number>()
   for (const n of needs) {
+    const ids = new Set<string>()
     const id = needsProjectId(n)
-    if (id) forYou.set(id, (forYou.get(id) ?? 0) + 1)
+    if (id) ids.add(id)
+    // An invoice a job's money lines say is owed counts on that job too, as its page lists it (review 10/6).
+    if (n.kind === "invoice") for (const [pid, m] of perJob) if (m.named.has(n.invoice.number)) ids.add(pid)
+    for (const pid of ids) forYou.set(pid, (forYou.get(pid) ?? 0) + 1)
   }
   const openCount = money ? invoices.filter((i) => i.status === "open").length : 0
   const toConfirm = money ? balance([...perJob.values()].flatMap((m) => m.resolved), 0).toConfirm : 0

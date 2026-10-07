@@ -4,7 +4,7 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import {
-  balance, balanceLine, groupLegs, jobOpenTotal, jobState, legLine, legProblem, resolveBlock, seesMoney,
+  balance, balanceLine, groupLegs, jobOpenTotal, jobState, legLine, legProblem, namedOpenInvoices, resolveBlock, seesMoney,
   type InvoiceFact, type MoneyBlock,
 } from "./money"
 
@@ -165,7 +165,7 @@ test("a campaign paying the client directly is said to have happened only with a
 test("the balance: two numbers, never netted; unknowns counted, never added; 'All square' only when nothing is unknown", () => {
   const all = [...resolveBlock(moore, none, TODAY), ...resolveBlock(mineer, none, TODAY), ...resolveBlock(gex, gexInvoices, TODAY)]
   const b = balance(all, 3000)
-  assert.deepEqual(b, { owedToOsc: 3000, owedToClient: 0, toConfirm: 1 })
+  assert.deepEqual(b, { owedToOsc: 3000, owedToClient: 0, toConfirm: 1, pending: 0 })
   assert.equal(balanceLine(b), "You owe OSC $3,000 · OSC owes you $0 · 1 to confirm")
   assert.equal(balanceLine({ owedToOsc: 0, owedToClient: 0, toConfirm: 0 }), "All square")
   assert.equal(balanceLine({ owedToOsc: 0, owedToClient: 0, toConfirm: 2 }), "Nothing open that we know of · 2 to confirm")
@@ -201,4 +201,39 @@ test("one job's balance: its own open invoices plus the open invoice its legs na
   // Moore: no invoices to the client; one share to confirm.
   const m = resolveBlock(moore, none, TODAY)
   assert.equal(balanceLine(balance(m, jobOpenTotal(m, invs, "moore"))), "Nothing open that we know of · 1 to confirm")
+})
+
+test("waiting to become a debt is not 'All square': after the campaign pays, or once it accepts the spots", () => {
+  const later: MoneyBlock = {
+    as_of: TODAY,
+    pattern: "campaign_pays_client",
+    legs: [
+      { key: "c", from: "campaign", to: "client", status: "direct" },
+      { key: "osc", from: "client", to: "osc", amount: 3000, status: "after_acceptance" },
+    ],
+  }
+  const r = resolveBlock(later, none, TODAY)
+  const b = balance(r, 0)
+  assert.equal(b.pending, 1)
+  assert.equal(balanceLine(b), "Nothing owed right now")
+  assert.equal(legLine(r[1], TODAY), "OSC invoices you $3,000 once the campaign accepts the spots.")
+  // The share OSC pays after the campaign pays OSC: the same.
+  const share: MoneyBlock = {
+    as_of: TODAY,
+    pattern: "campaign_pays_osc",
+    legs: [
+      { key: "inv", from: "campaign", to: "osc", amount: 4500, status: "invoiced", invoice: "C-1" },
+      { key: "share", from: "osc", to: "client", amount: 1500, status: "after_campaign_pays", for: "C-1" },
+    ],
+  }
+  assert.equal(balanceLine(balance(resolveBlock(share, none, TODAY), 0)), "Nothing owed right now")
+  // Everything settled: All square.
+  assert.equal(balanceLine(balance(resolveBlock(mineer, none, TODAY), 0)), "All square")
+})
+
+test("the invoices a job's money says are owed: only legs that resolved to invoiced", () => {
+  assert.deepEqual([...namedOpenInvoices(resolveBlock(gex, gexInvoices, TODAY))], ["2026-0829"])
+  const paid = new Map<string, InvoiceFact>([["2026-0829", { number: "2026-0829", amount: 3000, status: "paid", issued_on: "2026-08-29", paid_on: "2026-09-02" }]])
+  assert.deepEqual([...namedOpenInvoices(resolveBlock(gex, paid, TODAY))], [])
+  assert.deepEqual([...namedOpenInvoices(resolveBlock(gex, none, TODAY))], []) // an invoice we don't have: to confirm
 })

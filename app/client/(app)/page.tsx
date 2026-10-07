@@ -10,7 +10,7 @@ import { greeting, money, relativeDue, day, daysFromToday, duration } from "@/li
 import { PosterImage, HelpFooter, PlayBadge, SectionTitle, DemoOff } from "@/app/client/ui"
 import { isDemoSlug } from "@/lib/client/demo"
 import { ProjectCard } from "@/app/client/project-card"
-import { shareToken } from "@/lib/client/review"
+import { cutVersion, scriptAsk, shootWhen } from "@/lib/client/needs-words"
 import { glanceHome } from "@/lib/client/glance"
 import { GlanceSections } from "@/app/client/glance"
 import { orgInvoices } from "@/lib/client/data"
@@ -188,7 +188,7 @@ function NeedCard({ n, demo, me, preview, wordsOnly = false }: { n: NeedsItem; d
       <div className="cs-card cs-need">
         <div className="cs-need-top">
           <span className="cs-eyebrow"><ScrollText size={13} style={{ verticalAlign: -2, marginRight: 6 }} />Script</span>
-          <span className="cs-status due">{n.script.status === "ready_for_ok" ? "Ready for your OK" : "Ready for your notes"}</span>
+          <span className="cs-status due">{scriptAsk(n.script.status)}</span>
         </div>
         <h3>{n.script.title}</h3>
         <div className="cs-need-act">
@@ -259,7 +259,7 @@ function NeedCard({ n, demo, me, preview, wordsOnly = false }: { n: NeedsItem; d
       <div className="cs-card cs-need">
         <div className="cs-need-top">
           <span className="cs-eyebrow"><CalendarDays size={13} style={{ verticalAlign: -2, marginRight: 6 }} />{s.description ?? "Filming day"}</span>
-          <span className="cs-status soon">{inDays < 0 ? "Happening now" : inDays === 0 ? "Today" : inDays === 1 ? "Tomorrow" : `In ${inDays} days`}</span>
+          <span className="cs-status soon">{shootWhen(inDays)}</span>
         </div>
         <h3>{day(s.start_date, { weekday: "long", month: "long", day: "numeric" })}{s.call_time ? `, ${s.call_time}` : ""}</h3>
         <p>{[n.project.name, s.location].filter(Boolean).join(" · ")}</p>
@@ -280,7 +280,7 @@ function NeedCard({ n, demo, me, preview, wordsOnly = false }: { n: NeedsItem; d
           A Frame.io or demo link keeps the book's label, as before. */}
       <h3>
         {n.film.name}
-        {n.version_n ? ` · Version ${n.version_n}` : !shareToken(n.film.review_url) && n.film.version_label ? ` · ${n.film.version_label}` : ""}
+        {cutVersion(n.film, n.version_n)}
       </h3>
       <p>{n.project.name}</p>
       <div className="cs-need-act">

@@ -7,7 +7,7 @@ import { orgProject, orgInvoices, clientSignatures, visibleScriptsWhere, needsYo
 import { labelFor, reviewState, type ReviewState } from "@/lib/client/approvals"
 import { dayRange } from "@/lib/client/library"
 import { roleIn, seesProposals } from "@/lib/client/proposals"
-import { MONEY_DOC_KINDS, moneyOf } from "@/lib/client/money"
+import { MONEY_DOC_KINDS, invoiceFacts, moneyOf, namedOpenInvoices, resolveBlock } from "@/lib/client/money"
 import { MoneySection } from "@/app/client/money-section"
 import { WhereItStands } from "@/app/client/job-needs"
 import { glanceHome } from "@/lib/client/glance"
@@ -83,11 +83,9 @@ export default async function ProjectPage({ params }: { params: { id: string } }
   const orgInvs = moneyBlock ? await orgInvoices(org.id, { withVoid: true }) : [] // the money model only (voided legs drop out)
   // SPEC §28 v2, "Where it stands": for the one-glance clients (lib/client/glance.ts), this job's own Needs-you items,
   // so Home's "1 thing for you" lands on the thing. An invoice the job's money lines say is owed counts here even when
-  // it's filed on another of their jobs (the page never shows a debt without its Pay).
+  // it's filed on another of their jobs: the RESOLVED legs decide, by the one rule the balance and Home use.
   const glance = glanceHome(org.slug)
-  const named = new Set(
-    (moneyBlock?.legs ?? []).filter((l) => l.from === "client" && l.to === "osc" && l.invoice).map((l) => l.invoice!),
-  )
+  const named = moneyBlock ? namedOpenInvoices(resolveBlock(moneyBlock, invoiceFacts(orgInvs), todayEastern())) : new Set<string>()
   const jobNeeds = glance
     ? (await needsYou(org.id, [p], signing, ctx.viewing ? undefined : ctx.user.id, ctx.viewing ? undefined : ctx.user.email, role)).filter(
         (n) => needsProjectId(n) === p.id || (n.kind === "invoice" && named.has(n.invoice.number)),
@@ -158,7 +156,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
             {/* Where it stands (SPEC §28 v2): what's next, right under what's happening (the hero line); for the one-glance
                 clients, the job's own Needs-you list too. */}
             {glance ? (
-              <WhereItStands next={p.next_step} items={jobNeeds} slug={p.slug} paperUnavailable={paperUnavailable} />
+              <WhereItStands next={p.next_step} items={jobNeeds} job={{ id: p.id, slug: p.slug }} demo={demo} paperUnavailable={paperUnavailable} />
             ) : p.next_step ? (
               <div className="cs-card cs-pad" style={{ marginTop: 14 }}>
                 <p style={{ fontSize: 15 }}>
@@ -316,7 +314,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
             ) : null}
 
             {seesMoney && p.invoices.length ? (
-              <section className="cs-section">
+              <section className="cs-section" id="billing">
                 <SectionTitle href="/client/billing" link="All billing">Billing</SectionTitle>
                 <div className="cs-rows">
                   {p.invoices.map((inv) => (

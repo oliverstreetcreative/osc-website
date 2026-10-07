@@ -14,7 +14,7 @@ export async function orgProjects(orgId: string) {
     include: {
       deliverables: { where: visible, orderBy: { sort: "asc" } },
       shoot_periods: { where: visible, orderBy: { start_date: "asc" } },
-      invoices: { where: visible },
+      invoices: { where: { ...visible, status: { not: "void" } } },
     },
     orderBy: [{ sort_date: "desc" }],
   })
@@ -27,7 +27,7 @@ export async function orgProject(orgId: string, slug: string) {
     include: {
       deliverables: { where: visible, orderBy: { sort: "asc" } },
       shoot_periods: { where: visible, orderBy: { start_date: "asc" } },
-      invoices: { where: visible, orderBy: { issued_on: "desc" } },
+      invoices: { where: { ...visible, status: { not: "void" } }, orderBy: { issued_on: "desc" } },
       documents: { where: visible, orderBy: [{ dated_on: "desc" }, { title: "asc" }] },
     },
   })
