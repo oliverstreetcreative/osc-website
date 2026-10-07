@@ -3,7 +3,7 @@ import { headers } from "next/headers"
 import { Check, CalendarDays, Receipt, Clapperboard, ArrowRight, FileSignature, FileText, ScrollText } from "lucide-react"
 import { requireClientContext } from "@/lib/client/context"
 import { orgProjects, needsYou, clientSignatures, type NeedsItem } from "@/lib/client/data"
-import { KIND_LABEL, type SignViewer } from "@/lib/client/sign"
+import { KIND_LABEL, SIGN_NOTICE, type SignViewer } from "@/lib/client/sign"
 import { SignButton } from "@/app/client/sign-button"
 import { StartCard } from "@/app/client/start-cards"
 import { greeting, money, relativeDue, day, daysFromToday, duration } from "@/lib/client/format"
@@ -20,11 +20,6 @@ import { isPreviewSession } from "@/lib/auth/require-session"
 
 export const metadata = { title: "Home" }
 
-// Fixed words for what the "Read and sign" route reports back (never text from the URL or the engine).
-const SIGN_NOTICE: Record<string, string> = {
-  office: "Sam will set this one up and let you know.",
-  unavailable: "Paperwork is unavailable right now. Try again in a few minutes.",
-}
 
 export default async function Home({ searchParams }: { searchParams: { sign?: string } }) {
   const ctx = await requireClientContext()

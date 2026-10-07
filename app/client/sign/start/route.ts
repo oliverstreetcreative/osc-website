@@ -28,17 +28,19 @@ export async function POST(req: Request) {
 
   const project = await db.project.findFirst({
     where: { organization_id: org.id, hidden: false, job_number: job },
-    select: { id: true },
+    select: { id: true, slug: true },
   })
   if (!project) return NextResponse.redirect(back, 303)
+  // From here, outcomes go back to the paper's own project page (it may be another of their orgs: built review).
+  const there = project.slug ? `${publicOrigin(req)}/client/projects/${encodeURIComponent(project.slug)}` : back
   const viewer = { email: ctx.user.email }
   const list = await neededForJob(job, org.slug, viewer)
-  if (!list || !list.ok) return NextResponse.redirect(`${back}?sign=unavailable`, 303)
+  if (!list || !list.ok) return NextResponse.redirect(`${there}?sign=unavailable`, 303)
   const mine = forClient(list.items, viewer).find((i) => i.id === itemId)
-  if (!mine || !mine.can_start || isDone(mine)) return NextResponse.redirect(back, 303)
+  if (!mine || !mine.can_start || isDone(mine)) return NextResponse.redirect(there, 303)
 
   const started = await startSigning(job, org.slug, ctx.user.email, itemId)
-  if (!started.ok) return NextResponse.redirect(`${back}?sign=${started.reason}`, 303)
+  if (!started.ok) return NextResponse.redirect(`${there}?sign=${started.reason}`, 303)
   // The engine answers with its own URL (absolute or root-relative); only ever send the browser to the engine.
   const url = new URL(started.sign_url, `${signBase()}/`)
   if (url.origin !== new URL(`${signBase()}/`).origin) return NextResponse.redirect(`${back}?sign=unavailable`, 303)

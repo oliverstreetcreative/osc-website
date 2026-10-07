@@ -110,11 +110,13 @@ export async function clientSignatures(
   return out
 }
 
-/** What needs the client, most urgent first. */
 /** Scripts this org (or this person) can open: shared by Sam, not archived (SPEC §14). `includeArchived`: for records
- *  that outlive the wrap (Documents' script approvals, SPEC §30 v2); an archived script still opens read-only. */
+ *  that outlive the wrap (Documents' script approvals, SPEC §30 v2); an archived script still opens read-only.
+ *  With no person (staff viewing as the client, the demo), shares to any of the org's own members count: Sam shares
+ *  scripts to people, so View-as must see what the org's people see (SPEC §30 v2 built review). */
 export function visibleScriptsWhere(orgId: string, personId?: string, opts: { includeArchived?: boolean } = {}) {
   const now = new Date()
+  const members = { person: { memberships: { some: { organization_id: orgId, hidden: false } } } }
   return {
     ...(opts.includeArchived ? {} : { archived_at: null }),
     audience: { not: "office" },
@@ -122,7 +124,7 @@ export function visibleScriptsWhere(orgId: string, personId?: string, opts: { in
       some: {
         revoked_at: null,
         AND: [
-          { OR: [{ organization_id: orgId }, ...(personId ? [{ person_id: personId }] : [])] },
+          { OR: [{ organization_id: orgId }, personId ? { person_id: personId } : members] },
           { OR: [{ expires_at: null }, { expires_at: { gt: now } }] },
         ],
       },
@@ -130,6 +132,7 @@ export function visibleScriptsWhere(orgId: string, personId?: string, opts: { in
   }
 }
 
+/** What needs the client, most urgent first. */
 export async function needsYou(
   orgId: string,
   projects: ProjectWithAll[],

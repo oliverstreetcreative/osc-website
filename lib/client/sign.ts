@@ -161,6 +161,12 @@ export const needsSigning = (s: NeededSignature, staff = false) =>
 
 export type StartResult = { ok: true; sign_url: string } | { ok: false; reason: "office" | "unavailable" }
 
+/** Fixed words for what the start route reports back (?sign=office|unavailable): never text from the URL or the engine. */
+export const SIGN_NOTICE: Record<string, string> = {
+  office: "Sam will set this one up and let you know.",
+  unavailable: "Paperwork is unavailable right now. Try again in a few minutes.",
+}
+
 /** Mint (or reuse) the signing link for ONE of the viewer's own items. The engine picks the template. Nothing is sent. */
 export async function startSigning(job: string, slug: string, email: string, itemId: string): Promise<StartResult> {
   const org = signOrgFor(slug)

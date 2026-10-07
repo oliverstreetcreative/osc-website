@@ -21,7 +21,7 @@ export default async function Documents({ searchParams }: { searchParams: { q?: 
   // Cut approvals are records of their own (SPEC §13): read from the approvals table, never a synced Document.
   const approvals = await db.versionApproval.findMany({
     where: { organization_id: ctx.org.id },
-    include: { deliverable: { select: { project: { select: { name: true } } } } },
+    include: { deliverable: { select: { project: { select: { name: true, hidden: true } } } } },
     orderBy: { approved_at: "desc" },
   })
   // So are script approvals (SPEC §30 v2): only THIS org's scripts that this person can open, archived ones included
@@ -34,7 +34,7 @@ export default async function Documents({ searchParams }: { searchParams: { q?: 
         ...visibleScriptsWhere(ctx.org.id, ctx.viewing ? undefined : ctx.user.id, { includeArchived: true }),
       },
     },
-    select: { id: true, version_n: true, name: true, created_at: true, script: { select: { id: true, title: true, project: { select: { name: true } } } } },
+    select: { id: true, version_n: true, name: true, created_at: true, script: { select: { id: true, title: true, project: { select: { name: true, hidden: true } } } } },
     orderBy: { created_at: "desc" },
   })
   // So are proposal acceptances (SPEC §24 v2).
@@ -55,10 +55,10 @@ export default async function Documents({ searchParams }: { searchParams: { q?: 
       .filter((d) => (!kind || d.kind === kind) && matches([d.title, d.description, d.project?.name, DOC_KIND_LABEL[d.kind]]))
       .map((d) => ({ at: d.dated_on?.getTime() ?? 0, row: <DocRow key={d.id} doc={d} /> })),
     ...approvals
-      .filter((a) => (!kind || kind === APPROVAL) && matches([a.film_title, a.deliverable.project.name, a.name, "approval approved"]))
-      .map((a) => ({ at: a.approved_at.getTime(), row: <ApprovalRow key={a.id} a={a} project={a.deliverable.project.name} /> })),
+      .filter((a) => (!kind || kind === APPROVAL) && matches([a.film_title, shown(a.deliverable.project), a.name, `version ${a.review_version_n}`, "approval approved"]))
+      .map((a) => ({ at: a.approved_at.getTime(), row: <ApprovalRow key={a.id} a={a} project={shown(a.deliverable.project)} /> })),
     ...scriptApprovals
-      .filter((a) => (!kind || kind === APPROVAL) && matches([a.script.title, a.script.project?.name, firstName(a.name), "script approval approved"]))
+      .filter((a) => (!kind || kind === APPROVAL) && matches([a.script.title, shown(a.script.project), firstName(a.name), `version ${a.version_n}`, "script approval approved"]))
       .map((a) => ({ at: a.created_at.getTime(), row: <ScriptApprovalRow key={`s-${a.id}`} a={a} /> })),
     ...acceptances
       .filter((a) => (!kind || kind === ACCEPTANCE) && matches([a.title, a.document.project?.name, a.name, "proposal accepted"]))
@@ -128,7 +128,7 @@ export default async function Documents({ searchParams }: { searchParams: { q?: 
   )
 }
 
-function ApprovalRow({ a, project }: { a: { id: string; film_title: string; review_version_n: number; name: string; approved_at: Date; withdrawn_at: Date | null }; project: string }) {
+function ApprovalRow({ a, project }: { a: { id: string; film_title: string; review_version_n: number; name: string; approved_at: Date; withdrawn_at: Date | null }; project: string | null }) {
   const when = a.approved_at.toLocaleDateString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric" })
   return (
     <Link className="cs-row" href={`/client/approvals/${a.id}`}>
@@ -139,7 +139,7 @@ function ApprovalRow({ a, project }: { a: { id: string; film_title: string; revi
         <strong>
           {a.film_title} · version {a.review_version_n}
         </strong>
-        <small>{[a.withdrawn_at ? "Approval (withdrawn)" : "Approval", `${a.name}`, project, when].join(" · ")}</small>
+        <small>{[a.withdrawn_at ? "Approval (withdrawn)" : "Approval", `${a.name}`, project, when].filter(Boolean).join(" · ")}</small>
       </span>
       <span className="cs-row-end" aria-hidden style={{ color: "var(--mut)" }}>
         <ChevronRight size={18} />
@@ -149,8 +149,10 @@ function ApprovalRow({ a, project }: { a: { id: string; film_title: string; revi
 }
 
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? ""
+/** A project's name only while it's up: a job Sam has taken down never names itself on a record row (built review). */
+const shown = (p: { name: string; hidden: boolean } | null | undefined) => (p && !p.hidden ? p.name : null)
 
-function ScriptApprovalRow({ a }: { a: { version_n: number; name: string; created_at: Date; script: { id: string; title: string; project: { name: string } | null } } }) {
+function ScriptApprovalRow({ a }: { a: { version_n: number; name: string; created_at: Date; script: { id: string; title: string; project: { name: string; hidden: boolean } | null } } }) {
   const when = a.created_at.toLocaleDateString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric" })
   return (
     <Link className="cs-row" href={`/client/scripts/${a.script.id}`}>
@@ -161,7 +163,7 @@ function ScriptApprovalRow({ a }: { a: { version_n: number; name: string; create
         <strong>
           {a.script.title} · version {a.version_n}
         </strong>
-        <small>{["Script approval", firstName(a.name), a.script.project?.name, when].filter(Boolean).join(" · ")}</small>
+        <small>{["Script approval", firstName(a.name), shown(a.script.project), when].filter(Boolean).join(" · ")}</small>
       </span>
       <span className="cs-row-end" aria-hidden style={{ color: "var(--mut)" }}>
         <ChevronRight size={18} />

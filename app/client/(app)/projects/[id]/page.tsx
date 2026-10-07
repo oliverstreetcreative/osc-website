@@ -14,7 +14,7 @@ import { glanceHome } from "@/lib/client/glance"
 import { todayEastern } from "@/lib/client/proposals"
 import { signingReady, stillUrl } from "@/lib/client/mux-sign"
 import { db } from "@/lib/db"
-import { KIND_LABEL, isDone, signedDay, signedNotCleared, type SignViewer } from "@/lib/client/sign"
+import { KIND_LABEL, SIGN_NOTICE, isDone, signedDay, signedNotCleared, type SignViewer } from "@/lib/client/sign"
 import { SignButton } from "@/app/client/sign-button"
 import { day, dayET, duration, money, relativeDue, muxThumb, daysFromToday, todayUTC } from "@/lib/client/format"
 import { eventForOrgs, googleLink } from "@/lib/client/calendar"
@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
   return { title: found?.p.name ?? "Project" }
 }
 
-export default async function ProjectPage({ params }: { params: { id: string } }) {
+export default async function ProjectPage({ params, searchParams }: { params: { id: string }; searchParams: { sign?: string } }) {
   const ctx = await requireClientContext()
   const found = await findProject(ctx, params.id)
   if (!found) notFound()
@@ -54,6 +54,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
   const signing = await clientSignatures(org, [p], viewer)
   const paper = signing.byProject.get(p.id) ?? []
   const paperUnavailable = signing.unavailable.has(p.id)
+  const signNotice = searchParams.sign ? SIGN_NOTICE[searchParams.sign] ?? null : null
   const me = ctx.viewing ? "" : ctx.user.email.toLowerCase()
   // A staging screenshot sign-in sees the real Sign button, switched off (the start route refuses it too).
   const preview = (await isPreviewSession())
@@ -153,6 +154,11 @@ export default async function ProjectPage({ params }: { params: { id: string } }
       <main className="cs-main" style={{ paddingTop: 8 }}>
         <div className="cs-cols">
           <div>
+            {signNotice ? (
+              <div className="cs-card cs-pad" role="status" style={{ marginTop: 14 }}>
+                <p>{signNotice}</p>
+              </div>
+            ) : null}
             {/* Where it stands (SPEC §28 v2): what's next, right under what's happening (the hero line); for the one-glance
                 clients, the job's own Needs-you list too. */}
             {glance ? (
