@@ -83,8 +83,9 @@ export const sessionUser = cache(async (): Promise<Session | null> => {
     },
   })
   const now = Date.now()
-  if (rowProblem(row, createHash("sha256").update(token).digest("hex"), scope, now)) return null
-  if (!row) return null
+  // The client site's own rule: a portal-allowed person (a row with no person is the IdP's alone).
+  if (rowProblem(row, createHash("sha256").update(token).digest("hex"), scope, now, !!row?.person?.portal_allowed)) return null
+  if (!row || !row.person) return null
   if (!row.last_active_at || now - row.last_active_at.getTime() > TOUCH_MS) {
     await db.portalSession.update({ where: { id: sid }, data: { last_active_at: new Date(now) } }).catch(() => {})
   }
@@ -119,5 +120,11 @@ export async function sessionStillLive(sid: string): Promise<boolean> {
     select: { revoked_at: true, expires_at: true, last_active_at: true, token_hash: true, scope: true, person: { select: { portal_allowed: true } } },
   })
   if (!row) return false
-  return !rowProblem(row, row.token_hash, row.scope ? { kind: "script", id: row.scope.slice("script:".length) } : null, Date.now())
+  return !rowProblem(
+    row,
+    row.token_hash,
+    row.scope ? { kind: "script", id: row.scope.slice("script:".length) } : null,
+    Date.now(),
+    !!row.person?.portal_allowed,
+  )
 }

@@ -4,6 +4,7 @@ import { test } from "node:test"
 import assert from "node:assert/strict"
 import { ADMIN_HOURS, admit, cleanGrant, oscAdmin, stepUpFresh, type GrantLite } from "./rules"
 import { exactlyRegistered, registry } from "./clients"
+import { INACTIVE, basicClient, statusFor } from "./status"
 
 const NOW = new Date("2026-10-06T20:00:00Z")
 const grant = (over: Partial<GrantLite> = {}): GrantLite => ({
@@ -93,4 +94,48 @@ test("the registry: per environment, exact URIs, production never lists staging"
   assert.ok(!exactlyRegistered(uris, "https://sign.oliverstreetcreative.com/auth/oidc/callback/"))
   assert.ok(!exactlyRegistered(uris, "https://sign.oliverstreetcreative.com/auth/oidc/callback?x=1"))
   assert.ok(!exactlyRegistered(uris, "HTTPS://sign.oliverstreetcreative.com/auth/oidc/callback"))
+})
+
+test("session status: a live row, an admitted subject, and osc_admin by the 12-hour rule", () => {
+  const live = {
+    revoked_at: null,
+    expires_at: new Date("2026-12-31T00:00:00Z"),
+    last_active_at: new Date(NOW.getTime() - 60_000),
+    token_hash: "h",
+    scope: null,
+    created_at: new Date(NOW.getTime() - 3600_000),
+    kind: "person",
+  }
+  const deputy = admit({ person: null, owner: false, grants: [grant()], now: NOW })
+  const a = statusFor({ row: live, sub: "sub-1", admission: deputy, surface: "sign", now: NOW })
+  assert.equal(a.active, true)
+  assert.equal(a.osc_admin?.role, "deputy")
+  // The same row on a surface the grant doesn't cover: active, but no admin.
+  assert.equal(statusFor({ row: live, sub: "sub-1", admission: deputy, surface: "hub", now: NOW }).osc_admin, null)
+  // Revoked, switched off, a lapsed grant, a script invite's row: inactive, and nothing else said.
+  assert.deepEqual(statusFor({ row: { ...live, revoked_at: NOW }, sub: "sub-1", admission: deputy, surface: "sign", now: NOW }), INACTIVE)
+  const off = admit({ person: { id: "p", portal_allowed: false }, owner: false, grants: [], now: NOW })
+  assert.deepEqual(statusFor({ row: live, sub: "sub-1", admission: off, surface: "sign", now: NOW }), INACTIVE)
+  const lapsed = admit({ person: null, owner: false, grants: [grant({ until: new Date("2026-10-01") })], now: NOW })
+  assert.deepEqual(statusFor({ row: live, sub: "sub-1", admission: lapsed, surface: "sign", now: NOW }), INACTIVE)
+  assert.deepEqual(statusFor({ row: { ...live, kind: "script" }, sub: "sub-1", admission: deputy, surface: "sign", now: NOW }), INACTIVE)
+  // 12 hours after the sign-in: still active (a person's own session), but no admin.
+  const old = { ...live, created_at: new Date(NOW.getTime() - 13 * 3600_000) }
+  const b = statusFor({ row: old, sub: "sub-1", admission: deputy, surface: "sign", now: NOW })
+  assert.equal(b.active, true)
+  assert.equal(b.osc_admin, null)
+})
+
+test("client authentication: HTTP Basic, the registry's secret, nothing for a short or unset secret", () => {
+  const secret = "s".repeat(40)
+  const env = (n: string) => (n === "IDP_CLIENT_TEST_SECRET" ? secret : undefined)
+  const basic = (id: string, s: string) => "Basic " + Buffer.from(`${encodeURIComponent(id)}:${encodeURIComponent(s)}`).toString("base64")
+  assert.equal(basicClient(basic("test", secret), "staging", env)?.client_id, "test")
+  assert.equal(basicClient(basic("test", secret + "x"), "staging", env), null)
+  assert.equal(basicClient(basic("nobody", secret), "staging", env), null)
+  assert.equal(basicClient(basic("test", secret), "production", env), null) // no test client in production
+  assert.equal(basicClient(basic("test", "short"), "staging", (n) => (n === "IDP_CLIENT_TEST_SECRET" ? "short" : undefined)), null)
+  assert.equal(basicClient("Bearer abc", "staging", env), null)
+  assert.equal(basicClient("Basic %%%", "staging", env), null)
+  assert.equal(basicClient(null, "staging", env), null)
 })

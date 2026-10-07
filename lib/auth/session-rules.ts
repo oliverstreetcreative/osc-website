@@ -43,17 +43,20 @@ export type SessionRow = {
   last_active_at: Date | null
   token_hash: string
   scope: string | null
-  person: { portal_allowed: boolean }
 }
 
-/** Is this row still a live session for this token at `now`? null = yes; otherwise why not. */
-export function rowProblem(row: SessionRow | null, tokenHash: string, scope: Scope | null, now: number): string | null {
+/**
+ * Is this row still a live session for this token at `now`? null = yes; otherwise why not. `admitted` comes from the
+ * caller (P1 design review): the client site asks "is this a portal-allowed person"; the IdP asks its admission rule.
+ * The check never reads through a person, so a row without one can't crash it.
+ */
+export function rowProblem(row: SessionRow | null, tokenHash: string, scope: Scope | null, now: number, admitted: boolean): string | null {
   if (!row) return "no such session"
   if (row.revoked_at) return "signed out"
   if (row.expires_at.getTime() <= now) return "expired"
   if (row.token_hash !== tokenHash) return "not this token's session"
   if (row.last_active_at && now - row.last_active_at.getTime() > IDLE_MS) return "idle too long"
-  if (!row.person.portal_allowed) return "switched off"
+  if (!admitted) return "switched off"
   if ((row.scope ?? null) !== (scope ? `script:${scope.id}` : null)) return "scope mismatch"
   return null
 }
