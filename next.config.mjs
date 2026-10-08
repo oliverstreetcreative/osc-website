@@ -6,6 +6,10 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // instrumentation.ts: client-site schema + book sync at boot (staging only).
+  experimental: {
+    instrumentationHook: true,
+  },
   async rewrites() {
     const crewPortalUrl = process.env.CREW_PORTAL_URL;
     if (!crewPortalUrl) return [];

@@ -1,0 +1,638 @@
+/* ==========================================================================
+   OSC CLIENT SITE — design system ("Oliver Street, after hours")
+   Paper for what you read or pay; ink for what you watch.
+   Everything is scoped under .cs so the marketing pages are untouched.
+   ========================================================================== */
+
+.cs {
+  /* Token NAMES follow the shoot-day hub's (ruling 10/3 09:55) so both stylesheets read alike:
+     --bg --zone --zebra --line --ink --mut --accent --accent-ink --red-* --green-*. VALUES are the portal's own.
+     --ink is TEXT (as in the hub). The always-dark surface (header, hero, posters, login) is --deep.
+     The old names below the line are ALIASES the public site (components/site/site.css) still uses: keep them. */
+  --bg: #f7f6f3;              /* the page */
+  --zone: #ffffff;            /* cards and rows */
+  --zebra: #fbfaf8;           /* hover / alternate row */
+  --ink: #141412;             /* text, and the strongest colour on paper (primary buttons, checked choices) */
+  --on-strong: #f7f6f3;       /* text on an --ink-filled control */
+  --mut: #64635e;             /* 5.3:1 on --bg */
+  --faint: #9a9993;
+  --line: rgba(20, 20, 18, 0.09);
+  --rule-strong: rgba(20, 20, 18, 0.16);
+  --deep: #141412;            /* the ALWAYS-dark surface; never flips */
+  --deep-2: #1f1f1c;
+  --on-ink: #f7f6f3;          /* text on --deep */
+  --on-ink-muted: rgba(247, 246, 243, 0.66);
+  --accent: #a8501a;          /* orange as TEXT on --bg (4.9:1) */
+  --accent-fill: #e07830;     /* orange as a FILL: needs you, the current step, the viewing bar */
+  --accent-ink: #141412;      /* text on --accent-fill */
+  --accent-bg: rgba(224, 120, 48, 0.12);
+  --accent-bd: rgba(224, 120, 48, 0.3);
+  --green-fill: #3a8a5c;      /* done · paid (dots) */
+  --green-ink: #2d6e49;
+  --green-bg: rgba(58, 138, 92, 0.1);
+  --green-bd: rgba(58, 138, 92, 0.25);
+  --red-fill: #d13b2e;        /* overdue */
+  --red-ink: #9b2a20;
+  --red-bg: rgba(209, 59, 46, 0.08);
+  --red-bd: rgba(209, 59, 46, 0.25);
+  --gold: #f2c14e;            /* coming up */
+  --bg-glass: rgba(247, 246, 243, 0.92);
+  /* ---- aliases (old names; the public site's site.css uses several) ---- */
+  --paper: var(--bg);
+  --card: var(--zone);
+  --hover: var(--zebra);
+  --text: var(--ink);
+  --strong: var(--ink);
+  --muted: var(--mut);
+  --line-strong: var(--rule-strong);
+  --ink-2: var(--deep-2);
+  --orange: var(--accent-fill);
+  --orange-ink: var(--accent);
+  --orange-bg: var(--accent-bg);
+  --orange-line: var(--accent-bd);
+  --green: var(--green-fill);
+  --green-line: var(--green-bd);
+  --red: var(--red-fill);
+  --red-line: var(--red-bd);
+  --paper-glass: var(--bg-glass);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 1px 2px rgba(20, 20, 18, 0.04), 0 8px 24px -12px rgba(20, 20, 18, 0.12);
+  --serif: var(--font-garamond), "EB Garamond", Georgia, serif;
+  --sans: var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --wordmark: var(--font-barlow), "Barlow Condensed", "Arial Narrow", sans-serif;
+  --script: var(--font-lobster), Lobster, cursive;
+
+  color-scheme: light; /* only the portal's roots (.cs-app) follow the Appearance; the public site stays light */
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+.cs *, .cs *::before, .cs *::after { box-sizing: border-box; }
+.cs a { color: inherit; text-decoration: none; }
+.cs a, .cs button { min-height: 0; min-width: 0; } /* undo the marketing site's global 44px on inline links; controls size themselves */
+.cs h1, .cs h2, .cs h3 { font-family: var(--sans); letter-spacing: -0.02em; line-height: 1.1; margin: 0; }
+.cs p { margin: 0; }
+.cs button { font: inherit; }
+.cs img { display: block; max-width: 100%; }
+.cs :focus-visible { outline: 2px solid var(--accent-fill); outline-offset: 2px; border-radius: 6px; }
+
+/* ---------- top bar ---------- */
+.cs-top {
+  position: sticky; top: 0; z-index: 40;
+  background: var(--deep); color: var(--on-ink);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.cs-top-in {
+  max-width: 1120px; margin: 0 auto; height: 56px; padding: 0 16px;
+  display: flex; align-items: center; gap: 20px;
+}
+.cs-mark { display: flex; align-items: baseline; gap: 5px; white-space: nowrap; }
+.cs-mark b { font-family: var(--wordmark); font-weight: 600; font-size: 19px; letter-spacing: 0.04em; text-transform: uppercase; }
+.cs-mark i { font-family: var(--script); font-style: normal; font-size: 18px; color: #e07830; }
+.cs-nav { display: none; gap: 4px; margin-left: 12px; }
+.cs-nav a {
+  font-size: 14px; font-weight: 500; color: var(--on-ink-muted);
+  padding: 8px 12px; border-radius: 999px;
+}
+.cs-nav a:hover { color: var(--on-ink); }
+.cs-nav a[aria-current="page"] { color: var(--deep); background: var(--on-ink); }
+.cs-top-r { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+/* menus (no JS: <details>) */
+.cs-menu { position: relative; }
+.cs-menu > summary { list-style: none; cursor: pointer; }
+.cs-menu > summary::-webkit-details-marker { display: none; }
+.cs-chip-btn {
+  display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px;
+  border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--on-ink); font-size: 13px; font-weight: 500; max-width: 46vw;
+}
+.cs-chip-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-avatar {
+  width: 40px; height: 40px; border-radius: 999px; display: grid; place-items: center;
+  background: var(--accent-fill); color: var(--accent-ink); font-weight: 700; font-size: 14px;
+}
+.cs-pop {
+  position: absolute; right: 0; top: calc(100% + 8px); min-width: 240px; z-index: 50;
+  background: var(--zone); color: var(--ink); border-radius: 14px; padding: 6px;
+  box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.35); border: 1px solid var(--line);
+}
+.cs-pop-head { padding: 10px 12px 8px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.cs-pop-head strong { display: block; font-size: 14px; }
+.cs-pop-head small { color: var(--mut); font-size: 12px; }
+.cs-pop a, .cs-pop button {
+  display: flex; width: 100%; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px;
+  font-size: 14px; background: none; border: 0; color: inherit; cursor: pointer; text-align: left;
+}
+.cs-pop a:hover, .cs-pop button:hover { background: var(--bg); }
+.cs-pop .on { font-weight: 600; }
+.cs-pop .on::after { content: "✓"; margin-left: auto; color: var(--green-fill); }
+
+/* ---------- start a new project (§17) ---------- */
+.cs-start { margin-top: 18px; display: grid; gap: 22px; }
+.cs-start fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; min-width: 0; }
+.cs-start legend { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mut); margin-bottom: 8px; padding: 0; }
+.cs-choice {
+  display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; min-height: 56px;
+  background: var(--zone); border: 1px solid var(--line); border-radius: var(--radius-sm); cursor: pointer;
+}
+.cs-choice:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.cs-choice input[type="radio"] { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--ink); flex-shrink: 0; }
+.cs-choice > span { display: grid; gap: 2px; min-width: 0; }
+.cs-choice b { font-size: 15px; font-weight: 600; }
+.cs-choice small { font-size: 13px; color: var(--mut); }
+.cs .cs-date-input, .cs-field textarea {
+  font: inherit; font-size: 16px; color: var(--ink); background: var(--bg);
+  border: 1px solid var(--rule-strong); border-radius: 10px; padding: 10px 12px; margin-top: 8px; max-width: 100%;
+}
+.cs-field { display: grid; gap: 4px; }
+.cs-field > span { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mut); }
+.cs-field textarea { margin-top: 4px; resize: vertical; min-height: 96px; width: 100%; background: var(--zone); }
+.cs-form-error { background: var(--red-bg); color: var(--red-ink); border: 1px solid var(--red-bd); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+/* The date field sits outside the "By a date" label and shows only while that choice is picked. Browsers without
+   :has() simply always show it (the server ignores a date sent with another choice). */
+.cs-date-wrap { padding: 4px 2px 0; }
+.cs-date-wrap .cs-date-input { margin-top: 4px; width: 100%; }
+@supports selector(:has(*)) {
+  .cs-timing .cs-date-wrap { display: none; }
+  .cs-timing:has(input[name="timing"][value="date"]:checked) .cs-date-wrap { display: grid; }
+}
+
+/* ---------- staff: view as client ---------- */
+.cs-sticky { position: sticky; top: 0; z-index: 40; }
+.cs-sticky .cs-top { position: static; }
+.cs-viewing {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 16px; min-height: 44px; background: var(--accent-fill); color: var(--accent-ink);
+  font-size: 14px; font-weight: 500;
+}
+.cs-viewing b { font-weight: 700; }
+.cs-viewing-act { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.cs .cs-viewing-act a, .cs .cs-viewing-act button {
+  display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border-radius: 999px;
+  font-size: 13px; font-weight: 600; border: 0; cursor: pointer;
+}
+.cs .cs-viewing-act a { background: rgba(20, 20, 18, 0.12); color: var(--accent-ink); }
+.cs .cs-viewing-act button { background: var(--deep); color: var(--on-ink); }
+.cs .cs-pick { width: 100%; background: var(--zone); border: 0; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.cs .cs-pick:hover { background: var(--zebra); }
+.cs-rows form + form .cs-row { border-top: 1px solid var(--line); }
+.cs-pick-logo { width: 28px; height: 28px; object-fit: contain; }
+
+/* ---------- bottom tabs (phone) ---------- */
+.cs-tabs {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; /* 4 tabs, or 5 with Scripts (SPEC §14) */
+  background: var(--bg-glass);
+  backdrop-filter: saturate(180%) blur(16px); -webkit-backdrop-filter: saturate(180%) blur(16px);
+  border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.cs-tabs a {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 9px 0 8px; font-size: 11px; font-weight: 500; color: var(--mut);
+}
+.cs-tabs a svg { width: 22px; height: 22px; stroke-width: 1.75; }
+.cs-tabs a[aria-current="page"] { color: var(--ink); }
+.cs-tabs a[aria-current="page"] svg { color: var(--accent-fill); }
+
+/* ---------- page frame ---------- */
+.cs-main { max-width: 1120px; margin: 0 auto; padding: 24px 16px calc(96px + env(safe-area-inset-bottom)); }
+.cs-section { margin-top: 36px; }
+.cs-h2 {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mut);
+  margin-bottom: 12px;
+}
+.cs-h2 a { font-size: 13px; letter-spacing: 0; text-transform: none; font-weight: 500; color: var(--accent); }
+.cs-eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mut); }
+.cs .cs-hello { font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 34px; line-height: 1.1; letter-spacing: -0.01em; margin-top: 6px; }
+.cs-title { font-size: 30px; font-weight: 800; }
+.cs-lede { color: var(--mut); margin-top: 6px; font-size: 15px; }
+.cs-serif { font-family: var(--serif); font-style: italic; }
+
+/* ---------- cards ---------- */
+.cs-card { background: var(--zone); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--line); }
+.cs-pad { padding: 18px; }
+.cs-list { display: grid; gap: 10px; }
+.cs-rows { background: var(--zone); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--line); overflow: hidden; }
+.cs-row {
+  display: flex; align-items: center; gap: 14px; padding: 14px 16px; min-height: 64px;
+  border-top: 1px solid var(--line);
+}
+.cs-row:first-child { border-top: 0; }
+a.cs-row:hover { background: var(--zebra); }
+.cs-row-main { flex: 1; min-width: 0; }
+.cs-row-main strong { display: block; font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.cs-row-main small { display: block; color: var(--mut); font-size: 13px; margin-top: 1px; }
+.cs-row-end { text-align: right; flex-shrink: 0; font-size: 14px; }
+.cs-row-end strong { display: block; font-variant-numeric: tabular-nums; font-weight: 600; }
+.cs-ico {
+  width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0; display: grid; place-items: center;
+  background: var(--bg); color: var(--ink); border: 1px solid var(--line);
+}
+.cs-ico svg { width: 19px; height: 19px; stroke-width: 1.75; }
+
+/* status */
+.cs-status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--mut); white-space: nowrap; }
+.cs-status::before { content: ""; width: 7px; height: 7px; border-radius: 99px; background: var(--faint); }
+.cs-status.paid { color: var(--green-ink); } .cs-status.paid::before { background: var(--green-fill); }
+.cs-status.due { color: var(--accent); } .cs-status.due::before { background: var(--accent-fill); }
+.cs-status.late { color: var(--red-fill); } .cs-status.late::before { background: var(--red-fill); }
+.cs-status.soon::before { background: var(--gold); }
+.cs-pill {
+  display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; background: var(--bg); border: 1px solid var(--line); color: var(--ink);
+}
+.cs-pill.done { background: var(--green-bg); border-color: var(--green-bd); color: var(--green-ink); }
+.cs-pill.now { background: var(--accent-bg); border-color: var(--accent-bd); color: var(--accent); }
+
+/* buttons */
+.cs .cs-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 44px; padding: 0 18px; border-radius: 999px; font-size: 15px; font-weight: 600;
+  background: var(--ink); color: var(--on-strong); border: 0; cursor: pointer; white-space: nowrap;
+  transition: transform 150ms ease, opacity 150ms ease;
+}
+.cs .cs-btn:active { transform: scale(0.98); }
+.cs .cs-btn svg { width: 17px; height: 17px; }
+.cs .cs-btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--rule-strong); }
+.cs .cs-btn.light { background: var(--on-ink); color: var(--deep); }
+.cs .cs-btn.sm { height: 40px; padding: 0 14px; font-size: 14px; }
+/* The demo (SPEC §19): a button that would do something, shown but off, saying so on its second line. */
+/* Readable, not faded (built review 10/3): the action in muted text (5.3:1 on paper), the reason at full strength,
+   a dashed border you can see. */
+.cs .cs-btn.is-off {
+  flex-direction: column; gap: 1px; line-height: 1.15; cursor: not-allowed;
+  background: var(--bg); color: var(--mut); border: 1px dashed var(--mut);
+}
+.cs .cs-btn.is-off small { font-size: 12px; font-weight: 600; color: var(--ink); letter-spacing: 0.01em; }
+.cs .cs-btn.is-off:active { transform: none; }
+.cs-dl .is-off-row { cursor: not-allowed; color: var(--mut); }
+.cs-dl .is-off-row small { color: var(--ink); font-weight: 600; }
+/* Team cards (SPEC §21 v2): round 44 px icon links that wrap; call/text only where a phone can dial. */
+.cs-member { flex-wrap: wrap; }
+.cs-member .cs-row-main { flex: 1 1 160px; } /* a real basis, so the icons drop to their own line on a phone */
+.cs-member-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.cs .cs-round {
+  width: 44px; height: 44px; border-radius: 999px; display: inline-grid; place-items: center;
+  border: 1px solid var(--rule-strong); color: var(--ink); background: var(--zone);
+}
+.cs .cs-round svg { width: 19px; height: 19px; stroke-width: 1.75; }
+.cs-row-main .cs-member-num { display: none; }
+@media (pointer: fine) {
+  .cs .cs-round.touch-only { display: none; }
+  .cs-row-main .cs-member-num { display: block; }
+}
+/* The demo's bar: calmer than staff orange (it's a guest's sample, not a staff warning). */
+.cs-viewing.demo { background: var(--deep); color: var(--on-ink); justify-content: center; }
+.cs .cs-link { color: var(--accent); font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; }
+
+/* ---------- needs you ---------- */
+.cs-need { position: relative; padding: 18px 18px 18px 22px; overflow: hidden; }
+.cs-need::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent-fill); }
+.cs-need-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cs-need h3 { font-size: 18px; font-weight: 700; margin-top: 6px; }
+.cs-need p { color: var(--mut); font-size: 14px; margin-top: 2px; }
+.cs-need-act { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.cs-calm { padding: 22px; display: flex; gap: 16px; align-items: center; }
+.cs-calm-dot { width: 44px; height: 44px; border-radius: 999px; background: var(--green-bg); color: var(--green-fill); display: grid; place-items: center; flex-shrink: 0; }
+.cs .cs-calm h3 { font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 24px; letter-spacing: 0; }
+.cs-calm p { color: var(--mut); font-size: 14px; margin-top: 2px; }
+
+/* ---------- posters / project cards ---------- */
+.cs-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
+.cs-pcard { display: block; overflow: hidden; }
+.cs-poster {
+  position: relative; aspect-ratio: 16 / 9; background: var(--deep); color: var(--on-ink); overflow: hidden;
+}
+.cs .cs-poster { color: var(--on-ink); }
+.cs-poster img, .cs-poster video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cs-poster::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(20,20,18,0) 45%, rgba(20,20,18,0.72) 100%); pointer-events: none; }
+.cs-poster-tag { position: absolute; left: 14px; bottom: 12px; z-index: 1; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--on-ink-muted); }
+.cs-play {
+  position: absolute; z-index: 1; right: 14px; bottom: 12px; width: 40px; height: 40px; border-radius: 999px;
+  background: rgba(247, 246, 243, 0.92); color: var(--deep); display: grid; place-items: center;
+}
+.cs-play svg { width: 16px; height: 16px; margin-left: 2px; fill: currentColor; }
+/* typographic poster when there is no still */
+.cs-typo { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 22px 24px;
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(224, 120, 48, 0.22), transparent 55%),
+    radial-gradient(90% 80% at 0% 100%, rgba(242, 193, 78, 0.10), transparent 60%),
+    var(--deep); }
+.cs-poster .cs-typo-logo, .cs-typo .cs-typo-logo { position: static; inset: auto; height: 30px; width: auto; max-width: 70%; object-fit: contain; object-position: left; filter: brightness(0) invert(1); opacity: 0.92; margin-bottom: 14px; }
+.cs-typo b { font-size: clamp(22px, 6vw, 30px); font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; max-width: 15ch; }
+.cs-typo i { font-family: var(--serif); font-size: 17px; color: var(--on-ink-muted); margin-top: 6px; }
+.cs-typo::before { content: ""; width: 28px; height: 3px; background: var(--accent-fill); margin-bottom: 14px; border-radius: 2px; }
+.cs-pcard-body { padding: 14px 16px 16px; }
+.cs-pcard-body h3 { font-size: 17px; font-weight: 700; }
+.cs-pcard-meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.cs-pcard-body p { color: var(--mut); font-size: 14px; margin-top: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ---------- project hero ---------- */
+.cs-hero { position: relative; background: var(--deep); color: var(--on-ink); overflow: hidden; }
+.cs-hero-bg { position: absolute; inset: 0; }
+.cs-hero-bg img { width: 100%; height: 100%; object-fit: cover; opacity: 0.42; }
+.cs-hero-bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(20,20,18,0.35), rgba(20,20,18,0.92)); }
+.cs-hero-in { position: relative; max-width: 1120px; margin: 0 auto; padding: 20px 16px 26px; }
+.cs-back { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--on-ink-muted); min-height: 44px; }
+.cs-hero .cs-eyebrow { color: var(--on-ink-muted); margin-top: 18px; }
+.cs-hero h1 { font-size: clamp(32px, 9vw, 52px); font-weight: 800; margin-top: 8px; }
+.cs-hero-line { font-family: var(--serif); font-style: italic; font-size: 20px; line-height: 1.35; color: rgba(247,246,243,0.88); margin-top: 12px; max-width: 46ch; }
+
+/* phase tracker */
+.cs-track { list-style: none; margin: 26px 0 0; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); }
+.cs-track li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 10px; font-weight: 600; letter-spacing: -0.01em; color: rgba(247,246,243,0.45); text-align: center; }
+.cs-track li::before { content: ""; position: absolute; top: 5px; left: -50%; right: 50%; height: 2px; background: rgba(247,246,243,0.18); }
+.cs-track li:first-child::before { display: none; }
+.cs-track li i { position: relative; width: 12px; height: 12px; border-radius: 99px; background: var(--deep-2); border: 2px solid rgba(247,246,243,0.28); }
+.cs-track li.done { color: rgba(247,246,243,0.8); }
+.cs-track li.done::before, .cs-track li.now::before { background: rgba(247,246,243,0.75); }
+.cs-track li.done i { background: var(--on-ink); border-color: var(--on-ink); }
+.cs-track li.now { color: var(--on-ink); }
+.cs-track li.now i { background: var(--accent-fill); border-color: var(--accent-fill); box-shadow: 0 0 0 4px rgba(224,120,48,0.25); }
+.cs-track li.now.final i { background: var(--green-fill); border-color: var(--green-fill); box-shadow: 0 0 0 4px rgba(58,138,92,0.3); }
+
+/* films */
+.cs-film { overflow: hidden; }
+.cs-player { position: relative; background: #000; aspect-ratio: 16 / 9; }
+.cs-player iframe, .cs-player video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
+.cs-film-body { padding: 16px; }
+.cs-film-body h3 { font-size: 18px; font-weight: 700; }
+.cs-film-meta { color: var(--mut); font-size: 14px; margin-top: 4px; }
+.cs-film-desc { font-size: 14px; color: var(--mut); margin-top: 8px; }
+.cs-dl { margin-top: 14px; border-top: 1px solid var(--line); }
+.cs-dl a, .cs-dl .is-off-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); min-height: 52px; font-size: 14px; }
+.cs-dl a:last-child, .cs-dl .is-off-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.cs-dl a svg, .cs-dl .is-off-row svg { width: 18px; height: 18px; color: var(--mut); flex-shrink: 0; }
+.cs-dl a span, .cs-dl .is-off-row span { flex: 1; font-weight: 600; }
+.cs-dl a small, .cs-dl .is-off-row small { color: var(--mut); font-size: 13px; }
+
+/* key dates */
+.cs-dates { padding: 6px 16px; }
+.cs-date { display: grid; grid-template-columns: 72px 1fr; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); align-items: start; }
+.cs-date:first-child { border-top: 0; }
+.cs-date time { font-size: 13px; font-weight: 600; color: var(--mut); font-variant-numeric: tabular-nums; padding-top: 1px; }
+.cs-date strong { display: block; font-size: 15px; font-weight: 600; }
+.cs-date small { display: block; color: var(--mut); font-size: 13px; }
+.cs-date.past strong { font-weight: 500; }
+.cs-cal { margin-top: 8px; }
+.cs-cal summary { font-size: 13px; }
+
+/* two-column on desktop */
+.cs-cols { display: grid; gap: 0 28px; grid-template-columns: 1fr; }
+
+/* money */
+.cs-total { padding: 22px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
+.cs-total .num { font-size: 40px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1; margin-top: 6px; }
+
+/* documents */
+.cs-search { display: flex; gap: 8px; }
+.cs-search input {
+  flex: 1; min-width: 0; height: 44px; border-radius: 999px; border: 1px solid var(--rule-strong); background: var(--zone);
+  padding: 0 16px; font: inherit; font-size: 16px; color: var(--ink);
+}
+.cs-filters { display: flex; gap: 8px; overflow-x: auto; margin: 12px -16px 0; padding: 0 16px 4px; scrollbar-width: none; }
+.cs-filters::-webkit-scrollbar { display: none; }
+.cs-filters a { flex-shrink: 0; height: 40px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 999px; font-size: 14px; font-weight: 500; border: 1px solid var(--rule-strong); background: var(--zone); }
+.cs-filters a[aria-current="true"] { background: var(--ink); color: var(--on-strong); border-color: var(--ink); }
+.cs-empty { padding: 28px 20px; text-align: center; color: var(--mut); font-size: 14px; }
+.cs-empty b { display: block; font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 22px; color: var(--ink); margin-bottom: 4px; }
+
+/* help footer */
+.cs-help { margin-top: 44px; padding: 20px; border-radius: var(--radius); background: var(--deep); color: var(--on-ink); display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; }
+.cs-help p { font-family: var(--serif); font-style: italic; font-size: 20px; }
+.cs-help small { display: block; color: var(--on-ink-muted); font-family: var(--sans); font-style: normal; font-size: 13px; margin-top: 2px; }
+.cs-help-act { display: flex; gap: 8px; flex-wrap: wrap; }
+.cs .cs-help .cs-btn.ghost { color: var(--on-ink); border-color: rgba(247,246,243,0.25); }
+
+/* login */
+.cs-login { min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; background: var(--deep); color: var(--on-ink); }
+.cs-login-box { width: 100%; max-width: 380px; }
+.cs-login .cs-mark { justify-content: center; }
+.cs-login .cs-mark b { font-size: 26px; }
+.cs-login .cs-mark i { font-size: 24px; }
+.cs-login h1 { font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 30px; text-align: center; margin-top: 36px; letter-spacing: 0; }
+.cs-login p { color: var(--on-ink-muted); text-align: center; font-size: 15px; margin-top: 8px; }
+.cs-login form { margin-top: 28px; display: grid; gap: 10px; }
+.cs-login input { height: 50px; border-radius: 12px; border: 1px solid rgba(247,246,243,0.2); background: rgba(247,246,243,0.06); color: var(--on-ink); padding: 0 16px; font: inherit; font-size: 16px; }
+.cs-login input::placeholder { color: rgba(247,246,243,0.4); }
+.cs .cs-login .cs-btn { height: 50px; width: 100%; }
+.cs-login-foot { margin-top: 28px; text-align: center; font-size: 13px; color: var(--on-ink-muted); }
+
+/* ---------- breakpoints ---------- */
+@media (min-width: 640px) {
+  .cs-grid { grid-template-columns: repeat(2, 1fr); }
+  .cs .cs-hello { font-size: 42px; }
+}
+@media (min-width: 900px) {
+  .cs-top-in { padding: 0 32px; height: 64px; }
+  .cs-nav { display: flex; }
+  .cs-tabs { display: none; }
+  .cs-main { padding: 40px 32px 64px; }
+  .cs-hero-in { padding: 24px 32px 40px; }
+  .cs-grid { grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .cs-cols { grid-template-columns: 1.6fr 1fr; }
+  .cs-track li { font-size: 12px; }
+  .cs-hero-line { font-size: 23px; }
+}
+
+/* ==========================================================================
+   DARK MODE (SPEC §20 v2; the hub's conventions, ruling 10/3 09:55). One palette, written once: each token is
+   light-dark(light, dark), resolved by the element's color-scheme. The Appearance lives where the hub keeps its own:
+   <html data-look="light|dark"> (absent = Auto, follow the phone), remembered on THIS device in localStorage
+   `osc.portal.look` (the hub's is `osc.hub.look`). Only the portal's roots carry .cs-app, so the public site (which
+   also uses .cs) never darkens. Print is always light. Browsers without light-dark() keep the light tokens.
+   ========================================================================== */
+@supports (color: light-dark(#000, #fff)) {
+  .cs {
+    --bg: light-dark(#f7f6f3, #121210);
+    --zone: light-dark(#ffffff, #1c1c19);
+    --ink: light-dark(#141412, #f2f1ec);
+    --mut: light-dark(#64635e, #a8a69f);          /* 7.0:1 on the dark card */
+    --faint: light-dark(#9a9993, #6f6e69);
+    --line: light-dark(rgba(20, 20, 18, 0.09), rgba(255, 255, 255, 0.10));
+    --rule-strong: light-dark(rgba(20, 20, 18, 0.16), rgba(255, 255, 255, 0.18));
+    --accent-fill: light-dark(#e07830, #f08a45);          /* 6.9:1 on the dark card */
+    --accent: light-dark(#a8501a, #f08a45);
+    --green-fill: light-dark(#3a8a5c, #5fb784);
+    --green-ink: light-dark(#2d6e49, #5fb784);
+    --red-fill: light-dark(#d13b2e, #ef6a5e);
+    --on-strong: light-dark(#f7f6f3, #141412);
+    --zebra: light-dark(#fbfaf8, #23231f);
+    --bg-glass: light-dark(rgba(247, 246, 243, 0.92), rgba(18, 18, 16, 0.92));
+    --red-bg: light-dark(rgba(209, 59, 46, 0.08), rgba(239, 106, 94, 0.14));
+    --red-bd: light-dark(rgba(209, 59, 46, 0.25), rgba(239, 106, 94, 0.35));
+    --red-ink: light-dark(#9b2a20, #ef6a5e);
+    --green-bg: light-dark(rgba(58, 138, 92, 0.1), rgba(95, 183, 132, 0.16));
+    --green-bd: light-dark(rgba(58, 138, 92, 0.25), rgba(95, 183, 132, 0.35));
+    --accent-bg: light-dark(rgba(224, 120, 48, 0.12), rgba(240, 138, 69, 0.16));
+    --accent-bd: light-dark(rgba(224, 120, 48, 0.3), rgba(240, 138, 69, 0.38));
+    /* Shadows vanish on dark; the cards' 1px borders carry the edges there. */
+    --shadow: 0 1px 2px light-dark(rgba(20, 20, 18, 0.04), transparent),
+      0 8px 24px -12px light-dark(rgba(20, 20, 18, 0.12), transparent);
+  }
+}
+@supports (color: light-dark(#000, #fff)) {
+  @media screen {
+    .cs.cs-app { color-scheme: light dark; }                         /* Auto: follow the phone */
+    :root[data-look="light"] .cs.cs-app { color-scheme: light; }
+    :root[data-look="dark"] .cs.cs-app { color-scheme: dark; }
+    /* The page's own scrollbar and overscroll follow too (desktop browsers draw them from <html>). */
+    :root:has(.cs-app) { color-scheme: light dark; }
+    :root[data-look="light"]:has(.cs-app) { color-scheme: light; }
+    :root[data-look="dark"]:has(.cs-app) { color-scheme: dark; }
+  }
+}
+@supports not (color: light-dark(#000, #fff)) {
+  .cs-theme { display: none; } /* no dark palette on this browser: don't offer a switch that can't work */
+}
+@media print {
+  .cs { color-scheme: light !important; }
+}
+/* Never themed: the Mux player (an opaque white box while it loads otherwise) and client logos (a light chip). */
+.cs-player iframe { color-scheme: normal; }
+.cs-pick-logo { background: light-dark(transparent, #f7f6f3); border-radius: 6px; padding: 2px; }
+/* The Appearance switch in the account menu. */
+.cs-theme { display: flex; gap: 6px; padding: 8px 12px 4px; }
+.cs .cs-pop .cs-theme button {
+  flex: 1; height: 34px; padding: 0; justify-content: center; text-align: center; border-radius: 999px;
+  border: 1px solid var(--rule-strong); background: transparent; color: var(--ink); font-size: 13px; font-weight: 600;
+  cursor: pointer;
+}
+.cs .cs-pop .cs-theme button:hover { background: var(--zebra); }
+.cs .cs-pop .cs-theme button[aria-pressed="true"] { background: var(--ink); color: var(--on-strong); border-color: var(--ink); }
+/* Dark-mode edges (built review 10/3): the always-dark help card needs a line on a dark page. */
+.cs-help { border: 1px solid var(--line); }
+/* The Directions link is a 44 px tap target (the site's global minimum is undone for inline links in .cs). */
+.cs .cs-directions { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; }
+/* An approval receipt (SPEC §13): label / value pairs. */
+.cs .cs-receipt { display: grid; grid-template-columns: max-content 1fr; gap: 10px 16px; margin: 0; }
+.cs .cs-receipt dt { color: var(--mut); font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding-top: 2px; }
+.cs .cs-receipt dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .cs .cs-receipt { grid-template-columns: 1fr; gap: 2px; } .cs .cs-receipt dd { margin-bottom: 10px; } }
+
+/* Footage from Stacks (SPEC §23 v2): a grid of signed stills, 2 across on a phone, 4 on a desktop. */
+.cs .cs-footage { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+@media (min-width: 720px) { .cs .cs-footage { grid-template-columns: repeat(4, 1fr); gap: 12px; } }
+.cs .cs-still { position: relative; display: block; border-radius: 10px; overflow: hidden; background: var(--zone); aspect-ratio: 16 / 9; }
+.cs .cs-still img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cs .cs-still .cs-len { position: absolute; right: 6px; bottom: 6px; background: rgba(0, 0, 0, 0.65); color: #fff; font-size: 12px; line-height: 1; padding: 4px 6px; border-radius: 6px; font-variant-numeric: tabular-nums; }
+.cs .cs-still .cs-heart { position: absolute; left: 6px; bottom: 5px; color: #fff; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6)); }
+/* A proposal PDF (SPEC §24 v2): inline on a desktop; on a phone the "Read the proposal" button opens it full screen. */
+.cs .cs-pdf { display: none; }
+@media (min-width: 720px) { .cs .cs-pdf { display: block; width: 100%; height: 80vh; border: 0; border-radius: 12px; margin-top: 12px; background: var(--zone); } }
+.cs .cs-still-title { display: block; margin-top: 4px; font-size: 12px; color: var(--mut); line-height: 1.3; }
+.cs .cs-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+.cs .cs-strip img, .cs .cs-strip span { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; background: var(--zone); display: block; }
+/* The one-glance Home and money with a third-party payer (SPEC §28 v2). Words on Home; plain dated lines elsewhere. */
+.cs .cs-jobs .cs-job { align-items: flex-start; }
+.cs .cs-jobs .cs-job strong { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.cs .cs-jobs .cs-job small b { color: var(--ink); font-weight: 600; }
+.cs .cs-money .cs-eyebrow { margin: 0; }
+.cs .cs-money-group { list-style: none; margin: 8px 0 0; padding: 0; }
+.cs .cs-money-group li { padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 15px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.cs .cs-money-group li:last-child { border-bottom: 0; }
+.cs .cs-money-group + .cs-money-group { margin-top: 6px; padding-top: 4px; border-top: 1px solid var(--line); }
+.cs .cs-money-unknown { color: var(--mut); font-style: italic; }
+.cs .cs-money-asof { margin: 10px 0 0; font-size: 13px; color: var(--mut); }
+.cs .cs-money-balance { font-size: 17px; font-weight: 600; margin: 0 0 6px; font-variant-numeric: tabular-nums; }
+.cs .cs-money-job { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+/* In-page links land clear of the sticky bars: the top bar (56px) plus, for staff, the view-as bar (44px+). */
+.cs .cs-section[id] { scroll-margin-top: 128px; }
+.cs .cs-sign-needed { color: var(--accent); font-weight: 500; }
+/* "Something's wrong?" (SPEC §29 v2): a quiet link in the shell; a bottom sheet on a phone, a card on a desktop. */
+/* Clear of the bottom tab bar, which shows below 900px (an iPad in portrait too) and sits above the home indicator. */
+.cs .cs-report-foot { text-align: center; margin: 4px 0 calc(96px + env(safe-area-inset-bottom)); font-size: 13px; }
+@media (min-width: 900px) { .cs .cs-report-foot { margin-bottom: 32px; } }
+.cs .cs-report-foot .cs-link, .cs .cs-menu-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--mut); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.cs .cs-menu-btn { display: block; width: 100%; text-align: left; padding: 10px 14px; text-decoration: none; color: var(--ink); }
+.cs .cs-sheet-wrap { position: fixed; inset: 0; z-index: 80; background: rgba(0, 0, 0, 0.45); display: flex; align-items: flex-end; justify-content: center; }
+.cs .cs-sheet-wrap[hidden] { display: none; }
+.cs .cs-sheet { width: 100%; max-width: 560px; background: var(--bg); color: var(--ink); border-radius: 18px 18px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); max-height: 90vh; overflow: auto; box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.25); }
+@media (min-width: 720px) { .cs .cs-sheet-wrap { align-items: center; } .cs .cs-sheet { border-radius: 18px; } }
+.cs .cs-sheet h2 { margin: 0 0 8px; font-size: 20px; }
+.cs .cs-sheet textarea { width: 100%; margin-top: 8px; font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--zone); color: var(--ink); resize: vertical; }
+.cs .cs-sheet-shot { margin-top: 10px; display: flex; gap: 10px; align-items: flex-start; }
+.cs .cs-sheet-shot img { width: 96px; border-radius: 8px; border: 1px solid var(--line); }
+.cs .cs-sheet-note { font-size: 13px; color: var(--mut); margin: 8px 0 0; }
+.cs .cs-sheet-error { font-size: 14px; color: var(--red-ink, #b3261e); margin: 8px 0 0; }
+.cs .cs-sheet-act { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 12px; }
+.cs .cs-sheet-act .cs-link { background: none; border: 0; font: inherit; color: var(--mut); cursor: pointer; }
+/* Start a project v3 (SPEC §31 v2): one section per screen, saved as she goes; no script needed anywhere. */
+.cs .cs-q-default { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.cs .cs-q { position: relative; }
+.cs .cs-q-progress { height: 4px; background: var(--line); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+.cs .cs-q-progress i { display: block; height: 100%; background: var(--accent-fill); border-radius: 2px; }
+.cs .cs-q { gap: 20px; }
+.cs .cs-q-who { font-size: 14px; color: var(--mut); background: var(--zone); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; }
+.cs .cs-q-who b { color: var(--ink); font-weight: 600; }
+.cs .cs-q-help { display: block; font-size: 13px; color: var(--mut); line-height: 1.45; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.cs .cs-q-err { color: var(--red-ink); font-size: 13px; font-weight: 600; margin: 4px 0 0; }
+.cs .cs-q-ok { color: var(--green-ink); font-size: 14px; font-weight: 600; margin: 0; }
+.cs .cs-q .cs-field input, .cs .cs-q .cs-field select, .cs .cs-q-upload input[type="file"] {
+  font: inherit; font-size: 16px; color: var(--ink); background: var(--zone); border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm); padding: 10px 12px; width: 100%; min-height: 44px; max-width: 100%;
+}
+.cs .cs-q .cs-field input:disabled, .cs .cs-q .cs-field select:disabled, .cs .cs-q textarea:disabled { opacity: 0.7; }
+.cs .cs-q .cs-choice input[type="checkbox"] { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--ink); flex-shrink: 0; }
+.cs .cs-q-rows { gap: 12px; }
+.cs .cs-q-row { background: var(--zone); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px 14px; display: grid; gap: 12px; }
+.cs .cs-q-row-head { display: flex; justify-content: space-between; align-items: center; }
+.cs .cs-q-row-head b { font-size: 14px; font-weight: 700; }
+.cs .cs-q-remove { background: none; border: 0; color: var(--mut); font: inherit; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 0 4px; min-height: 44px; display: inline-flex; align-items: center; gap: 4px; }
+.cs .cs-q-add { justify-self: start; }
+.cs .cs-q-inline { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.cs .cs-q-inline legend { width: 100%; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mut); margin-bottom: 8px; padding: 0; }
+.cs .cs-q-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); font-size: 14px; min-height: 40px; cursor: pointer; }
+.cs .cs-q-chip:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.cs .cs-q-chip input { accent-color: var(--ink); }
+/* "Something else…" asks what it is; the shoot questions go for an edit-only job; approve-first shows with a yes.
+   Browsers without :has() show them all (the server ignores what doesn't apply). */
+.cs .cs-q-other { margin-top: 10px; }
+@supports selector(:has(*)) {
+  .cs .cs-q-other { display: none; }
+  .cs .cs-q-select:has(option[value="other"]:checked) .cs-q-other { display: grid; }
+  .cs .cs-q:has(input[name="has_shoot"][value="none"]:checked) .cs-q-shoot { display: none; }
+  .cs .cs-q-posting { display: none; }
+  .cs .cs-q:has(input[name^="osc_may_post"][value="yes"]:checked) .cs-q-posting { display: block; }
+}
+.cs .cs-details { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--zone); padding: 12px 14px; }
+.cs .cs-details > summary { font-weight: 700; cursor: pointer; min-height: 32px; display: flex; align-items: center; }
+.cs .cs-details[open] { display: grid; gap: 14px; }
+.cs .cs-q-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-end; margin-top: 4px; }
+.cs .cs-q-bar .cs-btn { min-width: 150px; }
+.cs .cs-q-back { order: -1; margin-right: auto; }
+.cs .cs-q-later { order: 2; flex-basis: 100%; text-align: center; background: none; border: 0; color: var(--mut); font: inherit; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-height: 44px; }
+.cs .cs-q-assets { margin-top: 18px; display: grid; gap: 12px; }
+.cs .cs-q-files { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.cs .cs-q-files li { display: flex; align-items: center; gap: 10px; background: var(--zone); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 6px 12px; font-size: 14px; min-height: 44px; }
+.cs .cs-q-files li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs .cs-q-upload { display: grid; gap: 10px; }
+.cs .cs-q-upload .cs-btn { justify-self: start; }
+.cs .cs-q-answer { font-weight: 400; white-space: pre-wrap; overflow-wrap: anywhere; }
+/* A brand-new client's one card (SPEC §31 v2, D): ink, the human words in Garamond, one paper button. */
+.cs .cs-hero-start { padding: 26px 22px 22px; background: var(--deep); color: var(--on-ink); border: 0; }
+.cs .cs-hero-start::before { content: ""; display: block; width: 28px; height: 3px; background: var(--accent-fill); border-radius: 2px; margin-bottom: 16px; }
+.cs .cs-hero-start .cs-eyebrow { color: var(--on-ink-muted); }
+.cs .cs-hero-start h2 { font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 32px; line-height: 1.1; margin-top: 8px; letter-spacing: 0; }
+.cs .cs-hero-start-line { color: var(--on-ink-muted); font-size: 15px; margin-top: 10px; max-width: 46ch; }
+.cs .cs-hero-start .cs-btn { margin-top: 20px; background: var(--on-ink); color: var(--deep); width: 100%; }
+.cs .cs-hero-start-alt { margin-top: 14px; font-size: 14px; color: var(--on-ink-muted); text-align: center; }
+.cs .cs-hero-start-alt .cs-link { color: var(--on-ink); }
+@media (min-width: 720px) { .cs .cs-hero-start .cs-btn { width: auto; } .cs .cs-hero-start-alt { text-align: left; } }
+/* A sent request, as a project in Quote. Its status line is a human moment (Garamond). */
+.cs .cs-req-link { display: block; color: inherit; text-decoration: none; }
+.cs .cs-pcard-body p.cs-req-line { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--ink); -webkit-line-clamp: 3; }
+.cs .cs-req-nudge { font-size: 13px; color: var(--mut); margin: 0; }
+.cs .cs-req-nudge-card { padding: 0 16px 14px; }
+.cs .cs-req-row { flex-wrap: wrap; }
+.cs .cs-req-row-link { display: flex; align-items: center; gap: 12px; flex: 1; color: inherit; text-decoration: none; min-width: 0; }
+.cs .cs-req-row .cs-req-nudge { flex-basis: 100%; padding-top: 4px; }

@@ -1,0 +1,169 @@
+// The approvals ledger (SPEC §13 v3/v4): one JSON file per approval in Dropbox, which the publish gate's lock reads
+// (scripts/client_gate.py approved_job_versions: {job, film, n}) and Majordomo sees. Written after the database row,
+// retried on every client-site run until it lands. STAGING writes its own folder: a rehearsal approval must never lock
+// a real client's version. Server only.
+import { db } from "@/lib/db"
+import { IS_PRODUCTION } from "@/lib/site-env"
+import { ledgerDir as pureLedgerDir } from "./rehearsal"
+import { writeNewFile } from "./dropbox-write"
+
+/**
+ * The ledger folder for one org's records: production writes the real one; every other environment, and a rehearsal
+ * client in ANY environment (SPEC §25 v2), writes the -staging one, which the gate and Majordomo never act on.
+ */
+const ledgerDir = (name: string, orgSlug: string | null | undefined) => pureLedgerDir(name, orgSlug, IS_PRODUCTION)
+const orgSlugOf = async (orgId: string) => (await db.organization.findUnique({ where: { id: orgId }, select: { slug: true } }))?.slug ?? null
+const safe = (s: string) => s.replace(/[^A-Za-z0-9._-]+/g, "-").slice(0, 60) || "x"
+const eastern = (d: Date) =>
+  d.toLocaleString("en-US", { timeZone: "America/New_York", dateStyle: "medium", timeStyle: "short" }) + " Eastern"
+
+export async function writeLedger(approvalId: string): Promise<boolean> {
+  const a = await db.versionApproval.findUnique({
+    where: { id: approvalId },
+    include: { deliverable: { select: { approval: true, approvers: true } } },
+  })
+  if (!a || a.ledger_written_at) return !!a
+  // Named by the approval's own id: a retry lands on the same name, and no other approval can ever share it (a
+  // re-uploaded asset restarts Review's numbering; two projects without a job number may share a film key).
+  const path = `${ledgerDir("approvals", await orgSlugOf(a.organization_id))}/${safe(a.job ?? "no-job")}_${safe(a.film_key)}_${a.review_version_n}_${a.id}.json`
+  const record = {
+    job: a.job,
+    film: a.film_key,
+    n: a.review_version_n,
+    film_title: a.film_title,
+    version_label: a.version_label,
+    review: { asset_id: a.review_asset_id, version_id: a.review_version_id, version_number: a.review_version_n, posted_at: a.review_posted_at },
+    approved_by: { name: a.name, email: a.email, org: a.org_name, role: a.member_role },
+    approved_at: a.approved_at.toISOString(),
+    approved_at_eastern: eastern(a.approved_at),
+    // The film's rule when this was written: any one approver, or every one of them.
+    approval_rule: a.deliverable.approval,
+    approvers: Array.isArray(a.deliverable.approvers) ? a.deliverable.approvers : [],
+    note: a.note,
+    how: a.how,
+    portal_record: a.id,
+  }
+  const r = await writeNewFile(path, JSON.stringify(record, null, 2) + "\n")
+  if (r !== "written" && r !== "exists") {
+    console.error(`approvals: ledger write failed for ${a.id}: ${r}`)
+    return false
+  }
+  await db.versionApproval.update({ where: { id: a.id }, data: { ledger_path: path, ledger_written_at: new Date() } })
+  return true
+}
+
+
+/**
+ * A client's yes to a proposal (SPEC §24 v2) → one add-only file Majordomo reads (it tickets Sam) and the gate's lock
+ * reads ({org, document}: an accepted proposal can't change or disappear). Named by the acceptance's own id.
+ */
+export async function writeAcceptanceLedger(id: string): Promise<boolean> {
+  const a = await db.proposalAcceptance.findUnique({ where: { id } })
+  if (!a || a.ledger_written_at) return !!a
+  const path = `${ledgerDir("acceptances", a.org_slug)}/${safe(a.job ?? "no-job")}_${safe(a.doc_key)}_${a.id}.json`
+  const record = {
+    org: a.org_slug,
+    document: a.doc_key,
+    job: a.job,
+    title: a.title,
+    sha256: a.sha256,
+    frozen_file: `/_admin/client-site/frozen/${a.sha256}.pdf`,
+    total: a.total ? a.total.toString() : null,
+    good_until: a.good_until ? a.good_until.toISOString().slice(0, 10) : null,
+    accepted_by: { name: a.name, email: a.email, org: a.org_name, role: a.member_role, ip: a.ip, user_agent: a.user_agent },
+    accepted_at: a.accepted_at.toISOString(),
+    accepted_at_eastern: eastern(a.accepted_at),
+    how: "portal",
+    portal_record: a.id,
+  }
+  const r = await writeNewFile(path, JSON.stringify(record, null, 2) + "\n")
+  if (r !== "written" && r !== "exists") {
+    console.error(`proposals: ledger write failed for ${a.id}: ${r}`)
+    return false
+  }
+  await db.proposalAcceptance.update({ where: { id: a.id }, data: { ledger_path: path, ledger_written_at: new Date() } })
+  return true
+}
+
+export async function writePendingAcceptances() {
+  const pending = await db.proposalAcceptance.findMany({ where: { ledger_written_at: null }, select: { id: true }, take: 50 })
+  for (const p of pending) await writeAcceptanceLedger(p.id).catch((err) => console.error("proposals: ledger retry failed", err))
+}
+
+/** Every approval whose ledger file hasn't landed yet (the client-site run calls this every 5 minutes). */
+export async function writePendingLedgers() {
+  const pending = await db.versionApproval.findMany({ where: { ledger_written_at: null }, select: { id: true }, take: 50 })
+  for (const p of pending) await writeLedger(p.id).catch((err) => console.error("approvals: ledger retry failed", err))
+}
+
+
+/**
+ * Footage hearts (SPEC §23 v2) → one portal-shaped record per row, for Stacks' importer to turn into its own `client`
+ * layer events (it knows the frames and fps from the package it wrote). Written one at a time (Dropbox limits bursts
+ * of writes), at most 100 per run; a row is marked written only once its file landed.
+ */
+export async function writePendingHearts() {
+  const rows = await db.libraryHeart.findMany({
+    where: { ledger_written_at: null },
+    orderBy: { seq: "asc" },
+    take: 100,
+    include: { clip: { select: { clip_key: true, sam_event: true, library: { select: { ext_key: true } } } } },
+  })
+  if (!rows.length) return
+  const people = new Map(
+    (await db.person.findMany({ where: { id: { in: [...new Set(rows.map((r) => r.person_id))] } }, select: { id: true, email: true, name: true } })).map((p) => [p.id, p]),
+  )
+  const orgs = new Map(
+    (await db.organization.findMany({ where: { id: { in: [...new Set(rows.map((r) => r.organization_id))] } }, select: { id: true, slug: true, name: true } })).map((o) => [o.id, o]),
+  )
+  for (const r of rows) {
+    const who = people.get(r.person_id)
+    const org = orgs.get(r.organization_id)
+    const record = {
+      id: r.id,
+      // Stacks orders events by id (<12 hex ms>-<8 hex>): the tap's time, then its sequence, so a heart and its
+      // un-heart can never swap places on import.
+      stacks_id: `${r.at.getTime().toString(16).padStart(12, "0")}-${r.seq.toString(16).padStart(8, "0")}`,
+      seq: r.seq,
+      library: r.clip.library.ext_key,
+      clip_key: r.clip.clip_key,
+      sam_event: r.clip.sam_event,
+      on: r.favorite,
+      person: { email: who?.email.toLowerCase() ?? null, name: who?.name ?? null, org: org?.slug ?? null, org_name: org?.name ?? null },
+      at: r.at.toISOString(),
+    }
+    const res = await writeNewFile(`${ledgerDir("library-hearts", org?.slug)}/${String(r.seq).padStart(10, "0")}_${r.id}.json`, JSON.stringify(record, null, 2) + "\n")
+    if (res !== "written" && res !== "exists") {
+      console.error(`library: heart ledger write failed for ${r.id}: ${res}`)
+      return // try the rest next run, in order
+    }
+    await db.libraryHeart.update({ where: { id: r.id }, data: { ledger_written_at: new Date() } })
+  }
+}
+
+/** What the flags folder tells Sam (§13 v4 "flags Sam"); Majordomo turns each file into a ticket. */
+export const FLAG_WORDS = {
+  "review-link-ended": "The portal can't read this cut's Review link: it was disabled, expired, or the book's asset id is wrong.",
+  "ok-on-locked-link": "The book asks for the client's OK, but the Review link has a password or needs a login, so the portal can't take an approval.",
+  "accepted-proposal-changed": "A published book names different bytes for a proposal the client already accepted. The site kept the accepted file; check the book.",
+} as const
+export type FlagKind = keyof typeof FLAG_WORDS
+
+const tried = new Set<string>()
+
+/**
+ * Drop one add-only flag file per kind, film and Eastern day. Never awaited by a page: it runs after the response,
+ * is attempted once per process per day (a failing Dropbox isn't retried on every render), and logs failures.
+ */
+export function flagReview(kind: FlagKind, film: string, title: string) {
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" })
+  const name = `${kind}_${safe(film)}_${today}.json`
+  if (tried.has(name)) return
+  tried.add(name)
+  const body = { what: FLAG_WORDS[kind], kind, film, film_title: title, seen_at: new Date().toISOString() }
+  void writeNewFile(`${ledgerDir("flags", film.split("/")[0])}/${name}`, JSON.stringify(body, null, 2) + "\n")
+    .then((r) => {
+      if (r !== "written" && r !== "exists") console.error(`review: flag write failed for ${film}: ${r}`)
+    })
+    .catch((err) => console.error("review: flag write failed", err))
+}

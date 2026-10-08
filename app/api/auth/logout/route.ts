@@ -1,18 +1,15 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { clearCookies } from '@/lib/client/host'
+import { revokeSession, sessionUser } from '@/lib/auth/require-session'
+import { SESSION_COOKIE_PLAIN, SESSION_COOKIE_SECURE } from '@/lib/auth/session'
 
-export async function POST() {
+export const dynamic = 'force-dynamic'
+
+// Sign out from a fetch (SPEC §27 P0 v2): the session's row ends, then the cookies (both names; any domain-wide copy).
+export async function POST(req: NextRequest) {
+  const s = await sessionUser()
+  if (s) await revokeSession(s.sid)
   const res = NextResponse.json({ ok: true })
-  // Session cookie is scoped to .oliverstreetcreative.com so all subdomains share
-  // it; clearing it requires the same domain attribute.
-  for (const name of ['osc_session', 'osc_impersonating']) {
-    res.cookies.set(name, '', {
-      domain: '.oliverstreetcreative.com',
-      path: '/',
-      maxAge: 0,
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: true,
-    })
-  }
+  clearCookies(res, req, [SESSION_COOKIE_SECURE, SESSION_COOKIE_PLAIN, 'osc_impersonating', 'cs_view'])
   return res
 }

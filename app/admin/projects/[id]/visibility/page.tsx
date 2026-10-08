@@ -1,5 +1,5 @@
 import { redirect, notFound } from 'next/navigation'
-import { requirePortalUser } from '@/lib/portal-auth'
+import { getStaffUser } from '@/lib/portal-auth'
 import { db } from '@/lib/db'
 import { formatDate } from '@/lib/portal-utils'
 import { Badge } from '@/components/ui/badge'
@@ -12,11 +12,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 }
 
 export default async function VisibilityPage({ params }: { params: Promise<{ id: string }> }) {
-  try {
-    await requirePortalUser()
-  } catch {
-    redirect('/login')
-  }
+  // Staff only, checked by the page itself: a layout doesn't re-run on client-side navigation, and the
+  // database decides who is staff (SPEC §27 P0 v2).
+  if (!(await getStaffUser())) redirect('/login')
 
   const { id } = await params
 

@@ -1,0 +1,352 @@
+import Link from "next/link"
+import { headers } from "next/headers"
+import { Check, CalendarDays, Receipt, Clapperboard, ArrowRight, FileSignature, FileText, ScrollText, Paperclip } from "lucide-react"
+import { requireClientContext } from "@/lib/client/context"
+import { orgProjects, needsYou, clientSignatures, type NeedsItem } from "@/lib/client/data"
+import { KIND_LABEL, SIGN_NOTICE, type SignViewer } from "@/lib/client/sign"
+import { SignButton } from "@/app/client/sign-button"
+import { RequestCard, RequestRow, StartCard, StartHero, requestName } from "@/app/client/start-cards"
+import { canRequest, openRequests } from "@/lib/client/requests"
+import { currentDraft, filesOf, liveFiles } from "@/lib/client/request-drafts"
+import { greeting, money, relativeDue, day, daysFromToday, duration } from "@/lib/client/format"
+import { PosterImage, HelpFooter, PlayBadge, SectionTitle, DemoOff } from "@/app/client/ui"
+import { isDemoSlug } from "@/lib/client/demo"
+import { ProjectCard } from "@/app/client/project-card"
+import { cutVersion, scriptAsk, shootWhen } from "@/lib/client/needs-words"
+import { glanceHome } from "@/lib/client/glance"
+import { GlanceSections } from "@/app/client/glance"
+import { orgInvoices } from "@/lib/client/data"
+import { seesMoney } from "@/lib/client/money"
+import { todayEastern } from "@/lib/client/proposals"
+import { isPreviewSession } from "@/lib/auth/require-session"
+
+export const metadata = { title: "Home" }
+
+
+export default async function Home({ searchParams }: { searchParams: { sign?: string; sent?: string; saved?: string } }) {
+  const ctx = await requireClientContext()
+  const [projects, requests, draft] = await Promise.all([
+    orgProjects(ctx.org.id),
+    openRequests(ctx.org.id),
+    canRequest(ctx) ? currentDraft(ctx) : Promise.resolve(null),
+  ])
+  // Sign Here contract v2: the viewer's own paper; staff viewing as the client read every member's (read-only).
+  const viewer: SignViewer = ctx.viewing ? { staff: true } : { email: ctx.user.email }
+  const signatures = await clientSignatures(ctx.org, projects, viewer)
+  const needs = await needsYou(ctx.org.id, projects, signatures, ctx.viewing ? undefined : ctx.user.id, ctx.viewing ? undefined : ctx.user.email, ctx.role)
+  const paperUnavailable = signatures.unavailable.size > 0
+  const signNotice = searchParams.sign ? SIGN_NOTICE[searchParams.sign] ?? null : null
+  const me = ctx.viewing ? "" : ctx.user.email.toLowerCase()
+  // A staging screenshot sign-in sees the real Sign button, switched off (the start route refuses it too).
+  const preview = (await isPreviewSession())
+  const orgName = ctx.org.short_name ?? ctx.org.name
+  const active = projects.filter((p) => p.phase !== "paid" && p.phase !== "delivered")
+  // When nothing needs them: lead with the latest film, and list the rest below it.
+  const latest = needs.length
+    ? undefined
+    : projects
+        .flatMap((p) => p.deliverables.filter((f) => f.delivered_at || f.mux_playback_id).map((f) => ({ f, p })))
+        .sort((a, b) => (b.f.delivered_at?.getTime() ?? 0) - (a.f.delivered_at?.getTime() ?? 0))[0]
+  const finished = projects.filter((p) => (p.phase === "paid" || p.phase === "delivered") && p.id !== latest?.p.id)
+  // SPEC §28 v2: the one-glance Home, on for its clients first (lib/client/glance.ts).
+  const glance = glanceHome(ctx.org.slug)
+  const money = seesMoney(ctx.role)
+  const invoices = glance && money ? await orgInvoices(ctx.org.id, { withVoid: true }) : []
+  // SPEC §31 v2: a sent request is a project in Quote; brand assets she'll "send later" are a Needs-you card (for her,
+  // the org's OWNERs and APPROVERs, and staff viewing, read-only).
+  const assetsAsks = requests.filter(
+    (r) => r.assets_later && liveFiles(filesOf(r.assets)).length === 0 && (!!ctx.viewing || r.person_id === ctx.user.id || canRequest(ctx)),
+  )
+  const brandNew = projects.length === 0
+  const nothingYet = brandNew && !requests.length && !needs.length && !paperUnavailable
+  const cards = requests.filter((r) => r.form_version >= 5)
+  const oldRows = requests.filter((r) => r.form_version < 5)
+
+  return (
+    <main className="cs-main">
+      <p className="cs-eyebrow">{ctx.org.name}</p>
+      <h1 className="cs-hello">
+        {greeting()}, {ctx.user.first_name ?? ctx.user.name.split(" ")[0]}.
+      </h1>
+
+      {searchParams.sent ? (
+        <div className="cs-card cs-calm" role="status" style={{ marginTop: 18 }}>
+          <span className="cs-calm-dot"><Check size={22} /></span>
+          <div>
+            <h3>Sent to Sam.</h3>
+            <p>He&rsquo;ll be in touch. Your new project is below.</p>
+          </div>
+        </div>
+      ) : searchParams.saved ? (
+        <div className="cs-card cs-pad" role="status" style={{ marginTop: 18 }}>
+          <p>Saved. Pick up where you left off any time.</p>
+        </div>
+      ) : null}
+
+      {nothingYet ? (
+        // A brand-new client with nothing yet (SPEC §31 v2, D1/D2): one card, the page's only action. No empty "Needs
+        // you", no "No projects yet", no calendar row (there are no dates).
+        <StartHero ctx={ctx} draft={draft} />
+      ) : (
+        <>
+          <section className="cs-section" aria-labelledby="needs">
+            <SectionTitle>
+              <span id="needs">Needs you</span>
+            </SectionTitle>
+            {signNotice ? (
+              <div className="cs-card cs-pad" role="status" style={{ marginBottom: 10 }}>
+                <p>{signNotice}</p>
+              </div>
+            ) : null}
+            {paperUnavailable ? (
+              // Never "all set" while Sign Here can't answer (contract v2: fail closed, visibly).
+              <div className="cs-card cs-need" style={{ marginBottom: 10 }}>
+                <div className="cs-need-top">
+                  <span className="cs-eyebrow"><FileSignature size={13} style={{ verticalAlign: -2, marginRight: 6 }} />Paperwork</span>
+                </div>
+                <h3>Unavailable right now</h3>
+                <p>We can&rsquo;t check what needs signing at the moment. Try again in a few minutes.</p>
+              </div>
+            ) : null}
+            {needs.length || assetsAsks.length ? (
+              <div className="cs-list">
+                {assetsAsks.map((r) => (
+                  <div key={`a-${r.id}`} className="cs-card cs-need">
+                    <div className="cs-need-top">
+                      <span className="cs-eyebrow"><Paperclip size={13} style={{ verticalAlign: -2, marginRight: 6 }} />Your brand assets</span>
+                    </div>
+                    <h3>Logo (vector if you have it), style guide, fonts</h3>
+                    <p>{requestName(r)}</p>
+                    <div className="cs-need-act">
+                      <Link className="cs-btn" href={`/client/requests/${r.id}/assets`}>Upload</Link>
+                    </div>
+                  </div>
+                ))}
+                {needs.map((n) => <NeedCard key={key(n)} n={n} org={ctx.org.slug} demo={isDemoSlug(ctx.org.slug)} me={me} preview={preview} wordsOnly={glance} />)}
+              </div>
+            ) : paperUnavailable ? null : (
+              <div className="cs-card cs-calm">
+                <span className="cs-calm-dot"><Check size={22} /></span>
+                <div>
+                  <h3>You&rsquo;re all set.</h3>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {brandNew ? (
+            // A brand-new client with a request in (D3): it's their project, in Quote.
+            requests.length ? (
+              <section className="cs-section">
+                <SectionTitle href="/client/projects">Your projects</SectionTitle>
+                {cards.length ? <div className="cs-grid">{cards.map((r) => <RequestCard key={r.id} r={r} orgName={orgName} logo={ctx.org.logo_path} />)}</div> : null}
+                {oldRows.length ? <div className="cs-rows" style={{ marginTop: cards.length ? 12 : 0 }}>{oldRows.map((r) => <RequestRow key={r.id} r={r} />)}</div> : null}
+              </section>
+            ) : null
+          ) : (
+            <>
+              {glance ? (
+                <GlanceSections projects={projects} needs={needs} invoices={invoices} money={money} today={todayEastern()} requests={requests} />
+              ) : null}
+
+              {!glance && latest ? (
+                <section className="cs-section">
+                  <SectionTitle>Your latest film</SectionTitle>
+                  <Link href={`/client/projects/${latest.p.slug}`} className="cs-card cs-pcard">
+                    <div className="cs-poster">
+                      <PosterImage project={latest.p} orgName={orgName} logo={ctx.org.logo_path} width={1280} />
+                      <span className="cs-poster-tag">{latest.p.kind}</span>
+                      {latest.f.mux_playback_id || latest.f.file_path ? <PlayBadge /> : null}
+                    </div>
+                    <div className="cs-pcard-body">
+                      <h3>{latest.f.name}</h3>
+                      <p>
+                        {[latest.f.version_label, duration(latest.f.duration_s), latest.f.delivered_at ? `Delivered ${day(latest.f.delivered_at)}` : null]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    </div>
+                  </Link>
+                </section>
+              ) : null}
+
+              {!glance && (active.length || requests.length) ? (
+                <section className="cs-section">
+                  <SectionTitle href="/client/projects">In progress</SectionTitle>
+                  <div className="cs-grid">
+                    {cards.map((r) => <RequestCard key={r.id} r={r} orgName={orgName} logo={ctx.org.logo_path} />)}
+                    {active.map((p) => <ProjectCard key={p.id} p={p} orgName={orgName} logo={ctx.org.logo_path} />)}
+                  </div>
+                  {oldRows.length ? <div className="cs-rows" style={{ marginTop: 12 }}>{oldRows.map((r) => <RequestRow key={r.id} r={r} />)}</div> : null}
+                </section>
+              ) : null}
+
+              {!glance && finished.length ? (
+                <section className="cs-section">
+                  <SectionTitle href="/client/projects">{active.length || latest ? "Earlier work" : "Your projects"}</SectionTitle>
+                  <div className="cs-grid">{finished.map((p) => <ProjectCard key={p.id} p={p} orgName={orgName} logo={ctx.org.logo_path} />)}</div>
+                </section>
+              ) : null}
+            </>
+          )}
+
+          <StartCard ctx={ctx} hasProjects={!brandNew || requests.length > 0} draft={draft} />
+
+          {brandNew ? null : (
+            <section className="cs-section">
+              <Link href="/client/calendar" className="cs-card cs-row" style={{ borderRadius: 16 }}>
+                <span className="cs-ico"><CalendarDays /></span>
+                <span className="cs-row-main">
+                  <strong>Add your dates to your calendar</strong>
+                  <small>Filming days and due dates</small>
+                </span>
+                <ArrowRight size={18} color="var(--mut)" />
+              </Link>
+            </section>
+          )}
+        </>
+      )}
+
+      <HelpFooter />
+    </main>
+  )
+}
+
+function key(n: NeedsItem) {
+  if (n.kind === "proposal") return `p-${n.doc.id}`
+  if (n.kind === "sign") return `g-${n.item.id}`
+  if (n.kind === "script") return `c-${n.script.id}`
+  return n.kind === "invoice" ? `i-${n.invoice.id}` : n.kind === "shoot" ? `s-${n.shoot.id}` : `r-${n.film.id}`
+}
+
+// demo: the staging demo org (SPEC §19). Its links are placeholders, so its buttons show "Off in the demo".
+/** `wordsOnly`: the one-glance Home (SPEC §28 v2) shows no amounts, even on an invoice to pay; Billing has them. */
+function NeedCard({ n, org, demo, me, preview, wordsOnly = false }: { n: NeedsItem; org: string; demo: boolean; me: string; preview: boolean; wordsOnly?: boolean }) {
+  if (n.kind === "proposal") {
+    // SPEC §24 v2: no price on the card (the PDF carries Sam's numbers); only its named acceptors see it.
+    return (
+      <div className="cs-card cs-need">
+        <div className="cs-need-top">
+          <span className="cs-eyebrow"><FileText size={13} style={{ verticalAlign: -2, marginRight: 6 }} />Proposal</span>
+          {n.doc.good_until ? <span className="cs-status due">Good until {day(n.doc.good_until, { month: "short", day: "numeric" })}</span> : null}
+        </div>
+        <h3>A proposal for you{n.project ? ` · ${n.project.name}` : ""}</h3>
+        <p>{n.doc.title}</p>
+        <div className="cs-need-act">
+          <Link className="cs-btn" href={`/client/proposals/${n.doc.id}`}>Read it</Link>
+        </div>
+      </div>
+    )
+  }
+  if (n.kind === "script") {
+    return (
+      <div className="cs-card cs-need">
+        <div className="cs-need-top">
+          <span className="cs-eyebrow"><ScrollText size={13} style={{ verticalAlign: -2, marginRight: 6 }} />Script</span>
+          <span className="cs-status due">{scriptAsk(n.script.status)}</span>
+        </div>
+        <h3>{n.script.title}</h3>
+        <div className="cs-need-act">
+          <Link className="cs-btn" href={`/client/scripts/${n.script.id}`}>Open the script</Link>
+        </div>
+      </div>
+    )
+  }
+  if (n.kind === "sign") {
+    const s = n.item
+    const mine = !!me && s.who.email?.toLowerCase() === me
+    return (
+      <div className="cs-card cs-need">
+        <div className="cs-need-top">
+          <span className="cs-eyebrow"><FileSignature size={13} style={{ verticalAlign: -2, marginRight: 6 }} />To sign</span>
+          {s.sample ? (
+            <span className="cs-pill">Sample</span>
+          ) : s.overdue ? (
+            <span className="cs-status late">Overdue</span>
+          ) : s.due ? (
+            <span className="cs-status due">Due {day(new Date(s.due), { month: "short", day: "numeric" })}</span>
+          ) : s.state === "sent" ? (
+            <span className="cs-status due">Waiting for you</span>
+          ) : null}
+        </div>
+        <h3>{s.label ?? KIND_LABEL[s.kind]} · {n.project.name}</h3>
+        <p>{mine ? "For you" : `For ${s.who.name}`}</p>
+        <div className="cs-need-act">
+          {mine ? (
+            <SignButton job={s.job} itemId={s.id} org={org} disabled={!s.can_start} preview={preview} />
+          ) : (
+            <span className="cs-status">Read-only while viewing</span>
+          )}
+        </div>
+      </div>
+    )
+  }
+  if (n.kind === "invoice") {
+    const inv = n.invoice
+    const late = inv.due_on ? daysFromToday(inv.due_on) < 0 : false
+    return (
+      <div className="cs-card cs-need">
+        <div className="cs-need-top">
+          <span className="cs-eyebrow"><Receipt size={13} style={{ verticalAlign: -2, marginRight: 6 }} />Invoice {inv.number}</span>
+          <span className={`cs-status ${late ? "late" : "due"}`}>{relativeDue(inv.due_on)}</span>
+        </div>
+        <h3>{wordsOnly ? inv.title : `${money(inv.amount)} · ${inv.title}`}</h3>
+        {inv.project ? <p>{inv.project.name}</p> : null}
+        <div className="cs-need-act">
+          {inv.pay_url ? (
+            demo ? (
+              <DemoOff label={wordsOnly ? "Pay" : `Pay ${money(inv.amount)}`} />
+            ) : (
+              <a className="cs-btn" href={inv.pay_url} target="_blank" rel="noopener">
+                {wordsOnly ? "Pay" : `Pay ${money(inv.amount)}`}
+              </a>
+            )
+          ) : null}
+          <Link className="cs-btn ghost" href="/client/billing">Details</Link>
+        </div>
+      </div>
+    )
+  }
+  if (n.kind === "shoot") {
+    const s = n.shoot
+    const inDays = daysFromToday(s.start_date)
+    return (
+      <div className="cs-card cs-need">
+        <div className="cs-need-top">
+          <span className="cs-eyebrow"><CalendarDays size={13} style={{ verticalAlign: -2, marginRight: 6 }} />{s.description ?? "Filming day"}</span>
+          <span className="cs-status soon">{shootWhen(inDays)}</span>
+        </div>
+        <h3>{day(s.start_date, { weekday: "long", month: "long", day: "numeric" })}{s.call_time ? `, ${s.call_time}` : ""}</h3>
+        <p>{[n.project.name, s.location].filter(Boolean).join(" · ")}</p>
+        <div className="cs-need-act">
+          <Link className="cs-btn" href={`/client/projects/${n.project.slug}`}>See the day</Link>
+        </div>
+      </div>
+    )
+  }
+  const ok = n.film.ask === "ok"
+  const filmKey = n.film.ext_key?.split("/").pop() ?? ""
+  return (
+    <div className="cs-card cs-need">
+      <div className="cs-need-top">
+        <span className="cs-eyebrow"><Clapperboard size={13} style={{ verticalAlign: -2, marginRight: 6 }} />{ok ? "Ready for your OK" : "Ready for your notes"}</span>
+      </div>
+      {/* A cut on OSC Review: Review's own number when known, never the book's label (it may name another cut).
+          A Frame.io or demo link keeps the book's label, as before. */}
+      <h3>
+        {n.film.name}
+        {cutVersion(n.film, n.version_n)}
+      </h3>
+      <p>{n.project.name}</p>
+      <div className="cs-need-act">
+        {demo ? (
+          <DemoOff label="Review the cut" />
+        ) : ok && n.project.slug ? (
+          <Link className="cs-btn" href={`/client/projects/${n.project.slug}/approve/${encodeURIComponent(filmKey)}`}>Watch and approve</Link>
+        ) : (
+          <a className="cs-btn" href={n.film.review_url!} target="_blank" rel="noopener">Watch and comment</a>
+        )}
+      </div>
+    </div>
+  )
+}

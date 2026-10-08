@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { db } from '@/lib/db'
-import { isImpersonating } from '@/lib/auth/impersonation'
+import { getStaffUser } from '@/lib/portal-auth'
+import { getPortalUser } from '@/lib/portal-auth'
 
 const VALID_STATUSES = ['Reviewed', 'Bounced', 'Not Ready'] as const
 
@@ -9,22 +10,14 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  // Impersonation check — read-only mode
-  if (await isImpersonating()) {
-    return NextResponse.json(
-      { error: 'Impersonation mode is read-only. Stop impersonating to take actions.' },
-      { status: 403 },
-    )
-  }
-
   const headersList = await headers()
-  const userId  = headersList.get('x-user-id')
-  const isStaff = headersList.get('x-user-is-staff')
+  const userId  = (await getPortalUser())?.id ?? null
 
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  if (isStaff !== 'true') {
+  // Staff status from the database, not the session token (which can be weeks stale).
+  if (!(await getStaffUser())) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -49,16 +42,17 @@ export async function POST(
     if (!upload) {
       return NextResponse.json({ error: 'Upload not found' }, { status: 404 })
     }
-
-    const updated = await db.portalUpload.update({
-      where: { id },
-      data: { review_status: body.review_status },
-    })
-
-    return NextResponse.json({ upload: updated }, { status: 200 })
+    // portal_uploads has no review_status column, so the old update here could never succeed
+    // (a Prisma error on every call; nothing in the UI calls this route). Uploads in are being
+    // redesigned (client-site SPEC §0.4: untrusted, pulled and sealed on the Mac); until then this
+    // says so plainly instead of throwing.
+    return NextResponse.json(
+      { error: 'Upload review is not available yet.' },
+      { status: 410 },
+    )
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[admin/uploads/review] Error:', message)
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: 'Upload review failed.' }, { status: 500 })
   }
 }
