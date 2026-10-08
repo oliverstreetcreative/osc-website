@@ -138,10 +138,7 @@ export default async function HomePage() {
         <div className="site-hero-in">
           <div className="cs-eyebrow">{HOME.heroEyebrow.t}</div>
           <h1 id="hero-title">
-            <span className="sr-only">
-              Oliver Street Creative — stories that move hearts, open minds, and build trust. Video production in
-              Cincinnati &amp; Covington, KY.
-            </span>
+            <span className="sr-only">{HOME.heroSr.t}</span>
             <span aria-hidden="true">
               Stories that move hearts, open minds, and <em>build trust.</em>
             </span>

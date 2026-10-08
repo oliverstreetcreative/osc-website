@@ -1,6 +1,7 @@
 // THE HOMEPAGE'S WORDS (website-redesign SPEC Feature 5; Sam 10/8 ~11:05: "Use our new positioning - we're humble
-// storytellers in an age of endless content."). Every visitor-facing string lives here with its source, so
-// lib/home-copy.test.ts can hold the house voice over all of it.
+// storytellers in an age of endless content."). Every string this rebuild wrote or moved lives here with its source,
+// so lib/home-copy.test.ts can hold the house voice over all of it. The sections carried over unchanged from staging
+// (the work, the testimonials, the contact details) keep their words in the page.
 //
 // Rules this file keeps:
 //   - Sam's OWN words only (his 10/8 voice memo, the 10/7 rulings, or approved site copy). A missing line is OPEN,
@@ -21,6 +22,11 @@ const L = (t: string, src: string): Line => ({ t, src })
 export const HOME = {
   heroEyebrow: L("Video production · Covington, KY", "SITE"),
   // The H1 is the ruled tagline (Sam 9/23; 10/7 22:45 "B is the headline"), set in the page with its accent.
+  // heroSr is what screen readers and search read for it (the visible tagline is aria-hidden).
+  heroSr: L(
+    "Oliver Street Creative: stories that move hearts, open minds, and build trust. Video production in Cincinnati & Covington, KY.",
+    "SITE (the H1's text for screen readers, from staging; its em dash is now a colon, house voice)",
+  ),
   heroSub: L("Made by people who come from the movie business.", "SITE (ruled with the tagline, 10/7 22:45)"),
   pitch: L(
     "Anyone can make content now. Getting a real person to come through the screen, so people believe you, takes craft. That’s what we do.",

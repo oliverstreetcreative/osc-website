@@ -1,6 +1,7 @@
 // node --conditions=import --import ./node_modules/tsx/dist/loader.mjs --test lib/home-copy.test.ts   (cwd = the repo)
-// The homepage's words (website-redesign SPEC Feature 5): every line carries its source, the house voice holds, and
-// the page never claims humility or reaches for a superlative (Sam 10/7: "I genuinely want the brand to be humble").
+// The homepage's words (website-redesign SPEC Feature 5): every line carries its source, the house voice holds, no
+// superlative anywhere (Sam 10/7: "I genuinely want the brand to be humble"), and "humble" appears only in Sam's own
+// Why us line (10/8 12:02).
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import { HOME, allLines } from "./home-copy"
