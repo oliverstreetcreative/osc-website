@@ -1006,6 +1006,31 @@ class RehearsalTest(GateBase):
         self.write_rbook(rbook(people=(INTERNAL["email"],)))
         self.assertIn("+rehearsal OSC addresses only", self.gate("lint", "rehearsal-osc").stdout)
 
+    def test_the_internal_test_clients_live_twin_may_say_its_own_name_and_nothing_else(self):
+        """SPEC §26 v3: osc-internal (the REAL tree) may carry exactly its own name and /Clients folder; a project that
+        says INTERNAL is still refused, and no other real org may borrow the name."""
+        def live_book(slug="osc-internal", title=None):
+            b = book()
+            b["org"].update(slug=slug, name="OSC Internal Videos", short_name="OSC Internal Videos",
+                            folder="/Clients/OSC Internal Videos", domains=["oliverstreetcreative.com"])
+            b["people"] = [{"email": "internal@oliverstreetcreative.com", "name": "Sam Patton", "role": "OWNER", "audience": "client"}]
+            b["projects"] = [] if title is None else [{"key": "p1", "slug": "p1", "job_number": "26-001", "title": title,
+                                                       "phase": "quote", "audience": "client", "films": [], "shoots": []}]
+            b["invoices"], b["documents"] = [], []
+            with open(os.path.join(self.site, "books", f"{slug}.json"), "w") as f:
+                json.dump(b, f)
+
+        live_book()
+        out = self.gate("lint", "osc-internal").stdout
+        self.assertNotIn("internal-draft marker", out, out)
+        self.assertNotIn("an OSC address", out, out)  # internal@ is this client's person
+        live_book(title="Internal draft")
+        self.assertIn("internal-draft marker", self.gate("lint", "osc-internal").stdout)
+        live_book(slug="acme")
+        out = self.gate("lint", "acme").stdout
+        self.assertIn("internal-draft marker", out)
+        self.assertIn("an OSC address in a client's people list", out)  # nowhere else
+
     def test_a_rehearsal_never_reuses_a_real_clients_review_link(self):
         self.write_draft(book(film_extra={"review_url": RLINK, "review_asset_id": A1}))
         self.assertEqual(self.approve_all().returncode, 0)

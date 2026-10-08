@@ -135,6 +135,10 @@ SIGN_TWIN = {"slug": "rehearsal-osc-staging-test", "signOrg": "osc-staging-test"
 # INTERNAL_TEST (a test checks).
 INTERNAL_TEST = {"slug": "rehearsal-osc-internal", "name": "OSC Internal Videos",
                  "email": "internal@oliverstreetcreative.com"}
+# Its LIVE twin (SPEC §26 v3; Sam 10/8 ~19:20: "We'll test on production"): the same test client as a real book, so
+# Sam can sign in as internal@ on the live site. Exactly its own name and its own /Clients folder are exempt from the
+# internal-marker lint; every other string in its book is linted like any client's.
+INTERNAL_LIVE = {"slug": "osc-internal", "name": "OSC Internal Videos", "folder": "/Clients/OSC Internal Videos"}
 
 
 def is_rehearsal(slug):
@@ -153,12 +157,18 @@ def rehearsal_person_ok(email, slug):
 
 
 def internal_test_exempt(key, org, s):
-    """The Internal test client's org item may say INTERNAL in its own name and folder, and nowhere else."""
-    if key != "org" or (org or {}).get("slug") != INTERNAL_TEST["slug"]:
+    """The Internal test client's org item (staging's rehearsal one, or its live twin) may say INTERNAL in its own name
+    and folder, and nowhere else."""
+    slug = (org or {}).get("slug")
+    if key != "org":
         return False
-    # Exactly its own name and its own rehearsal folder: nothing else in the org item (a short_name of any other words
-    # is still linted).
-    return s in (INTERNAL_TEST["name"], f"/_admin/client-site/rehearsal/files/{INTERNAL_TEST['slug']}")
+    # Exactly its own name and its own folder: nothing else in the org item (a short_name of any other words is still
+    # linted).
+    if slug == INTERNAL_TEST["slug"]:
+        return s in (INTERNAL_TEST["name"], f"/_admin/client-site/rehearsal/files/{INTERNAL_TEST['slug']}")
+    if slug == INTERNAL_LIVE["slug"]:
+        return s in (INTERNAL_LIVE["name"], INTERNAL_LIVE["folder"])
+    return False
 
 
 class Tree:
@@ -721,7 +731,9 @@ def lint_item(key, content, org, items=None):
                                           or (key.startswith("version:") and field == "share_url")):
             problems.append(f"a Review share link only goes in a film's review_url (or its versions), not in {field}: {u}")
     if key.startswith("person:") and content.get("email", "").lower().endswith("@oliverstreetcreative.com") \
-            and not is_rehearsal((org or {}).get("slug")):
+            and not is_rehearsal((org or {}).get("slug")) \
+            and not ((org or {}).get("slug") == INTERNAL_LIVE["slug"] and content.get("email", "").strip().lower() == INTERNAL_TEST["email"]):
+        # (internal@ is the client in the Internal test client's live twin, and only there: SPEC §26 v3.)
         problems.append("an OSC address in a client's people list")
     problems += tree_rules(key, content, org or {})
     if key.startswith("project:"):
