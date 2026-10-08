@@ -1,6 +1,9 @@
 // STAGING-ONLY preview sign-in, so the worker can screenshot real pages and
 // Sam can look without a client ever being emailed. Production: 404, always.
 // The key lives in Keychain "osc-client-preview-key"; only its sha256 is here.
+//   ?key=…&as=<email>[&next=/client/…|&frames=/a,/b][&view=<org>][&theme=dark|light]  signed in as that person (read-only)
+//   ?key=…[&next=/faq|&frames=/,/faq][&theme=…]                                         past the gate only, signed in as no one
+// Either way the response carries a 12-hour pass through staging's password gate (SPEC §32).
 import { NextRequest, NextResponse } from "next/server"
 import { createHash, timingSafeEqual } from "crypto"
 import { db } from "@/lib/db"
@@ -9,7 +12,7 @@ import { cookieDomainFor, isSecure, publicOrigin } from "@/lib/client/host"
 import { startSession } from "@/lib/auth/session"
 import { VIEW_COOKIE } from "@/lib/client/context"
 import { logViewAs, mintViewCookie, VIEW_TTL_SECONDS } from "@/lib/client/view-as"
-import { PREVIEW_PASS_SECONDS, gatePassword, makePass, nowSeconds, passCookie } from "@/lib/staging/gate"
+import { PREVIEW_PASS_SECONDS, gatePassword, makePass, nowSeconds, passCookie, safeNext } from "@/lib/staging/gate"
 
 const KEY_SHA256 = "541190cb348c7ac8454b5ae2eda83deecf9a35d8c72810539c1133fddc9c84ea"
 
@@ -20,21 +23,37 @@ export async function GET(req: NextRequest) {
   const got = createHash("sha256").update(key).digest()
   if (!secret || !timingSafeEqual(got, Buffer.from(KEY_SHA256, "hex"))) return new NextResponse(null, { status: 404 })
 
-  const as = (req.nextUrl.searchParams.get("as") ?? "").trim().toLowerCase()
-  const person = await db.person.findUnique({ where: { email: as } })
-  if (!person || !person.portal_allowed) return new NextResponse("No such person on staging.", { status: 404 })
-
-  const next = req.nextUrl.searchParams.get("next") ?? "/client"
   const frames = req.nextUrl.searchParams.get("frames")
   // Screenshots of both appearances (SPEC §20): &theme=dark|light is stored the portal's own way (localStorage
   // osc.portal.look, the hub's convention) by the frames page before its iframes load; anything else = Auto.
   const themeParam = req.nextUrl.searchParams.get("theme")
   const look = themeParam === "dark" || themeParam === "light" ? themeParam : null
-  const res = frames
-    ? new NextResponse(framesHtml(frames.split(",").filter((p) => p.startsWith("/client") || p === "/login"), look), {
-        headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
-      })
-    : NextResponse.redirect(`${publicOrigin(req)}${next.startsWith("/") ? next : "/client"}`, 303)
+  // Any page of this site may be framed (SPEC §32 built review: the public site's shots go through here too).
+  const framePaths = (frames ?? "").split(",").map((p) => p.trim()).filter((p) => p && safeNext(p) === p)
+  const framesPage = () =>
+    new NextResponse(framesHtml(framePaths, look), { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } })
+  // Past staging's password gate for 12 hours (SPEC §32 v2): this key is its own way in, so the headless browser can keep
+  // browsing. Never the Comment button's cookie: screenshots show the page as a client would.
+  const withPass = async (res: NextResponse) => {
+    const gatePw = gatePassword()
+    if (gatePw) {
+      const pass = passCookie(isSecure(req), PREVIEW_PASS_SECONDS)
+      res.cookies.set(pass.name, await makePass(gatePw, nowSeconds() + PREVIEW_PASS_SECONDS), pass.options)
+    }
+    return res
+  }
+
+  const as = (req.nextUrl.searchParams.get("as") ?? "").trim().toLowerCase()
+  if (!as) {
+    // No `as`: past the gate and signed in as NO ONE (the public site's shots: website-redesign, price-estimator).
+    // Session and View-as cookies are left exactly as they were.
+    return withPass(frames ? framesPage() : NextResponse.redirect(`${publicOrigin(req)}${safeNext(req.nextUrl.searchParams.get("next") ?? "/")}`, 303))
+  }
+  const person = await db.person.findUnique({ where: { email: as } })
+  if (!person || !person.portal_allowed) return new NextResponse("No such person on staging.", { status: 404 })
+
+  const next = req.nextUrl.searchParams.get("next") ?? "/client"
+  const res = frames ? framesPage() : NextResponse.redirect(`${publicOrigin(req)}${next.startsWith("/") ? next : "/client"}`, 303)
   res.cookies.set("cs_org", "", { path: "/", maxAge: 0 })
   // Staff only: &view=<org-slug> opens "View as client" directly (for screenshots), logged like a real start.
   const view = req.nextUrl.searchParams.get("view")
@@ -47,13 +66,7 @@ export async function GET(req: NextRequest) {
   } else {
     res.cookies.set(VIEW_COOKIE, "", { domain: cookieDomainFor(req), path: "/", maxAge: 0 })
   }
-  // Past staging's password gate for 12 hours (SPEC §32 v2): this key is its own way in, so the headless browser can keep
-  // browsing. Never the Comment button's cookie: screenshots show the page as a client would.
-  const gatePw = gatePassword()
-  if (gatePw) {
-    const pass = passCookie(isSecure(req), PREVIEW_PASS_SECONDS)
-    res.cookies.set(pass.name, await makePass(gatePw, nowSeconds() + PREVIEW_PASS_SECONDS), pass.options)
-  }
+  await withPass(res)
   // A preview session has a row like any other (SPEC §27 P0 v2), 12 hours, marked `preview` (read-only everywhere).
   // Minted last: it's the one cookie that must survive.
   await startSession(req, res, person, { kind: "preview", claims: { preview: true } })

@@ -35,6 +35,10 @@ test("secrets never reach the file: sign-in tokens, private links, JWTs", () => 
   assert.equal(scrubSecrets("/demo/secret-demo-token"), "/demo/[redacted]")
   assert.equal(scrubSecrets("/api/auth/preview?key=k&as=a@b.c"), "/api/auth/preview?key=[redacted]&as=a@b.c")
   assert.equal(scrubSecrets("see eyJhbGciOi.eyJzdWIiOiIx.c2lnbmF0dXJl now"), "see [redacted-jwt] now")
+  // percent-encoded inside another link's query (built review 10/8)
+  assert.equal(scrubSecrets("/login?redirect=%2Fclient%2Fscripts%2Finvite%2FAbC123%3Fx%3D1"), "/login?redirect=%2Fclient%2Fscripts%2Finvite%2F[redacted]%3Fx%3D1")
+  assert.equal(scrubSecrets("/login?redirect=%2fcalendar%2f9f86d081.ics"), "/login?redirect=%2fcalendar%2f[redacted]")
+  assert.equal(scrubSecrets("/login?redirect=%2Fmagic%3Ftoken%3Dabc123%26next%3D%2Fclient"), "/login?redirect=%2Fmagic%3Ftoken%3D[redacted]%26next%3D%2Fclient")
   // ids aren't secrets: the page Sam meant stays findable
   assert.equal(scrubSecrets("/client/projects/harmon-sos/approve/0b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d"), "/client/projects/harmon-sos/approve/0b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d")
   const r = parseComment({ note: "this link failed: https://x/magic?token=abc", path: "/magic?token=abc" })

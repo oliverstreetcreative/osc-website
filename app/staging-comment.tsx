@@ -3,6 +3,8 @@
 // Rendered by the root layout on staging only, and it SHOWS only when the password form's readable cookie is there
 // (never for the screenshot harness, the demo, or on the gate page itself). Bottom-left, lifted above the client
 // pages' tab bar. A note goes to /api/staging/comment with the page and the viewport; the server adds the rest.
+// Stacking: the button sits above the tab bar (40), menus (50) and the skip link (60) but UNDER every sheet and
+// lightbox ("Something's wrong?" is 80), so it never covers their buttons; its own sheet, once opened, is on top.
 import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
 
@@ -10,7 +12,7 @@ const UI_COOKIE = "osc_gate_ui=1"
 type Status = "idle" | "sending" | "sent" | "failed"
 
 const CSS = `
-.osc-sc-btn { position: fixed; left: 12px; z-index: 2147483000; display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px 0 12px; border-radius: 999px; border: 1px solid rgba(247, 246, 243, 0.28); background: #141412; color: #f7f6f3; font: 600 14px/1 var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif; box-shadow: 0 6px 20px -6px rgba(0, 0, 0, 0.45); cursor: pointer; }
+.osc-sc-btn { position: fixed; left: 12px; z-index: 70; display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px 0 12px; border-radius: 999px; border: 1px solid rgba(247, 246, 243, 0.28); background: #141412; color: #f7f6f3; font: 600 14px/1 var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif; box-shadow: 0 6px 20px -6px rgba(0, 0, 0, 0.45); cursor: pointer; }
 .osc-sc-btn svg { width: 18px; height: 18px; }
 .osc-sc-btn:focus-visible, .osc-sc-sheet button:focus-visible { outline: 2px solid #e07830; outline-offset: 2px; }
 .osc-sc-veil { position: fixed; inset: 0; z-index: 2147483001; background: rgba(20, 20, 18, 0.45); }
@@ -47,7 +49,11 @@ export function StagingComment() {
   const [status, setStatus] = useState<Status>("idle")
   const [lift, setLift] = useState(0)
   const [where, setWhere] = useState("")
+  const [why, setWhy] = useState("")
   const box = useRef<HTMLTextAreaElement>(null)
+  const sheet = useRef<HTMLDivElement>(null)
+  const button = useRef<HTMLButtonElement>(null)
+  const wasOpen = useRef(false)
 
   // Shown only with the password form's cookie, never on the gate page; lifted above a visible tab bar.
   useEffect(() => {
@@ -63,12 +69,30 @@ export function StagingComment() {
     return () => window.removeEventListener("resize", measure)
   }, [pathname])
 
+  // The sheet keeps focus while it's open (Escape closes it); focus goes back to the button afterwards.
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      if (wasOpen.current) button.current?.focus()
+      wasOpen.current = false
+      return
+    }
+    wasOpen.current = true
     setWhere(window.location.pathname + window.location.search)
     box.current?.focus()
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false)
+      if (e.key !== "Tab" || !sheet.current) return
+      const items = Array.from(sheet.current.querySelectorAll<HTMLElement>("textarea, button:not([disabled])"))
+      if (!items.length) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
@@ -92,7 +116,18 @@ export function StagingComment() {
           viewport: { w: window.innerWidth, h: window.innerHeight, dpr: window.devicePixelRatio || 1 },
         }),
       })
-      if (!res.ok) throw new Error(String(res.status))
+      if (!res.ok) {
+        // The server's own words when it has them; a lapsed pass says how to get back in. The words stay in the box.
+        let said = ""
+        try {
+          said = String(((await res.json()) as { error?: unknown })?.error ?? "")
+        } catch {
+          /* not JSON (the gate answers in plain text) */
+        }
+        setWhy(res.status === 401 ? "Your staging pass has run out. Reload the page and enter the password, then send again." : said || `That didn’t send (${res.status}). Try again.`)
+        setStatus("failed")
+        return
+      }
       setStatus("sent")
       setNote("")
       window.setTimeout(() => {
@@ -100,7 +135,8 @@ export function StagingComment() {
         setStatus("idle")
       }, 1800)
     } catch {
-      setStatus("failed") // the words stay in the box
+      setWhy("")
+      setStatus("failed") // no answer at all: the connection; the words stay in the box
     }
   }
 
@@ -110,7 +146,7 @@ export function StagingComment() {
       {open ? (
         <>
           <div className="osc-sc-veil" onClick={() => status !== "sending" && setOpen(false)} />
-          <div className="osc-sc-sheet" role="dialog" aria-modal="true" aria-labelledby="osc-sc-title">
+          <div className="osc-sc-sheet" role="dialog" aria-modal="true" aria-labelledby="osc-sc-title" ref={sheet}>
             <h2 id="osc-sc-title">What should change here?</h2>
             <p className="osc-sc-where">{where === "/" ? "On the home page" : `On ${where || "this page"}`}</p>
             <textarea
@@ -130,7 +166,7 @@ export function StagingComment() {
                 </span>
               ) : status === "failed" ? (
                 <span className="osc-sc-msg failed" role="alert">
-                  Didn’t send. Check your connection and try again.
+                  {why || "Didn’t send. Check your connection and try again."}
                 </span>
               ) : null}
               <button type="button" className="osc-sc-cancel" onClick={() => setOpen(false)} disabled={status === "sending"}>
@@ -144,6 +180,7 @@ export function StagingComment() {
         </>
       ) : (
         <button
+          ref={button}
           type="button"
           className="osc-sc-btn"
           style={{ bottom: lift ? `${lift + 12}px` : "calc(12px + env(safe-area-inset-bottom, 0px))" }}

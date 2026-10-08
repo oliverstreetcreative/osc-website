@@ -105,9 +105,12 @@ export function gateExemption(path: string, method: string): GateExemption {
   return null
 }
 
-/** A request WITHOUT a pass: a page read shows the gate (status 200, the address kept); anything else is refused. */
-export function withoutPass(path: string, method: string): "gate-page" | "refuse" {
-  return (method === "GET" || method === "HEAD") && path !== "/api" && !path.startsWith("/api/") ? "gate-page" : "refuse"
+/** A request WITHOUT a pass: a page read shows the gate (status 200, the address kept); so does a browser OPENING an
+ *  /api link (Sec-Fetch-Mode: navigate, e.g. the quote desk's unlock link), so it lands there after the password.
+ *  Anything else (a fetch, a write) is refused. */
+export function withoutPass(path: string, method: string, navigate = false): "gate-page" | "refuse" {
+  if (method !== "GET" && method !== "HEAD") return "refuse"
+  return navigate || (path !== "/api" && !path.startsWith("/api/")) ? "gate-page" : "refuse"
 }
 
 /** One cookie's value from a Cookie header. */

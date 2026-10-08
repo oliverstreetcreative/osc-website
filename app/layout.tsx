@@ -2,8 +2,12 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter, EB_Garamond } from "next/font/google"
 import "./globals.css"
+import dynamic from "next/dynamic"
 import { IS_STAGING } from "@/lib/site-env"
-import { StagingComment } from "./staging-comment"
+
+// Staging's Comment button (client-website SPEC §32), loaded lazily so production never downloads its code: it is
+// fetched only when rendered, and it renders only on staging.
+const StagingComment = dynamic(() => import("./staging-comment").then((m) => m.StagingComment))
 
 const inter = Inter({
   subsets: ["latin"],

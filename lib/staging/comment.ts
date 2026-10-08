@@ -14,11 +14,16 @@ const ZONE = "America/New_York"
 /** Secrets never reach a file: sign-in links' tokens (in the query), private links' secrets (in the path), JWTs. The
  *  rest of the path stays exact (a request's id says which page Sam meant; ids aren't secrets, a session is). */
 export function scrubSecrets(s: string): string {
-  return s
-    .replace(/eyJ[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{6,}/g, "[redacted-jwt]")
-    .replace(/([?&#;](?:token|key|code|sig|signature|secret|t|access_token|password|otp)=)[^&\s#]+/gi, "$1[redacted]")
-    .replace(/\/(calendar|demo|share|invite|f)\/[^\s/?#]+/gi, "/$1/[redacted]")
-    .replace(/\bf\.io\/[^\s]+/gi, "f.io/[redacted]")
+  return (
+    s
+      .replace(/eyJ[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{6,}/g, "[redacted-jwt]")
+      .replace(/([?&#;](?:token|key|code|sig|signature|secret|t|access_token|password|otp)=)[^&\s#]+/gi, "$1[redacted]")
+      .replace(/\/(calendar|demo|share|invite|f)\/[^\s/?#]+/gi, "/$1/[redacted]")
+      .replace(/\bf\.io\/[^\s]+/gi, "f.io/[redacted]")
+      // The same secrets percent-encoded inside another link's query (built review 10/8: /login?redirect=%2F…invite%2F<token>)
+      .replace(/(%2F(?:calendar|demo|share|invite|f)%2F)[^&\s#%]+/gi, "$1[redacted]")
+      .replace(/((?:%3F|%26)(?:token|key|code|sig|signature|secret|t|access_token|password|otp)%3D)[^&\s#%]+/gi, "$1[redacted]")
+  )
 }
 
 /** One line of page text (a title, a path): no controls or line breaks, runs of spaces collapsed, capped. */

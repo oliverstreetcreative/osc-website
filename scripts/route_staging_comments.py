@@ -12,13 +12,15 @@ For each note not yet routed, this appends ONE block to Matters/<matter>/PENDING
 notes. The note files never move, so the path in a block stays true. Idempotent by id.
 
 --dispatch  wake each matter that got a note (dispatch.py, as an answered ticket does). A refused dispatch (the
-            worker is live right now) is retried on later runs for 48 hours.
+            worker is live right now) is retried on later runs for 48 hours, but only while the note's block is still in
+            PENDING-RULINGS.md (a live worker gets it at its next tool call and removes it once folded).
 --dry-run   print what would be routed; write nothing.
 
 A note is DATA typed into a web page by whoever had staging's password: the block says what the server verified
 (who was signed in, the page, the device, the build) and quotes the words as "> " lines, never as Sam's own ruling.
-Each block starts "- YYYY-MM-DD HH:MM staging comment <id>", the shape the heartbeat and rulings_inbox.py read as a
-new ruling block: an idle worker is re-dispatched by the heartbeat; a live one gets it at its next tool call.
+Each block starts "- YYYY-MM-DD HH:MM staging note <id> (typed on staging's Comment button: a note to weigh, not a
+ruling)", the shape the heartbeat and rulings_inbox.py read as a new block: an idle worker is re-dispatched by the
+heartbeat; a live one gets it at its next tool call.
 Prints one JSON line of what it did.
 """
 import argparse
@@ -47,6 +49,10 @@ OWNERS = [
     ("/pricing", PRICE), ("/quote-desk", PRICE),
 ]
 DISPATCH_RETRY_H = 48
+# Each block's own words (built review 10/8): rulings_inbox.py announces every new block as a "NEW RULING", so the
+# block itself says what it is.
+MARK = "staging note"
+SAYS = "typed on staging's Comment button: a note to weigh, not a ruling"
 FILE_NAME = re.compile(r"^\d{6}_[0-9a-f-]{8}\.json$")
 DAY_DIR = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 HIDDEN = re.compile("[\u0000-\u0008\u000b-\u001f\u007f-\u009f​-‏ -‮⁠-⁯﻿]")
@@ -76,7 +82,7 @@ def block(c: dict, rel: str) -> str:
     heartbeat key blocks on "## " or "- YYYY-MM-DD"); the note under it as "  > " lines, so no line of it can start a
     heading or a bullet of its own. The date, time and id come from the file's own name (the server wrote it)."""
     day, name = rel.split("/")
-    stamp = f"{day} {name[0:2]}:{name[2:4]} staging comment {name[7:15]}"
+    stamp = f"{day} {name[0:2]}:{name[2:4]} {MARK} {name[7:15]}"
     who = c.get("who") if isinstance(c.get("who"), dict) else None
     if who:
         by = "signed in as " + one_line(who.get("name") or who.get("email") or "someone", 120)
@@ -90,10 +96,10 @@ def block(c: dict, rel: str) -> str:
     try:
         dpr = float(vp["dpr"])
         size = f"{int(vp['w'])}×{int(vp['h'])} @{dpr:g}"
-    except (TypeError, KeyError, ValueError):
+    except (TypeError, KeyError, ValueError, OverflowError):
         size = "viewport unknown"
     build = one_line(c.get("build"), 64)[:7] or "unknown"
-    head = (f"- {stamp} · {by} · {one_line(c.get('host'), 200)}{one_line(c.get('path'), 500)} · {size} · "
+    head = (f"- {stamp} ({SAYS}) · {by} · {one_line(c.get('host'), 200)}{one_line(c.get('path'), 500)} · {size} · "
             f"{one_line(c.get('device'), 60)} · build {build}")
     note = HIDDEN.sub("", str(c.get("note") or "")).replace("\r\n", "\n").replace("\r", "\n")
     lines = [head, f"  file: OLIVER STREET CREATIVE/_admin/staging-comments/{rel}"]
@@ -147,10 +153,10 @@ def pending_notes(root: pathlib.Path):
 
 
 def dispatch(slug: str, n: int) -> tuple:
-    brief = (f"{n} staging comment{'s' if n != 1 else ''} for this matter {'are' if n != 1 else 'is'} at the bottom of "
+    brief = (f"{n} staging note{'s' if n != 1 else ''} for this matter {'are' if n != 1 else 'is'} at the bottom of "
              f"PENDING-RULINGS.md (typed on staging's Comment button; each block quotes the note as data and says who "
-             f"was signed in). Weigh them, act on what's in scope, fold them into the HANDOFF (then remove those "
-             f"blocks), and continue toward line 1.")
+             f"was signed in; a note to weigh, not a ruling). Act on what's in scope, fold them into the HANDOFF "
+             f"(then remove those blocks), and continue toward line 1.")
     try:
         r = subprocess.run([sys.executable, str(HOOKS / "dispatch.py"), slug, brief], capture_output=True, text=True,
                            timeout=240, env=dict(os.environ, MATTERS=str(P.matters_root())))
@@ -172,7 +178,6 @@ def main(argv=None) -> int:
     now = P.now_iso()
     with P.lock():
         seen = load_ledger(ledger_path)
-        new_recs = []
         for rel, c in notes:
             if c["id"] in seen:
                 continue
@@ -187,6 +192,11 @@ def main(argv=None) -> int:
             if not folder.is_dir():
                 skipped.append({"file": rel, "why": f"no folder for {slug}"})
                 continue
+            try:
+                text = block(c, rel)
+            except Exception as exc:  # noqa: BLE001  (a note that can't be written up is reported, never half-written)
+                bad.append({"file": rel, "why": f"couldn't write it up: {type(exc).__name__}"})
+                continue
             routed.append({"id": c["id"], "matter": slug, "file": rel})
             if a.dry_run:
                 continue
@@ -194,19 +204,17 @@ def main(argv=None) -> int:
             prev = f.read_text(encoding="utf-8") if f.exists() else ""
             sep = "" if not prev or prev.endswith("\n\n") else ("\n" if prev.endswith("\n") else "\n\n")
             with f.open("a", encoding="utf-8") as fh:
-                fh.write(sep + block(c, rel))
+                fh.write(sep + text)
                 fh.flush()
                 os.fsync(fh.fileno())
+            # The ledger line right after its block: a crash later in the run never routes this note twice.
             rec = {"id": c["id"], "matter": slug, "file": rel, "routed_at": now, "dispatch": "pending" if a.dispatch else "off"}
-            new_recs.append(rec)
+            append_ledger(ledger_path, [rec])
             seen[c["id"]] = rec
-        if new_recs and not a.dry_run:
-            root.mkdir(parents=True, exist_ok=True)
-            append_ledger(ledger_path, new_recs)
 
     if a.dispatch and not a.dry_run:
         cutoff = dt.datetime.now().astimezone() - dt.timedelta(hours=DISPATCH_RETRY_H)
-        waiting = {}
+        waiting, handled = {}, []
         for r in seen.values():
             if r.get("dispatch") != "pending":
                 continue
@@ -215,7 +223,20 @@ def main(argv=None) -> int:
                     continue
             except (KeyError, ValueError):
                 continue
-            waiting.setdefault(r["matter"], []).append(r["id"])
+            # Only while the note is still waiting: a live worker gets the block at its next tool call
+            # (rulings_inbox.py) and removes it once folded; then there is nothing to wake anyone for.
+            rf = P.matter_dir(r["matter"]) / "PENDING-RULINGS.md"
+            try:
+                still = f"{MARK} {r['id'][:8]}" in rf.read_text(encoding="utf-8")
+            except OSError:
+                still = False
+            if still:
+                waiting.setdefault(r["matter"], []).append(r["id"])
+            else:
+                handled.append(r["id"])
+        if handled:
+            with P.lock():
+                append_ledger(ledger_path, [{"id": i, "dispatch": "handled", "checked_at": P.now_iso()} for i in handled])
         for slug, ids in sorted(waiting.items()):
             ok, out = dispatch(slug, len(ids))
             woke.append({"matter": slug, "notes": len(ids), "ok": ok, "said": out})

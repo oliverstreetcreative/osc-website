@@ -23,14 +23,16 @@ const SESSION_COOKIE_PLAIN = 'osc_session'
 const isLocalhost = (req: NextRequest) => ['localhost', '127.0.0.1'].includes(requestHost(req).split(':')[0])
 const sessionCookie = (req: NextRequest) =>
   req.cookies.get(SESSION_COOKIE_SECURE)?.value ?? (isLocalhost(req) ? req.cookies.get(SESSION_COOKIE_PLAIN)?.value : undefined)
-const PREVIEW_ALLOWED_WRITES = new Set(['/client/signout', '/client/view-as/exit'])
+// Staging's Comment button (SPEC §32 v2) may post from every kind of session: a note about a page changes nothing on it.
+const STAGING_COMMENT = '/api/staging/comment'
+const PREVIEW_ALLOWED_WRITES = new Set(['/client/signout', '/client/view-as/exit', STAGING_COMMENT])
 const VIEW_AS_ALLOWED_WRITES = new Set([
   '/client/view-as/start',
   '/client/view-as/exit',
   '/client/signout',
   '/client/account/revoke', // staff signing their OWN devices out
   '/api/auth/logout',
-  '/api/staging/comment', // staging's Comment button (SPEC §32 v2): a note about the page, never a change to it
+  STAGING_COMMENT,
 ])
 
 /** The host this request was made to (Railway's proxy sets x-forwarded-host). */
@@ -128,7 +130,7 @@ async function demoFingerprintEdge(): Promise<string | null> {
 
 function demoMayRequest(req: NextRequest): boolean {
   const p = req.nextUrl.pathname
-  if (req.method === 'POST' && p === '/client/signout') return true
+  if (req.method === 'POST' && (p === '/client/signout' || p === STAGING_COMMENT)) return true
   if (req.method !== 'GET' && req.method !== 'HEAD') return false
   if (pathMatches(p, '/client/view-as') || pathMatches(p, '/crew') || pathMatches(p, '/admin') || p.startsWith('/api/')) {
     return false
@@ -188,7 +190,7 @@ async function stagingGate(req: NextRequest): Promise<NextResponse | null> {
     if (demo === 'ended') return endDemoSession(req)
     if (demo === 'valid' && exempt === 'demo') return null
   }
-  if (withoutPass(pathname, req.method) === 'gate-page') {
+  if (withoutPass(pathname, req.method, req.headers.get('sec-fetch-mode') === 'navigate') === 'gate-page') {
     // The gate page in place of the page (200, the address kept), so a tapped link lands where it pointed afterwards.
     const url = req.nextUrl.clone()
     url.pathname = GATE_PAGE

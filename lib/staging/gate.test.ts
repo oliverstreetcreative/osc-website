@@ -77,6 +77,9 @@ test("without a pass: page reads see the gate; everything else is refused", () =
   assert.equal(withoutPass("/api", "GET"), "refuse")
   assert.equal(withoutPass("/client/start/save", "POST"), "refuse")
   assert.equal(withoutPass("/", "OPTIONS"), "refuse")
+  // a browser OPENING an /api link (the quote desk's unlock link) gets the gate, then lands there
+  assert.equal(withoutPass("/api/quote-desk/unlock", "GET", true), "gate-page")
+  assert.equal(withoutPass("/api/quote-desk/unlock", "POST", true), "refuse")
 })
 
 test("next is a path on this site or /", () => {
