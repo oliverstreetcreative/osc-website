@@ -9,7 +9,9 @@ import "./site.css"
 
 import Link from "next/link"
 import { Wordmark } from "@/app/client/ui"
+import { draftsAllowed } from "@/lib/faq"
 import { barlow, lobster } from "./fonts"
+import { LOGO_SCRIPT, LogoOptionsMark, LogoSwitch, StackedLogo, logoCss } from "./LogoOptions"
 
 const NAV = [
   { key: "work", href: "/work", label: "Work" },
@@ -36,13 +38,23 @@ export function SiteFrame({
   /** no section nav (the silo pages stay single-purpose) */
   bare?: boolean
 }) {
+  // STAGING ONLY (Sam 10/8 ~14:55, "show me the proposed … logo on the website"): every header-logo option, one at a
+  // time (?logo=…, default d83), his stacked logo in the footer, and a toggle. The live site keeps today's Wordmark:
+  // drafts are allowed only where the build knows it's staging or `next dev` (fails closed).
+  const logoOptions = draftsAllowed()
   return (
     <div className={`cs site ${barlow.variable} ${lobster.variable}`}>
+      {logoOptions ? (
+        <>
+          <script dangerouslySetInnerHTML={{ __html: LOGO_SCRIPT }} />
+          <style dangerouslySetInnerHTML={{ __html: logoCss() }} />
+        </>
+      ) : null}
       <a className="site-skip" href="#main">Skip to content</a>
       <header className="cs-top site-top">
         <div className="cs-top-in">
           <Link href="/" aria-label="Oliver Street Creative, home">
-            <Wordmark />
+            {logoOptions ? <LogoOptionsMark /> : <Wordmark />}
           </Link>
           {bare ? null : (
             <nav className="cs-nav" aria-label="Main">
@@ -67,16 +79,18 @@ export function SiteFrame({
         </div>
       </header>
       <main id="main">{children}</main>
-      <SiteFoot variant={footer} />
+      <SiteFoot variant={footer} stacked={logoOptions} />
+      {logoOptions ? <LogoSwitch /> : null}
     </div>
   )
 }
 
-function SiteFoot({ variant }: { variant: "full" | "silo" }) {
+function SiteFoot({ variant, stacked }: { variant: "full" | "silo"; stacked: boolean }) {
   return (
     <footer className="site-foot">
       <div className="site-in site-foot-in">
-        <Wordmark />
+        {/* staging: Sam's real logo, the block, in every header option (the comparison page's footer) */}
+        {stacked ? <StackedLogo block className="site-foot-logo" /> : <Wordmark />}
         <p className="site-foot-tag">Stories that move hearts, open minds, and build trust.</p>
         <nav className="site-foot-nav" aria-label="Footer">
           {variant === "silo" ? <Link href="/">Home</Link> : null}

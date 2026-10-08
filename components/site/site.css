@@ -443,3 +443,46 @@ html[data-motion="io"] .site .r > .seen { opacity: 1; transform: none; }
   .site-why { grid-template-columns: 1fr 1fr; gap: 36px; }
 }
 @media (min-width: 900px) { .site-drift { padding-left: max(32px, calc((100vw - 1120px) / 2 + 32px)); } }
+
+/* ---------- the header logo options, STAGING ONLY (website-redesign SPEC Feature 6; Sam 10/8 ~14:55: "Show me the
+   proposed reel and logo on the website") ---------- */
+/* Which option shows, which label the toggle wears and which link is lit are generated from LOGO_OPTIONS
+   (components/site/LogoOptions.tsx logoCss). The live site never renders any of these classes. */
+.site-logo-opt, .site-logo-cur { display: none; }
+.site-mk { align-items: baseline; gap: 5px; white-space: nowrap; color: var(--on-ink); }
+.site-mk b { font-family: var(--wordmark); font-weight: 600; font-size: 19px; letter-spacing: 0.04em; text-transform: uppercase; }
+.site-mk i { font-family: var(--script); font-style: normal; font-size: 18px; color: #e07830; }
+/* B: the name a touch bigger, "Creative" smaller */
+.site-mk-b { gap: 4px; }
+.site-mk-b b { font-size: 20px; }
+.site-mk-b i { font-size: 15px; }
+/* C: "Creative" in the logo's paper band, fitted to the ink: equal sides measured across the lowercase (4.62 / 4.91 px),
+   and the 19 px line box leaves ~2 px above and below the script */
+.site-mk-c { gap: 6px; }
+.site-mk-c i { display: inline-block; font-size: 19px; line-height: 1; padding: 0 4.91px 0 4.62px; background: var(--on-ink); color: var(--deep); }
+/* D: the capital C as today (18 px); "reative" at its own size, set inline from D_SIZES */
+/* A and the footer: Sam's stacked logo, the master SVG's geometry in the site's own faces */
+.site-logo-svg { display: block; width: auto; }
+.site-logo-a { height: 44px; }
+.lg-caps { font-family: var(--wordmark); font-weight: 600; fill: var(--on-ink); }
+.lg-band { fill: var(--on-ink); }
+.lg-script { font-family: var(--script); fill: var(--deep); }
+.lg-block { fill: var(--deep); }
+.site-foot-logo { height: 84px; }
+@media (min-width: 900px) { .site-logo-a { height: 48px; } }
+/* The toggle: bottom right (client-website's Comment button holds bottom left), the same dark pill; opens upward. */
+.site-logo-switch { position: fixed; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 69; font: 600 14px/1 var(--sans); }
+.site-logo-switch > summary {
+  list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px;
+  border-radius: 999px; border: 1px solid rgba(247, 246, 243, 0.28); background: var(--deep); color: var(--on-ink);
+  box-shadow: 0 6px 20px -6px rgba(0, 0, 0, 0.45);
+}
+.site-logo-switch > summary::-webkit-details-marker { display: none; }
+.site-logo-switch > summary .site-logo-cur { color: var(--accent-fill); }
+.site-logo-switch nav {
+  position: absolute; right: 0; bottom: 48px; display: grid; gap: 2px; padding: 6px; min-width: 200px;
+  border-radius: 14px; background: var(--deep); box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+.site .site-logo-switch nav a { display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 10px; color: var(--on-ink); }
+.site .site-logo-switch nav a:hover { background: rgba(247, 246, 243, 0.08); }
+@media print { .site-logo-switch { display: none; } }
