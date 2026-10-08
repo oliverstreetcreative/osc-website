@@ -37,3 +37,5 @@ site leaves on people, projects, films and shoots (Prisma P2032), so it stamps t
 portal-born rows (`0`, `'client-site'`). Going dark never needs it; that's `UPDATE organizations SET hidden = true`.
 
 Live status: `Matters/client-website/HANDOFF.md`.
+
+- `down-before-switch.sql` (10/8, SPEC §26 v3): the reverse of `client-site.sql`, valid ONLY before production has ever run the client site. After that, roll back with D1/D2/D3 instead (its header says why).
