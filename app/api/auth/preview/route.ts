@@ -9,6 +9,7 @@ import { cookieDomainFor, isSecure, publicOrigin } from "@/lib/client/host"
 import { startSession } from "@/lib/auth/session"
 import { VIEW_COOKIE } from "@/lib/client/context"
 import { logViewAs, mintViewCookie, VIEW_TTL_SECONDS } from "@/lib/client/view-as"
+import { PREVIEW_PASS_SECONDS, gatePassword, makePass, nowSeconds, passCookie } from "@/lib/staging/gate"
 
 const KEY_SHA256 = "541190cb348c7ac8454b5ae2eda83deecf9a35d8c72810539c1133fddc9c84ea"
 
@@ -45,6 +46,13 @@ export async function GET(req: NextRequest) {
     })
   } else {
     res.cookies.set(VIEW_COOKIE, "", { domain: cookieDomainFor(req), path: "/", maxAge: 0 })
+  }
+  // Past staging's password gate for 12 hours (SPEC §32 v2): this key is its own way in, so the headless browser can keep
+  // browsing. Never the Comment button's cookie: screenshots show the page as a client would.
+  const gatePw = gatePassword()
+  if (gatePw) {
+    const pass = passCookie(isSecure(req), PREVIEW_PASS_SECONDS)
+    res.cookies.set(pass.name, await makePass(gatePw, nowSeconds() + PREVIEW_PASS_SECONDS), pass.options)
   }
   // A preview session has a row like any other (SPEC §27 P0 v2), 12 hours, marked `preview` (read-only everywhere).
   // Minted last: it's the one cookie that must survive.

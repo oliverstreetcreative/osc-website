@@ -7,6 +7,10 @@ with a real sign-in. Proves what each step returns; the phone frames are a separ
 Sign-in (SPEC §27 P0 v2): ask for a link as the rehearsal person, read the CODE from that email, pass email:code. A
 link signs in only the browser that asked for it, so a driver uses the code.
 
+Staging's password gate (SPEC §32 v2): the driver first checks that /client with no cookies shows the gate, then
+enters the password through the gate's own form, from STAGING_PASSWORD in the environment or the Keychain
+(osc-staging-password / sam). Never argv, never printed.
+
 `proposal` (SPEC §24 v2): Needs you card → proposal page → the frozen PDF (hash-checked) → a stale Accept is refused
 → Accept → receipt → the card is gone → Documents rows → a second Accept returns the same record. The ledger file is
 checked separately (it lands within the 5-minute run). No secrets on disk: the one-time token comes as an argument and
@@ -15,7 +19,9 @@ the session lives only in memory. The rehearsal changes only the rehearsal clien
 import hashlib
 import http.cookiejar
 import json
+import os
 import re
+import subprocess
 import sys
 import urllib.error
 import urllib.parse
@@ -70,6 +76,32 @@ def text(b):
     import html as _html
     return _html.unescape(re.sub(r"<!-- -->", "", b.decode("utf-8", "replace")))
 
+
+def staging_password():
+    """Staging's password: the environment, else the Keychain. Never printed, never on argv."""
+    pw = (os.environ.get("STAGING_PASSWORD") or "").strip()
+    if not pw:
+        r = subprocess.run(["security", "find-generic-password", "-s", "osc-staging-password", "-a", "sam", "-w"],
+                           capture_output=True, text=True)
+        pw = r.stdout.strip() if r.returncode == 0 else ""
+    return pw
+
+
+# ---- staging's password gate (SPEC §32 v2): closed to a stranger, open to the password
+bare = urllib.request.build_opener(NoRedirect)
+try:
+    with bare.open(urllib.request.Request(BASE + "/client"), timeout=40) as r:
+        s, gate_page = r.status, r.read()
+except urllib.error.HTTPError as e:
+    s, gate_page = e.code, e.read()
+step(s == 200 and b"data-staging-gate" in gate_page, "staging shows its password page to a browser with no pass", f"{s}")
+PW = staging_password()
+if not step(len(PW) >= 16, "staging's password is on this Mac (environment or Keychain)"):
+    sys.exit(1)
+s, h, _ = call("/staging-gate/enter", "POST", form={"username": "osc", "password": PW, "next": "/client"})
+del PW
+if not step(s == 303 and any(c.name in ("__Host-osc_gate", "osc_gate") for c in jar), "past the gate with the password", f"{s}"):
+    sys.exit(1)
 
 # ---- sign in with the code from the rehearsal person's sign-in email (SPEC §27 P0 v2)
 EMAIL, _, CODE = TOKEN.partition(":")

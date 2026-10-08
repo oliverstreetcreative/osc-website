@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Inter, EB_Garamond } from "next/font/google"
 import "./globals.css"
 import { IS_STAGING } from "@/lib/site-env"
+import { StagingComment } from "./staging-comment"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -105,7 +106,11 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        {children}
+        {/* Staging only (client-website SPEC §32 v2): Sam's Comment button. It shows only past the password form. */}
+        {IS_STAGING ? <StagingComment /> : null}
+      </body>
     </html>
   )
 }

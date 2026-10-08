@@ -5,15 +5,20 @@ import { MAX_FILE_BYTES } from "@/lib/client/request-form"
 import { publicOrigin } from "@/lib/client/host"
 import { sameOrigin } from "@/lib/support/http"
 import { isPreviewSession } from "@/lib/auth/require-session"
+import { IS_STAGING } from "@/lib/site-env"
+import { requestHasPass } from "@/lib/staging/gate"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 // ONE brand-asset file (SPEC §31 v2), from the draft's assets screen (back=form) or a sent request's "later" page
 // (back=request). This path skips middleware (it would buffer the whole body first), so the checks middleware gives
-// every other write happen HERE, before the body is read: the size it declares, the same origin, a real session that
-// may write (never staff viewing, the demo, or a preview sign-in).
+// every other write happen HERE, before the body is read: staging's password gate (SPEC §32 v2), the size it declares,
+// the same origin, a real session that may write (never staff viewing, the demo, or a preview sign-in).
 export async function POST(req: Request) {
+  if (IS_STAGING && !(await requestHasPass(req.headers))) {
+    return new NextResponse("Staging is password-protected: open it in a browser and enter the password.", { status: 401, headers: { "content-type": "text/plain; charset=utf-8" } })
+  }
   const base = publicOrigin(req)
   const declared = Number(req.headers.get("content-length") ?? "NaN")
   if (!Number.isFinite(declared) || declared > MAX_FILE_BYTES + 1024 * 1024) {
