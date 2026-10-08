@@ -34,11 +34,12 @@ export const HOME = {
   ),
   draftPill: L("Draft · 10/8/26 · copy awaiting Sam", "marker (staging review)"),
 
-  videoEyebrow: L("From Sam", "OPEN (a label)"),
+  videoEyebrow: L("From Sam", "label (the section's eyebrow; Sam's own intro video sits under it)"),
   videoH2: L("Hear it from me.", "SITE (/service-businesses, approved 9/27)"),
   videoLabel: L("Sam’s intro video goes here", "placeholder label (Majordomo brief 10/8 11:05)"),
 
-  storyH2: L("You don’t need content. You need trust.", "SAM 10/7 13:15 (held as a section line, 10/7 22:45)"),
+  // the second sentence never breaks (at 320 it left "need trust." alone on a line): no-break spaces
+  storyH2: L("You don’t need content. You need trust.", "SAM 10/7 13:15 (held as a section line, 10/7 22:45)"),
   story: [
     L(
       "Content, to me, is something that’s designed to steal your attention. It’s designed to get engagement, which really means stealing your attention so it can be sold to advertisers.",
@@ -77,10 +78,9 @@ export const HOME = {
   // His three lines are used as he said them; the words under the last two are his to write (OPEN).
   whyEyebrow: L("Why us", "SAM 10/8 12:02"),
   whyH2: L("We’re serious filmmakers.", "SAM 10/8 12:02"),
-  whyLede: L(
-    "We’ve spent years working on Hollywood film sets. These are some of the movies and shows.",
-    "SITE (the credits band, 9/27)",
-  ),
+  whyLede: L("We’ve spent years working on Hollywood film sets.", "SITE (the credits band, 9/27)"),
+  // shown only when the posters render (step-4 review 10/8): it points at them
+  whyLedeMore: L("These are some of the movies and shows.", "SITE (the credits band, 9/27)"),
   whyNimble: L("We’re a nimble operation.", "SAM 10/8 12:02"),
   whyHumble: L("And we’re humble.", "SAM 10/8 12:02 ('and we're humble, I guess')"),
   whyOpen: L("Open · Sam’s words go here", "OPEN (marker under the last two differentiators)"),
@@ -89,7 +89,9 @@ export const HOME = {
 
   closeEyebrow: L("Get started", "SITE"),
   closeH2: L("Let’s do this together.", "SAM 10/8 memo l.6"),
-  closeLede: L("When you’re ready to tell your story, book a call.", "SAM 10/8 memo l.6-7, tidied"),
+  closeLede: L("When you’re ready to tell your story, give us a call.", "SAM 10/8 memo l.6, verbatim"),
+  // one name for the one action (step-4 review 10/8): the hero's button, and SPEC Feature 5 screen 8
+  closeCta: L("Book a call", "SITE (the hero's button)"),
   closeBody: L(
     "Book a free call and tell us what you need. We’ll tell you how we’d shoot it and what it would cost.",
     "SITE (9/27)",

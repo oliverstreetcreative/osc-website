@@ -101,6 +101,8 @@ function FaqItem({ e, open, marks, env }: { e: FaqEntry; open: boolean; marks: b
         {(e.after ?? []).map((p) => (
           <p key={p}>{p}</p>
         ))}
+        {/* a part still OPEN for Sam's words (staging only: an entry with one is a draft, never on the live site) */}
+        {e.openPart && marks ? <p className="site-faq-open">{FAQ_PAGE.openBox}</p> : null}
         {e.link && showLink(e.link, env) ? (
           <p>
             {e.link.lead}{" "}

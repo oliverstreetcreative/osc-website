@@ -19,8 +19,8 @@ import { HOME } from "@/lib/home-copy"
 // The words are Sam's own: the tagline (9/23) as the headline and pitch A under it
 // (his 10/7 22:45 ruling), his 10/8 voice memo for content vs story and the DIY
 // invitation, and the approved 9/27 copy for the pillars, work and quotes. They all
-// live in lib/home-copy.ts with their sources. Humility is shown, never claimed:
-// the page never calls OSC humble.
+// live in lib/home-copy.ts with their sources. No superlatives; "humble" appears once, in
+// Sam's own Why us line (10/8 ~12:02), and the tests hold both.
 //
 // The page is a server component. The only client JavaScript is the hero reel's
 // play/pause; the film credits render on the server (lib/tmdb.ts).
@@ -61,7 +61,7 @@ const PILLARS: Pillar[] = [
     what: "Campaigns, advocacy and education",
     workSlugs: [],
     quote: {
-      text: "It comes down to content, creativity, creative editing, and storytelling. That's what separates the crowd from working with Oliver Street.",
+      text: "It comes down to content, creativity, creative editing, and storytelling. That’s what separates the crowd from working with Oliver Street.",
       name: "Al Haehnle",
       title: "Director, Landslide Films",
     },
@@ -73,7 +73,7 @@ const PILLARS: Pillar[] = [
     what: "Testimonials, brand and commercial films",
     workSlugs: ["boone-county-2025"],
     quote: {
-      text: "Oliver Street brought a level of depth and soul to our production that we wouldn't have had otherwise.",
+      text: "Oliver Street brought a level of depth and soul to our production that we wouldn’t have had otherwise.",
       name: "Louis Kelly",
       title: "Boone County Prosecutor",
     },
@@ -358,7 +358,13 @@ export default async function HomePage() {
           readers and out of the tab order. */}
       <section id="why-us" className="site-sec ink">
         <div className="site-in r">
-          <SectionHead eyebrow={HOME.whyEyebrow.t} title={HOME.whyH2.t} lede={HOME.whyLede.t} />
+          {/* "These are some of the movies and shows" only when the posters are there to point at (a failed TMDB
+              fetch at build leaves the drift out for a day) */}
+          <SectionHead
+            eyebrow={HOME.whyEyebrow.t}
+            title={HOME.whyH2.t}
+            lede={posters.length > 0 ? `${HOME.whyLede.t} ${HOME.whyLedeMore.t}` : HOME.whyLede.t}
+          />
         </div>
         {posters.length > 0 ? (
           <div className="site-drift" role="region" aria-label={HOME.creditsLabel.t}>
@@ -413,7 +419,7 @@ export default async function HomePage() {
               <p className="site-lede">{HOME.closeBody.t}</p>
               <div className="site-act">
                 <a className="cs-btn light lg" href={BOOK} target="_blank" rel="noopener noreferrer">
-                  Schedule free consultation
+                  {HOME.closeCta.t}
                 </a>
                 {/* The FAQ (Sam 10/8): only where /faq is up - never on the live site before Sam approves it (fails closed) */}
                 {showFaq ? (

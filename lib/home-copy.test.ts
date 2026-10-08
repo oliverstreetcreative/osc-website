@@ -39,6 +39,12 @@ test("open lines are few and listed", () => {
   const open = allLines().filter((l) => /^OPEN/.test(l.src))
   assert.deepEqual(
     open.map((l) => l.t),
-    ["From Sam", "Open · Sam’s words go here"],
+    ["Open · Sam’s words go here"],
   )
+})
+
+test("the close says Sam's own words and names its one action once (step-4 review 10/8)", () => {
+  assert.equal(HOME.closeLede.t, "When you’re ready to tell your story, give us a call.")
+  assert.match(HOME.closeLede.src, /^SAM 10\/8 memo l\.6, verbatim/)
+  assert.equal(HOME.closeCta.t, "Book a call")
 })

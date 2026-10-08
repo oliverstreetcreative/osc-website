@@ -60,6 +60,9 @@ export interface FaqEntry {
   /** paragraphs after the interactive piece */
   after?: readonly string[]
   link?: FaqLink
+  /** a part of the answer still OPEN for Sam's words: staging shows the "Answer coming" box after the paragraphs.
+   *  An approved entry never has one (lib/faq.test.ts). */
+  openPart?: string
   src: string
 }
 
@@ -152,12 +155,11 @@ export const FAQ: readonly FaqEntry[] = [
   {
     id: "reuse",
     q: "Can we use the footage for something else, or share it with a partner?",
-    a: [
-      "Your license to use the finished video is perpetual, unless we agree otherwise.",
-      "Beyond that, the question is what the people on camera agreed to. Their release forms have the answer, and we’ll help you check.",
-    ],
+    a: ["Your license to use the finished video is perpetual, unless we agree otherwise."],
+    // The step-4 review (10/8) cut a NEW ¶2 that promised help on a rights question Sam hasn't answered.
+    openPart: "What the people on camera agreed to (their release forms), and what OSC does about it: Sam's words",
     status: "draft",
-    src: "TERMS intake form · ¶2 NEW",
+    src: "TERMS intake form · ¶2 OPEN (Sam's words needed)",
   },
 ]
 

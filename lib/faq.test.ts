@@ -102,6 +102,8 @@ test("every entry is well formed; an approval carries its date, and none is inve
     else assert.ok(x.a.length > 0, `${x.id} needs an answer`)
     if (x.status === "approved") assert.match(x.approvedOn ?? "", /^2026-(1[0-2])-\d{2}$|^20(2[7-9]|[3-9]\d)-\d{2}-\d{2}$/, `${x.id} approvedOn`)
     else assert.equal(x.approvedOn, undefined, `${x.id} has a date but isn't approved`)
+    if (x.status === "approved") assert.equal(x.openPart, undefined, `${x.id} is approved with a part still open`)
+    if (x.openPart) assert.match(x.src, /\bOPEN\b/, `${x.id} has an open part, so its src says OPEN`)
     assert.match(x.src, /\b(SAM|NEW|SITE|TERMS|OPEN)\b/, `${x.id} src tag`)
   }
   // Sam has approved nothing yet (10/8). When he does, set status "approved" + approvedOn and update this count.
