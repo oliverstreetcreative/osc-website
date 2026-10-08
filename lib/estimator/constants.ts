@@ -43,9 +43,10 @@ export const PARAMS = {
   extraVideoDays: p(1, "DRAFT", "Each extra finished video: finishing days"),
   // Sam 10/7/26: "we'll have to start making those adaptations part of the deliverable going forward."
   // Vertical 9:16 + square 1:1 of EVERY finished video are standard, quoted in, never offered later.
-  // Price RULED (Sam 10/7 ~23:10, C11): "Probably 4 hours ($300)." = 4 editor hours x $75, flat per finished video.
-  adaptationCharge: p(300, "SAM", "Vertical 9:16 + square 1:1 adaptations, per finished video",
-    "Sam 10/7: 4 editor hours = $300, standard in every finished-video quote"),
+  // RULED (Sam 10/7 ~23:15, C11, superseding 23:10): each adaptation VALUED at $300 (4 editor hours x $75) and
+  // shown, then INCLUDED at no charge as a visible line: "a distinguishing feature". Net price unchanged.
+  adaptationValue: p(300, "SAM", "Each adaptation (9:16 or 1:1), value per finished video",
+    "Sam 10/7: $300 each, shown, then included with every film"),
 
   // --- deadline -----------------------------------------------------------------
   flexibleDiscount: p(0.1, "OPEN", "Flexible dates (booking-window) discount", "Sam decides % and which windows"),

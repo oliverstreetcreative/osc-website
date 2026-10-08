@@ -203,8 +203,13 @@ export function quote(answers: SimpleAnswers, edits: Edits = {}): Quote {
   add("extraVideos", "Days", "Extra finished videos (finishing days)", spec.extraVideos * P.extraVideoDays, P.samFinishDay, 0, tagOf("extraVideoDays"))
   // Standard deliverable (Sam 10/7): every FINISHED video ships with its 9:16 + 1:1 adaptations, so they're
   // in the quote by default, never an add-on. No editing = no finished video = no adaptations.
-  if (has("editing")) add("adaptations", "Days", "Vertical 9:16 + square 1:1 adaptations (every finished video)",
-    1 + spec.extraVideos, P.adaptationCharge, 0, tagOf("adaptationCharge"))
+  // Ruled 10/7 23:15: SHOWN at value ($300 each), then INCLUDED: a visible line takes them back off, net zero.
+  if (has("editing")) {
+    const films = 1 + spec.extraVideos
+    add("adaptVertical", "Days", "Vertical 9:16 adaptation (every finished video)", films, P.adaptationValue, 0, tagOf("adaptationValue"))
+    add("adaptSquare", "Days", "Square 1:1 adaptation (every finished video)", films, P.adaptationValue, 0, tagOf("adaptationValue"))
+    add("adaptIncluded", "Days", "Vertical + square adaptations: included with every film", films, -2 * P.adaptationValue, 0, tagOf("adaptationValue"))
+  }
 
   // Hired labor + rentals: cost x (1 + markup).
   if (spec.assistant) add("assistant", "Crew & rentals", "Assistant", spec.shootDays, P.assistantCost, M, "SAM")

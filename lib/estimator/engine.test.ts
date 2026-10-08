@@ -87,15 +87,18 @@ test("flexible is cheaper than firm, rush dearer (above the floor)", () => {
   assert.ok(f < m && m < r)
 })
 
-test("doctrine (Sam 10/7): every finished video carries its 9:16 + 1:1 adaptations, $300 each (C11 ruled)", () => {
+test("doctrine (Sam 10/7 C11): 9:16 + 1:1 shown at $300 each, then included: net price unchanged", () => {
   const a = parseAnswers({ kind: "story", quality: "clean", deadline: "firm", handles: ["crewGear", "editing"] })
-  const ad = quote(a).lines.find((l) => l.id === "adaptations")!
-  assert.ok(ad, "adaptation line missing from a finished-video quote")
-  assert.equal(ad.qty, 1)
-  assert.equal(ad.unitCharge, 300); assert.equal(ad.markup, 0)
-  assert.equal(ad.tag, "SAM")                                   // ruled 10/7: 4 editor hours = $300
-  const two = quote(a, { spec: { extraVideos: 2 } }).lines.find((l) => l.id === "adaptations")!
-  assert.equal(two.qty, 3); assert.equal(two.charge, 900)       // one pair per finished video
+  const d = quote(a)
+  const by = (id: string) => d.lines.find((l) => l.id === id)!
+  assert.equal(by("adaptVertical").charge, 300); assert.equal(by("adaptSquare").charge, 300)
+  assert.equal(by("adaptIncluded").charge, -600)
+  assert.ok(["adaptVertical", "adaptSquare", "adaptIncluded"].every((id) => by(id).tag === "SAM"))
+  const sum = (q: ReturnType<typeof quote>) => q.lines.filter((l) => l.id.startsWith("adapt")).reduce((s, l) => s + l.charge, 0)
+  assert.equal(sum(d), 0)                                        // shown, then included: the client pays the same
+  const three = quote(a, { spec: { extraVideos: 2 } })
+  assert.equal(three.lines.find((l) => l.id === "adaptIncluded")!.charge, -1800)   // one pair per finished video
+  assert.equal(sum(three), 0)
   const raw = quote(parseAnswers({ kind: "story", quality: "clean", deadline: "firm", handles: ["crewGear"] }))
-  assert.ok(!raw.lines.some((l) => l.id === "adaptations"), "no editing = no finished video = no adaptations")
+  assert.ok(!raw.lines.some((l) => l.id.startsWith("adapt")), "no editing = no finished video = no adaptations")
 })
