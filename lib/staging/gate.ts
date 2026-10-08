@@ -101,6 +101,9 @@ export function gateExemption(path: string, method: string): GateExemption {
   if (method === "GET" && path === "/api/auth/preview") return "open"
   if (method === "GET" && /^\/demo\/[^/]{1,300}$/.test(path)) return "open"
   if (read && /^\/calendar\/[^/]{1,300}$/.test(path)) return "open"
+  // The one sign-in's server-to-server check (SPEC §27 P1a): Sign Here, the hub and Review call it with their own
+  // client credentials. (P1a part 2 adds the provider's own server endpoints here: discovery, keys, token, userinfo.)
+  if (method === "POST" && path === "/id/session-status") return "open"
   if (path === "/client" || path.startsWith("/client/") || path.startsWith("/client-logos/")) return "demo"
   return null
 }

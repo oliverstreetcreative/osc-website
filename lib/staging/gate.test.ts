@@ -61,6 +61,9 @@ test("exemptions are exact: path AND method", () => {
   assert.equal(gateExemption("/calendar/abc123.ics", "HEAD"), "open")
   assert.equal(gateExemption("/calendar/abc123.ics", "POST"), null)
   assert.equal(gateExemption("/calendar/a/b", "GET"), null)
+  assert.equal(gateExemption("/id/session-status", "POST"), "open") // server to server, its own client credentials
+  assert.equal(gateExemption("/id/session-status", "GET"), null)
+  assert.equal(gateExemption("/id/deputies", "GET"), null) // the one sign-in's pages stay behind the gate
   assert.equal(gateExemption("/client", "GET"), "demo")
   assert.equal(gateExemption("/client/projects/x", "GET"), "demo")
   assert.equal(gateExemption("/client-logos/acme.png", "GET"), "demo")
