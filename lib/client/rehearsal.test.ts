@@ -2,7 +2,7 @@
 // The rehearsal-client guards (SPEC §25 v2): which slugs, people, paths and ledgers count as rehearsal.
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { SIGN_TWIN, bookPaths, isRehearsalPerson, isRehearsalSlug, ledgerDir, pathsOutside, rehearsalFolder, rehearsalTraces } from "./rehearsal"
+import { INTERNAL_TEST, SIGN_TWIN, bookPaths, isRehearsalPerson, isRehearsalSlug, ledgerDir, pathsOutside, rehearsalFolder, rehearsalTraces } from "./rehearsal"
 
 test("only rehearsal- slugs are rehearsals", () => {
   assert.equal(isRehearsalSlug("rehearsal-osc"), true)
@@ -19,6 +19,12 @@ test("rehearsal people are +rehearsal OSC addresses only", () => {
   assert.equal(isRehearsalPerson("sam@oliverstreetcreative.com"), false)
   assert.equal(isRehearsalPerson("jane+rehearsal@client.org"), false)
   assert.equal(isRehearsalPerson("sam+rehearsal@oliverstreetcreative.com.evil.com"), false)
+  // internal@ only in the Internal test client's own book (SPEC §31 v2).
+  assert.equal(isRehearsalPerson("internal@oliverstreetcreative.com", INTERNAL_TEST.slug), true)
+  assert.equal(isRehearsalPerson("Internal@OliverStreetCreative.com ", INTERNAL_TEST.slug), true)
+  assert.equal(isRehearsalPerson("internal@oliverstreetcreative.com", "rehearsal-osc"), false)
+  assert.equal(isRehearsalPerson("internal@oliverstreetcreative.com"), false)
+  assert.equal(isRehearsalPerson(SIGN_TWIN.email, INTERNAL_TEST.slug), false)
 })
 
 test("Sign Here's test person is a rehearsal person ONLY in the signing twin's own book (SPEC §22 v2.1)", () => {

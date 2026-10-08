@@ -111,7 +111,8 @@ elif FEATURE == "proposal-check":
     s, h, pdf = call(f"/client/proposals/{pid}/file")
     step(s == 200 and fm is not None and hashlib.sha256(pdf).hexdigest().startswith(fm.group(1)), "the receipt's file is the accepted bytes")
     s, h, home2 = call("/client")
-    step("A proposal for you" not in text(home2), "no Needs you card for an accepted proposal")
+    # THIS proposal's card is gone (the rehearsal book keeps a second proposal open for frames, 10/8).
+    step(f"/client/proposals/{pid}" not in text(home2), "no Needs you card for the accepted proposal")
     s, h, _ = call("/client/proposals/accept", "POST", form={"document_id": pid, "sha256": hashlib.sha256(pdf).hexdigest()})
     step(s == 303 and aid in h.get("location", ""), "another Accept returns the same record", h.get("location", ""))
 elif FEATURE == "proposal":

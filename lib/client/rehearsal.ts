@@ -21,11 +21,24 @@ export const SIGN_TWIN = {
   email: "sam+client-test@oliverstreetcreative.com",
 } as const
 
-/** People in a rehearsal book are +rehearsal OSC addresses only (sam+rehearsal@oliverstreetcreative.com). The ONE
- *  exception: Sign Here staging's test person, and only in the twin's own book (SPEC §22 v2.1). */
+/**
+ * The test client Sam plays on staging, "OSC Internal Videos" (SPEC §31 v2): the new-client and new-project flows run
+ * through it. Its book alone may name internal@ (Sam signs in as that address), and its own name and folder may carry
+ * the word the gate's internal-marker lint looks for. The gate keeps a copy (client_gate.py INTERNAL_TEST; a test
+ * checks they match).
+ */
+export const INTERNAL_TEST = {
+  slug: "rehearsal-osc-internal",
+  name: "OSC Internal Videos",
+  email: "internal@oliverstreetcreative.com",
+} as const
+
+/** People in a rehearsal book are +rehearsal OSC addresses only (sam+rehearsal@oliverstreetcreative.com). The two
+ *  exceptions, each only in its own book: Sign Here staging's test person (SPEC §22 v2.1) and internal@ (§31 v2). */
 export const isRehearsalPerson = (email: string, slug?: string) => {
   const e = email.trim().toLowerCase()
   if (e.endsWith("@oliverstreetcreative.com") && e.split("@")[0].includes("+rehearsal")) return true
+  if (slug === INTERNAL_TEST.slug && e === INTERNAL_TEST.email) return true
   return slug === SIGN_TWIN.slug && e === SIGN_TWIN.email
 }
 

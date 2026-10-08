@@ -130,6 +130,11 @@ REHEARSAL_PREFIX = "rehearsal-"
 # Its book alone may name Sign Here staging's test person. A copy of lib/client/rehearsal.ts SIGN_TWIN (a test checks).
 SIGN_TWIN = {"slug": "rehearsal-osc-staging-test", "signOrg": "osc-staging-test",
              "email": "sam+client-test@oliverstreetcreative.com"}
+# The test client Sam plays on staging (SPEC §31 v2). Its book alone may name internal@, and its org's own name and
+# folder may carry the word INTERNAL (the internal-marker lint would refuse them). A copy of lib/client/rehearsal.ts
+# INTERNAL_TEST (a test checks).
+INTERNAL_TEST = {"slug": "rehearsal-osc-internal", "name": "OSC Internal Videos",
+                 "email": "internal@oliverstreetcreative.com"}
 
 
 def is_rehearsal(slug):
@@ -137,11 +142,23 @@ def is_rehearsal(slug):
 
 
 def rehearsal_person_ok(email, slug):
-    """A rehearsal book's people: +rehearsal OSC addresses; plus Sign Here's test person, in the twin's book only."""
+    """A rehearsal book's people: +rehearsal OSC addresses; plus Sign Here's test person in the twin's book, and
+    internal@ in the Internal test client's book (each only in its own)."""
     email = str(email or "").strip().lower()
     if email.endswith("@oliverstreetcreative.com") and "+rehearsal" in email.split("@")[0]:
         return True
+    if slug == INTERNAL_TEST["slug"] and email == INTERNAL_TEST["email"]:
+        return True
     return slug == SIGN_TWIN["slug"] and email == SIGN_TWIN["email"]
+
+
+def internal_test_exempt(key, org, s):
+    """The Internal test client's org item may say INTERNAL in its own name and folder, and nowhere else."""
+    if key != "org" or (org or {}).get("slug") != INTERNAL_TEST["slug"]:
+        return False
+    # Exactly its own name and its own rehearsal folder: nothing else in the org item (a short_name of any other words
+    # is still linted).
+    return s in (INTERNAL_TEST["name"], f"/_admin/client-site/rehearsal/files/{INTERNAL_TEST['slug']}")
 
 
 class Tree:
@@ -667,7 +684,10 @@ def lint_item(key, content, org, items=None):
     domains = {x.lower() for x in (org or {}).get("domains", [])}
     skip = FOOTAGE_SKIP_KEYS if key.startswith(("library:", "clip:")) else SKIP_KEYS
     for s in strings(content, skip):
-        problems += text_problems(s, domains)
+        found = text_problems(s, domains)
+        if internal_test_exempt(key, org, s):
+            found = [x for x in found if not (x.startswith("internal-draft marker") and x.lower().endswith('"internal"'))]
+        problems += found
     for p in paths(content):
         name = p.rsplit("/", 1)[-1]
         if not plain_path(p):
@@ -896,7 +916,7 @@ def tree_rules(key, content, org):
     if key.startswith("person:"):
         if not rehearsal_person_ok(content.get("email"), org.get("slug")):
             out.append("a rehearsal client's people are +rehearsal OSC addresses only (sam+rehearsal@oliverstreetcreative.com;"
-                       f" Sign Here's test person only in {SIGN_TWIN['slug']})")
+                       f" Sign Here's test person only in {SIGN_TWIN['slug']}; internal@ only in {INTERNAL_TEST['slug']})")
     if key.startswith("invoice:"):
         out.append("no invoices in a rehearsal book (invoice numbers are global keys)")
     reused = sorted(ids_of(content) & real_ids())

@@ -17,6 +17,8 @@ GATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "client_gate.py"
 # Sign Here's STAGING twin (SPEC §22 v2.1), as both client_gate.py and lib/client/rehearsal.ts must spell it.
 TWIN = {"slug": "rehearsal-osc-staging-test", "signOrg": "osc-staging-test",
         "email": "sam+client-test@oliverstreetcreative.com"}
+# The Internal test client (SPEC §31 v2), as both client_gate.py and lib/client/rehearsal.ts must spell it.
+INTERNAL = {"slug": "rehearsal-osc-internal", "name": "OSC Internal Videos", "email": "internal@oliverstreetcreative.com"}
 A1 = "11111111-2222-3333-4444-555555555555"
 V2 = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 LINK = "https://review.oliverstreetcreative.com/share/AbCdEfGh12345678"
@@ -966,9 +968,43 @@ class RehearsalTest(GateBase):
             ts = f.read()
         with open(GATE, encoding="utf-8") as f:
             py = f.read()
-        for k, v in TWIN.items():
+        for k, v in list(TWIN.items()) + list(INTERNAL.items()):
             self.assertRegex(ts, rf'{k}:\s*"{re.escape(v)}"', k)
             self.assertRegex(py, rf'"{k}":\s*"{re.escape(v)}"', k)
+
+    def test_the_internal_test_client_alone_may_name_internal_and_say_its_own_name(self):
+        """SPEC §31 v2: internal@ only in the Internal test client's book; its name and folder may say INTERNAL, and
+        nothing else may (a project title still trips the lint)."""
+        slug = INTERNAL["slug"]
+        folder = f"/_admin/client-site/rehearsal/files/{slug}"
+
+        def internal_book(people, projects=(), name=INTERNAL["name"]):
+            b = rbook(people=people)
+            b["org"].update(slug=slug, name=name, short_name=name, folder=folder)
+            b["people"] = [{"email": e, "name": "Sam Patton", "role": "OWNER", "audience": "client"} for e in people]
+            b["projects"] = list(projects)
+            with open(os.path.join(self.site, "rehearsal", "books", f"{slug}.json"), "w") as f:
+                json.dump(b, f)
+
+        internal_book([INTERNAL["email"]])
+        out = self.gate("lint", slug).stdout
+        self.assertNotIn("internal-draft marker", out, out)
+        self.assertNotIn("OSC addresses only", out, out)
+        ticket = self.gate("ticket", slug).stdout
+        check = ticket.split("(check: ")[1][:12]
+        r = self.gate("approve", slug, "--by", "worker", "--ticket", "rehearsal", "--digest", check)
+        self.assertEqual(r.returncode, 0, r.stderr + ticket)
+        self.assertTrue(os.path.exists(os.path.join(self.site, "rehearsal", "published", f"{slug}.json")))
+        self.assertFalse(os.path.exists(os.path.join(self.site, "published", f"{slug}.json")))
+        # The exemption is narrow: a project that says INTERNAL is still refused, and so is a stranger.
+        internal_book([INTERNAL["email"]], projects=[{"key": "r1", "slug": "r", "job_number": "99-001", "title": "Internal draft",
+                                                      "phase": "quote", "audience": "client", "films": [], "shoots": []}])
+        self.assertIn("internal-draft marker", self.gate("lint", slug).stdout)
+        internal_book([INTERNAL["email"], "jane@client.org"])
+        self.assertIn("+rehearsal OSC addresses only", self.gate("lint", slug).stdout)
+        # internal@ in any other rehearsal book is refused.
+        self.write_rbook(rbook(people=(INTERNAL["email"],)))
+        self.assertIn("+rehearsal OSC addresses only", self.gate("lint", "rehearsal-osc").stdout)
 
     def test_a_rehearsal_never_reuses_a_real_clients_review_link(self):
         self.write_draft(book(film_extra={"review_url": RLINK, "review_asset_id": A1}))

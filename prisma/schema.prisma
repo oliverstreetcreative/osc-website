@@ -836,13 +836,21 @@ model ProjectRequest {
   person_id       String       @db.Uuid
   person_name     String
   person_email    String
-  kind            String
+  kind            String? // the one-page form (v4) only
   like_project    String?
-  timing          String
+  timing          String? // the one-page form (v4) only
   due_on          DateTime?    @db.Date
   about           String?
   form_key        String       @unique
-  status          String       @default("pending") // pending | sent | in_review | closed
+  status          String       @default("pending") // draft | pending | sent | in_review | closed
+  // SPEC §31 v2: Start a project v3 (the old form's v5 questions), saved as she goes. Defaults keep db push safe.
+  form_version    Int          @default(4)
+  answers         Json? // one object per screen, keyed by v5's own names
+  step            String? // where a draft stands
+  assets          Json? // [{n, name, stored, type, size, path, at, state, removed_at?}]
+  assets_later    Boolean      @default(false)
+  sent_at         DateTime?
+  draft_slot      String?      @unique // "<person>:<org>" while a draft (one per person per org); null once sent
   queue_file      String?
   queued_at       DateTime?
   picked_up_at    DateTime?

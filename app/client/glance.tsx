@@ -7,6 +7,7 @@ import type { NeedsItem, ProjectWithAll } from "@/lib/client/data"
 import { needsProjectId } from "@/lib/client/data"
 import { balance, invoiceFacts, jobState, moneyOf, namedOpenInvoices, resolveBlock, type Resolved } from "@/lib/client/money"
 import { PhasePill, SectionTitle } from "@/app/client/ui"
+import { RequestRow, type Req } from "@/app/client/start-cards"
 
 type Inv = { number: string; amount: unknown; status: string; issued_on?: Date | null; paid_on?: Date | null; project_id?: string | null }
 
@@ -28,12 +29,15 @@ export function GlanceSections({
   invoices,
   money,
   today,
+  requests = [],
 }: {
   projects: ProjectWithAll[]
   needs: NeedsItem[]
   invoices: Inv[]
   money: boolean
   today: string
+  /** SPEC §31 v2: sent requests, as Quote rows at the top of "Your jobs". */
+  requests?: Req[]
 }) {
   const perJob = jobMoney(projects, money ? invoices : [], today)
   const settled = (p: ProjectWithAll) => {
@@ -62,12 +66,13 @@ export function GlanceSections({
 
   return (
     <>
-      {active.length ? (
+      {active.length || requests.length ? (
         <section className="cs-section" aria-labelledby="jobs">
           <SectionTitle href="/client/projects" link="All">
             <span id="jobs">Your jobs</span>
           </SectionTitle>
           <div className="cs-rows cs-jobs">
+            {requests.map((r) => <RequestRow key={r.id} r={r} />)}
             {active.map((p) => {
               const n = forYou.get(p.id) ?? 0
               return (

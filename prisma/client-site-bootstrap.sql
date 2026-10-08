@@ -532,13 +532,20 @@ CREATE TABLE "project_requests" (
     "person_id" UUID NOT NULL,
     "person_name" TEXT NOT NULL,
     "person_email" TEXT NOT NULL,
-    "kind" TEXT NOT NULL,
+    "kind" TEXT,
     "like_project" TEXT,
-    "timing" TEXT NOT NULL,
+    "timing" TEXT,
     "due_on" DATE,
     "about" TEXT,
     "form_key" TEXT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'pending',
+    "form_version" INTEGER NOT NULL DEFAULT 4,
+    "answers" JSONB,
+    "step" TEXT,
+    "assets" JSONB,
+    "assets_later" BOOLEAN NOT NULL DEFAULT false,
+    "sent_at" TIMESTAMP(3),
+    "draft_slot" TEXT,
     "queue_file" TEXT,
     "queued_at" TIMESTAMP(3),
     "picked_up_at" TIMESTAMP(3),
@@ -1011,6 +1018,9 @@ CREATE INDEX "proposal_views_document_id_at_idx" ON "proposal_views"("document_i
 
 -- CreateIndex
 CREATE UNIQUE INDEX "project_requests_form_key_key" ON "project_requests"("form_key");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "project_requests_draft_slot_key" ON "project_requests"("draft_slot");
 
 -- CreateIndex
 CREATE INDEX "project_requests_organization_id_idx" ON "project_requests"("organization_id");

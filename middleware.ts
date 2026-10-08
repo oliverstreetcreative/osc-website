@@ -226,6 +226,28 @@ export async function middleware(req: NextRequest) {
   }
   const isWrite = !['GET', 'HEAD', 'OPTIONS'].includes(req.method)
 
+  // SPEC §31 v2: an upload is ONE file of at most 25 MB. A bigger body, or one that won't say its size, is refused
+  // before anything reads it (Next would hold the whole body in memory). From an upload screen, back to it with the
+  // plain words; otherwise a bare 413.
+  if (req.method === 'POST' && req.nextUrl.pathname === '/client/start/upload') {
+    const len = Number(req.headers.get('content-length') ?? 'NaN')
+    if (!Number.isFinite(len) || len > 26 * 1024 * 1024) {
+      const from = req.headers.get('referer') ?? ''
+      try {
+        const u = new URL(from)
+        if (u.host === req.nextUrl.host && /^\/client\/(start|requests)\/[0-9a-f-]{36}\/assets$/i.test(u.pathname)) {
+          return NextResponse.redirect(new URL(`${u.pathname}?up=size`, req.nextUrl.origin), 303)
+        }
+      } catch {
+        /* no usable referer */
+      }
+      return new NextResponse('That file is too large to upload here (25 MB at most).', {
+        status: 413,
+        headers: { 'content-type': 'text/plain; charset=utf-8' },
+      })
+    }
+  }
+
   // The staging demo: valid only while it matches the current token; read-only everywhere (SPEC §19 v2). A demo token
   // from before the session rows (no `sid`) ends here too, with the "demo ended" note (SPEC §27 P0 v2).
   // /demo/<token> itself is exempt, so a NEW link replaces an old (rotated) demo session instead of bouncing to /login.

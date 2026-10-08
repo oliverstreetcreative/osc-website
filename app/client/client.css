@@ -566,3 +566,71 @@ a.cs-row:hover { background: var(--zebra); }
 .cs .cs-sheet-error { font-size: 14px; color: var(--red-ink, #b3261e); margin: 8px 0 0; }
 .cs .cs-sheet-act { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 12px; }
 .cs .cs-sheet-act .cs-link { background: none; border: 0; font: inherit; color: var(--mut); cursor: pointer; }
+/* Start a project v3 (SPEC §31 v2): one section per screen, saved as she goes; no script needed anywhere. */
+.cs .cs-q-progress { height: 4px; background: var(--line); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+.cs .cs-q-progress i { display: block; height: 100%; background: var(--accent-fill); border-radius: 2px; }
+.cs .cs-q { gap: 20px; }
+.cs .cs-q-who { font-size: 14px; color: var(--mut); background: var(--zone); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; }
+.cs .cs-q-who b { color: var(--ink); font-weight: 600; }
+.cs .cs-q-help { display: block; font-size: 13px; color: var(--mut); line-height: 1.45; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.cs .cs-q-err { color: var(--red-ink); font-size: 13px; font-weight: 600; margin: 4px 0 0; }
+.cs .cs-q-ok { color: var(--green-ink); font-size: 14px; font-weight: 600; margin: 0; }
+.cs .cs-q .cs-field input, .cs .cs-q .cs-field select, .cs .cs-q-upload input[type="file"] {
+  font: inherit; font-size: 16px; color: var(--ink); background: var(--zone); border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm); padding: 10px 12px; width: 100%; min-height: 44px; max-width: 100%;
+}
+.cs .cs-q .cs-field input:disabled, .cs .cs-q .cs-field select:disabled, .cs .cs-q textarea:disabled { opacity: 0.7; }
+.cs .cs-q .cs-choice input[type="checkbox"] { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--ink); flex-shrink: 0; }
+.cs .cs-q-rows { gap: 12px; }
+.cs .cs-q-row { background: var(--zone); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px 14px; display: grid; gap: 12px; }
+.cs .cs-q-row-head { display: flex; justify-content: space-between; align-items: center; }
+.cs .cs-q-row-head b { font-size: 14px; font-weight: 700; }
+.cs .cs-q-remove { background: none; border: 0; color: var(--mut); font: inherit; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 0 4px; min-height: 44px; display: inline-flex; align-items: center; gap: 4px; }
+.cs .cs-q-add { justify-self: start; }
+.cs .cs-q-inline { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.cs .cs-q-inline legend { width: 100%; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mut); margin-bottom: 8px; padding: 0; }
+.cs .cs-q-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); font-size: 14px; min-height: 40px; cursor: pointer; }
+.cs .cs-q-chip:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.cs .cs-q-chip input { accent-color: var(--ink); }
+/* "Something else…" asks what it is; the shoot questions go for an edit-only job; approve-first shows with a yes.
+   Browsers without :has() show them all (the server ignores what doesn't apply). */
+.cs .cs-q-other { margin-top: 10px; }
+@supports selector(:has(*)) {
+  .cs .cs-q-other { display: none; }
+  .cs .cs-q-select:has(option[value="other"]:checked) .cs-q-other { display: grid; }
+  .cs .cs-q:has(input[name="has_shoot"][value="none"]:checked) .cs-q-shoot { display: none; }
+  .cs .cs-q-posting { display: none; }
+  .cs .cs-q:has(input[name^="osc_may_post"][value="yes"]:checked) .cs-q-posting { display: block; }
+}
+.cs .cs-details { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--zone); padding: 12px 14px; }
+.cs .cs-details > summary { font-weight: 700; cursor: pointer; min-height: 32px; display: flex; align-items: center; }
+.cs .cs-details[open] { display: grid; gap: 14px; }
+.cs .cs-q-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-end; margin-top: 4px; }
+.cs .cs-q-bar .cs-btn { min-width: 150px; }
+.cs .cs-q-back { order: -1; margin-right: auto; }
+.cs .cs-q-later { order: 2; flex-basis: 100%; text-align: center; background: none; border: 0; color: var(--mut); font: inherit; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-height: 44px; }
+.cs .cs-q-assets { margin-top: 18px; display: grid; gap: 12px; }
+.cs .cs-q-files { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.cs .cs-q-files li { display: flex; align-items: center; gap: 10px; background: var(--zone); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 6px 12px; font-size: 14px; min-height: 44px; }
+.cs .cs-q-files li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs .cs-q-upload { display: grid; gap: 10px; }
+.cs .cs-q-upload .cs-btn { justify-self: start; }
+.cs .cs-q-answer { font-weight: 400; white-space: pre-wrap; overflow-wrap: anywhere; }
+/* A brand-new client's one card (SPEC §31 v2, D): ink, the human words in Garamond, one paper button. */
+.cs .cs-hero-start { padding: 26px 22px 22px; background: var(--deep); color: var(--on-ink); border: 0; }
+.cs .cs-hero-start::before { content: ""; display: block; width: 28px; height: 3px; background: var(--accent-fill); border-radius: 2px; margin-bottom: 16px; }
+.cs .cs-hero-start .cs-eyebrow { color: var(--on-ink-muted); }
+.cs .cs-hero-start h2 { font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 32px; line-height: 1.1; margin-top: 8px; letter-spacing: 0; }
+.cs .cs-hero-start-line { color: var(--on-ink-muted); font-size: 15px; margin-top: 10px; max-width: 46ch; }
+.cs .cs-hero-start .cs-btn { margin-top: 20px; background: var(--on-ink); color: var(--deep); width: 100%; }
+.cs .cs-hero-start-alt { margin-top: 14px; font-size: 14px; color: var(--on-ink-muted); text-align: center; }
+.cs .cs-hero-start-alt .cs-link { color: var(--on-ink); }
+@media (min-width: 720px) { .cs .cs-hero-start .cs-btn { width: auto; } .cs .cs-hero-start-alt { text-align: left; } }
+/* A sent request, as a project in Quote. Its status line is a human moment (Garamond). */
+.cs .cs-req-link { display: block; color: inherit; text-decoration: none; }
+.cs .cs-pcard-body p.cs-req-line { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--ink); -webkit-line-clamp: 3; }
+.cs .cs-req-nudge { font-size: 13px; color: var(--mut); margin: 0; }
+.cs .cs-req-nudge-card { padding: 0 16px 14px; }
+.cs .cs-req-row { flex-wrap: wrap; }
+.cs .cs-req-row-link { display: flex; align-items: center; gap: 12px; flex: 1; color: inherit; text-decoration: none; min-width: 0; }
+.cs .cs-req-row .cs-req-nudge { flex-basis: 100%; padding-top: 4px; }
