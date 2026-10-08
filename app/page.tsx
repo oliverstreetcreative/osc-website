@@ -116,6 +116,9 @@ async function loadCredits(): Promise<Credit[]> {
 
 export default async function HomePage() {
   const credits = await loadCredits()
+  // The Why us drift is "just the posters" (Sam 10/8 ~12:02): a credit TMDB has no poster for stays out of it,
+  // never drawn as a text tile (the step-4 shots showed "Send a Scare" as a grey tile, 10/8).
+  const posters = credits.filter((c): c is Credit & { poster: string } => Boolean(c.poster))
   const work = (slugs: string[]) =>
     slugs.map((s) => WORK_VIDEOS.find((v) => v.slug === s)).filter((v): v is WorkVideo => Boolean(v))
   // The DIY screen's two resources, each behind its own gate (lib/faq.ts, fail closed). With neither, no screen.
@@ -357,15 +360,15 @@ export default async function HomePage() {
         <div className="site-in r">
           <SectionHead eyebrow={HOME.whyEyebrow.t} title={HOME.whyH2.t} lede={HOME.whyLede.t} />
         </div>
-        {credits.length > 0 ? (
+        {posters.length > 0 ? (
           <div className="site-drift" role="region" aria-label={HOME.creditsLabel.t}>
             <label className="site-drift-pause">
               <input type="checkbox" />
               <span>{HOME.drift.t}</span>
             </label>
-            <div className="site-drift-track" style={{ "--n": credits.length } as CSSProperties}>
+            <div className="site-drift-track" style={{ "--n": posters.length } as CSSProperties}>
               {[0, 1].map((copy) =>
-                credits.map((c) => (
+                posters.map((c) => (
                   <a
                     key={`${copy}-${c.key}`}
                     className={copy === 1 ? "site-drift-poster dup" : "site-drift-poster"}
@@ -376,11 +379,7 @@ export default async function HomePage() {
                     tabIndex={copy === 1 ? -1 : undefined}
                     title={c.title}
                   >
-                    {c.poster ? (
-                      <img src={c.poster} alt={copy === 1 ? "" : c.title} loading="lazy" />
-                    ) : (
-                      <span className="ph">{c.title}</span>
-                    )}
+                    <img src={c.poster} alt={copy === 1 ? "" : c.title} loading="lazy" />
                   </a>
                 )),
               )}
