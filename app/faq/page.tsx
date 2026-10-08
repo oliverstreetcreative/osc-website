@@ -53,13 +53,18 @@ const STATUS_PILL: Record<FaqEntry["status"], string> = { sam: "Sam’s words", 
 function FaqItem({ e, open, marks, hours }: { e: FaqEntry; open: boolean; marks: boolean; hours: boolean }) {
   return (
     <details className="site-faq-item" id={e.id} open={open}>
+      {/* The row's flex lives on the h2, not the summary: older iOS Safari won't make a <summary> a flex container. */}
       <summary>
-        <h2 className="site-faq-q">{e.q}</h2>
-        {/* staging only: where the answer stands, for Sam's read */}
-        {marks ? <span className={`cs-pill site-faq-st ${e.status}`}>{STATUS_PILL[e.status]}</span> : null}
-        <svg className="site-faq-chev" viewBox="0 0 16 16" aria-hidden="true">
-          <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <h2 className="site-faq-row">
+          <span className="site-faq-q">
+            {e.q}
+            {/* staging only: where the answer stands, for Sam's read. Inline after the question so it wraps at 320. */}
+            {marks ? <span className={`cs-pill site-faq-st ${e.status}`}>{STATUS_PILL[e.status]}</span> : null}
+          </span>
+          <svg className="site-faq-chev" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </h2>
       </summary>
       <div className="site-faq-a">
         {e.status === "open" ? <p className="site-faq-open">Answer coming · waiting on Sam</p> : null}
