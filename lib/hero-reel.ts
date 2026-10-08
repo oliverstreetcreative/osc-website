@@ -49,6 +49,27 @@ export const HERO_REEL: HeroReel = {
   poster: { playbackId: "WZrdYK8rOVRBNHzfmMCa7MAYrSdPTBtK02Oiof01U028zM", time: 147 },
 }
 
+/**
+ * Reel v6 on STAGING ONLY (Sam 10/8 ~14:55: "Show me the proposed reel and logo on the website"; Majordomo: on
+ * staging only, production still gated until his yes there). The checklist above, done 10/8: the exact master he
+ * reviewed (sha256 53a9ce86…), Mux asset B4RDg02r00QQbQOEJztxPa02IPK2tulLjryaDpQA1gMy3s, public playback, static
+ * 720p + 1080p both `ready`, HEAD 200 on both (website-redesign reel/v6/mux_v6.json). The poster is a frame of the
+ * reel itself: 1 s in, the film's opening (Phoenix and mom).
+ */
+export const STAGING_REEL: HeroReel = {
+  playbackId: "VKmFx82ynR9RPE01IKYWGL5uiDOfP7q02Y01kieyMsHK7E",
+  mp4: { narrow: "720p.mp4", wide: "1080p.mp4" },
+  poster: { playbackId: "VKmFx82ynR9RPE01IKYWGL5uiDOfP7q02Y01kieyMsHK7E", time: 1 },
+}
+
+/**
+ * The reel this build shows. `drafts` = lib/faq.ts draftsAllowed(): true only where the build KNOWS it's staging (or
+ * `next dev`), so anything else (the live site, or a build that can't tell) keeps HERO_REEL: fails closed.
+ */
+export function heroReelFor(drafts: boolean): HeroReel {
+  return drafts ? STAGING_REEL : HERO_REEL
+}
+
 export function muxStill(s: MuxStill, width: number): string {
   return `https://image.mux.com/${s.playbackId}/thumbnail.webp?width=${width}&time=${s.time}`
 }

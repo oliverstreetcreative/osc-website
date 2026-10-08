@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react"
 import Link from "next/link"
 import { WORK_VIDEOS, type WorkVideo } from "@/lib/work-videos"
-import { HERO_REEL, heroReelSources, posterSet } from "@/lib/hero-reel"
+import { heroReelFor, heroReelSources, posterSet } from "@/lib/hero-reel"
 import { creditsFrom, fetchTmdbBundle, type Credit } from "@/lib/tmdb"
 import { SiteFrame, SectionHead } from "@/components/site/SiteFrame"
 import { HeroReel } from "@/components/site/HeroReel"
@@ -124,6 +124,8 @@ export default async function HomePage() {
   // The DIY screen's two resources, each behind its own gate (lib/faq.ts, fail closed). With neither, no screen.
   const showFaq = faqIsUp(siteEnv())
   const showGuide = GUIDE_IS_FINAL || draftsAllowed()
+  // Reel v6 plays in the hero on staging only (Sam 10/8 ~14:55); the live site keeps Phoenix's still (fails closed)
+  const reel = heroReelFor(draftsAllowed())
 
   return (
     <SiteFrame>
@@ -137,7 +139,7 @@ export default async function HomePage() {
 
       {/* 1 · HERO: the reel, the tagline (Sam's headline, 10/7) and its supporting line */}
       <section className="site-hero" aria-labelledby="hero-title">
-        <HeroReel poster={posterSet(HERO_REEL.poster)} sources={heroReelSources(HERO_REEL)} />
+        <HeroReel poster={posterSet(reel.poster)} sources={heroReelSources(reel)} />
         <div className="site-hero-in">
           <div className="cs-eyebrow">{HOME.heroEyebrow.t}</div>
           <h1 id="hero-title">
