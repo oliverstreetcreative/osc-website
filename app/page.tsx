@@ -6,6 +6,8 @@ import { SiteFrame, SectionHead } from "@/components/site/SiteFrame"
 import { HeroReel } from "@/components/site/HeroReel"
 import { MuxFacade } from "@/components/site/MuxFacade"
 import { PlayBadge } from "@/app/client/ui"
+import { IS_PRODUCTION } from "@/lib/site-env"
+import { faqIsUp } from "@/lib/faq"
 
 // ---------------------------------------------------------------------------
 // THE HOMEPAGE, restyled in the hub's vein (Sam, 10/3/26 01:20: "I'm loving the
@@ -342,6 +344,12 @@ export default async function HomePage() {
                 <a className="cs-btn light lg" href={BOOK} target="_blank" rel="noopener noreferrer">
                   Schedule free consultation
                 </a>
+                {/* The FAQ (Sam 10/8): only where /faq renders - never in production before Sam approves it */}
+                {faqIsUp({ production: IS_PRODUCTION }) ? (
+                  <Link className="cs-btn on-ink lg" href="/faq">
+                    Read the FAQ
+                  </Link>
+                ) : null}
               </div>
             </div>
             <dl>
