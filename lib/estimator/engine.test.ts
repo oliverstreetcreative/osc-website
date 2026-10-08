@@ -87,15 +87,15 @@ test("flexible is cheaper than firm, rush dearer (above the floor)", () => {
   assert.ok(f < m && m < r)
 })
 
-test("doctrine (Sam 10/7): every finished video carries its 9:16 + 1:1 adaptations by default, tagged OPEN", () => {
+test("doctrine (Sam 10/7): every finished video carries its 9:16 + 1:1 adaptations, $300 each (C11 ruled)", () => {
   const a = parseAnswers({ kind: "story", quality: "clean", deadline: "firm", handles: ["crewGear", "editing"] })
   const ad = quote(a).lines.find((l) => l.id === "adaptations")!
   assert.ok(ad, "adaptation line missing from a finished-video quote")
-  assert.equal(ad.qty, PARAMS.adaptationDays.value)
-  assert.equal(ad.unitCharge, PARAMS.samFinishDay.value)
-  assert.equal(ad.tag, "OPEN")                                  // price is Sam's (C11): never shown as ruled
+  assert.equal(ad.qty, 1)
+  assert.equal(ad.unitCharge, 300); assert.equal(ad.markup, 0)
+  assert.equal(ad.tag, "SAM")                                   // ruled 10/7: 4 editor hours = $300
   const two = quote(a, { spec: { extraVideos: 2 } }).lines.find((l) => l.id === "adaptations")!
-  assert.equal(two.qty, 3 * PARAMS.adaptationDays.value)        // one set per finished video
+  assert.equal(two.qty, 3); assert.equal(two.charge, 900)       // one pair per finished video
   const raw = quote(parseAnswers({ kind: "story", quality: "clean", deadline: "firm", handles: ["crewGear"] }))
   assert.ok(!raw.lines.some((l) => l.id === "adaptations"), "no editing = no finished video = no adaptations")
 })
