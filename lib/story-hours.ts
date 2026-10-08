@@ -1,13 +1,29 @@
-// "Where the hours go": what goes into a video, by kind. FAQ #1's answer (Sam, 10/8/26 ~10:55: "I like this
-// little 'what goes into a video' thing"), adapted from price-estimator's mock v1
-// (Matters/price-estimator/concept/story-hours-mock-v1.html). Sam's point (10/8 08:30): capture is very, very
-// inexpensive today; crafting the story still takes experience, human attention and skill.
+// "Where the hours go": what goes into a video, by kind. FAQ #1's answer, adapted from price-estimator's mock v1
+// (Matters/price-estimator/concept/story-hours-mock-v1.html), whose eyebrow "What goes into a video" Sam quoted back
+// on 10/8 ~10:55 ("I like this little 'what goes into a video' thing"). Sam's point (10/8 08:30): capture is very,
+// very inexpensive today; crafting a story still requires experience and human attention and skill.
 //
-// EVERY HOUR BELOW IS A PLACEHOLDER the mock's worker made up. Sam supplies the real ones. Until he does,
-// STORY_HOURS_ARE_SAMS stays false and production never shows the piece (lib/faq.ts showStoryHours).
-// The step names and sentences are draft copy too (the mock's; Sam hasn't ruled on them).
+// EVERY HOUR BELOW IS A PLACEHOLDER the mock's worker made up, and the step names, sentences, labels and switch
+// lines are the mock's draft copy too. STORY_PIECE_APPROVED flips only when Sam has OK'd ALL of it (his real hours,
+// the steps, the words); until then the live site never shows the piece (lib/faq.ts showStoryHours).
 
-export const STORY_HOURS_ARE_SAMS = false
+export const STORY_PIECE_APPROVED = false
+
+/** The piece's words (the mock's, NEW; Sam OKs them with the piece). */
+export const PIECE = {
+  eyebrow: "What goes into a video",
+  heading: "Where the hours go",
+  placeholderPill: "Placeholder hours · Sam’s real numbers coming",
+  kindsLegend: "Kind of video",
+  stillCaption: "For a testimonial:",
+  filming: "Filming",
+  filmingMine: "Filming: you can do this part",
+  story: "Story work",
+  switchLabel: "I’ll film it myself on my phone",
+  switchOff: "Phones shoot beautiful video now. See what’s left.",
+  switchOn: "The story hours didn’t change. That’s the part that takes experience.",
+  stepsHeading: "The story work, step by step",
+} as const
 
 export interface StoryStep {
   name: string
@@ -49,4 +65,10 @@ export function storyTotal(k: Kind): number {
 
 export function hrs(n: number): string {
   return `${n} ${n === 1 ? "hr" : "hrs"}`
+}
+
+/** Read out inside each kind's chip, so choosing a kind is heard with its numbers (whole words, not "hrs"). */
+export function kindSummary(k: Kind): string {
+  const h = (n: number) => `${n} ${n === 1 ? "hour" : "hours"}`
+  return `${h(k.filming)} filming, ${h(storyTotal(k))} of story work`
 }

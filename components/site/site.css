@@ -308,7 +308,7 @@ html[data-motion="io"] .site .r > .seen { opacity: 1; transform: none; }
 .site-faq-item[open] > summary .site-faq-chev { transform: rotate(180deg); }
 .site .site-faq-st { margin-left: 8px; vertical-align: 3px; white-space: nowrap; border-style: dashed; color: var(--muted); letter-spacing: 0; line-height: 1; }
 .site .site-faq-st.open { color: var(--accent); border-color: var(--accent-bd); }
-.site .site-faq-st.sam { border-style: solid; color: var(--text); }
+.site .site-faq-st.approved { border-style: solid; color: var(--green-ink); border-color: var(--green-bd); background: var(--green-bg); }
 .site-faq-a { padding: 0 16px 24px; max-width: 68ch; font-size: 17px; line-height: 1.55; }
 .site .site-faq-a > p + p, .site .site-faq-a > .site-sh + p { margin-top: 14px; }
 .site .site-faq-open { border: 1px dashed var(--rule-strong); border-radius: var(--radius-sm); padding: 12px 14px; color: var(--muted); font-size: 15px; }
@@ -331,13 +331,17 @@ html[data-motion="io"] .site .r > .seen { opacity: 1; transform: none; }
   font-size: 15px; font-weight: 600; text-align: center; white-space: nowrap; cursor: pointer;
 }
 .site-sh-chip input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+/* the still picture (no :has()) says what it shows; hidden wherever the controls work */
+.site .site-sh-still { margin-top: 14px; font-size: 14px; font-weight: 600; color: var(--muted); }
 .site-sh-bar { display: flex; gap: 3px; height: 40px; margin-top: 18px; border-radius: 10px; overflow: hidden; }
 .site-sh-bar > span { flex-basis: 0; min-width: 6px; transition: flex-grow 0.45s ease, background-color 0.3s ease; }
 .site-sh-cap { flex-grow: var(--cap-testimonial); background: var(--faint); }
 .site-sh-story { flex-grow: var(--story-testimonial); background: var(--accent-fill); }
 .site-sh-legend { display: flex; justify-content: space-between; gap: 12px; margin-top: 10px; font-size: 14px; line-height: 1.35; color: var(--muted); }
-.site-sh-legend b { font-family: var(--cond); font-weight: 700; font-size: 34px; line-height: 1; color: var(--text); }
-.site-sh-legend .site-sh-r { text-align: right; }
+.site-sh-legend b { font-family: var(--cond); font-weight: 700; font-size: 34px; line-height: 1; color: var(--text); white-space: nowrap; }
+/* the story number must not move when the switch flips: it never shrinks or wraps; the filming label wraps instead */
+.site-sh-legend > p:first-child { min-width: 0; }
+.site-sh-legend .site-sh-r { text-align: right; flex-shrink: 0; }
 .site-sh-legend .site-sh-r b { color: var(--accent); }
 .site-sh-diy { margin-top: 18px; }
 .site .site-sh-diy input { width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--ink); flex-shrink: 0; }
@@ -363,6 +367,7 @@ html[data-motion="io"] .site .r > .seen { opacity: 1; transform: none; }
 .site-sh .site-sh-on { display: none; }
 
 @supports selector(:has(*)) {
+  .site .site-sh-still { display: none; }
   .site .site-sh-kinds.site-sh-ctl { display: block; }
   .site .site-sh-diy.site-sh-ctl { display: flex; }
   .site-sh-chip:has(input:checked) { background: var(--ink); color: var(--on-strong); border-color: var(--ink); }
@@ -384,6 +389,15 @@ html[data-motion="io"] .site .r > .seen { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .site-sh-bar > span, .site-sh-chev, .site-faq-chev { transition: none; }
+}
+/* Windows high contrast: a fill alone would vanish, so the chosen chip gets an outline */
+@media (forced-colors: active) {
+  .site-sh-chip:has(input:checked) { outline: 2px solid CanvasText; outline-offset: 1px; }
+}
+/* 320-359 px: a tighter chip row, so the three kinds can share a line (it still wraps, never overflows) */
+@media (max-width: 359px) {
+  .site-sh-row { gap: 6px; }
+  .site-sh-chip { font-size: 13px; padding: 8px; }
 }
 @media (min-width: 640px) {
   .site-faq-item > summary { padding: 22px 24px; }
