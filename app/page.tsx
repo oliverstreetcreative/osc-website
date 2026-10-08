@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react"
 import Link from "next/link"
 import { WORK_VIDEOS, type WorkVideo } from "@/lib/work-videos"
 import { HERO_REEL, heroReelSources, posterSet } from "@/lib/hero-reel"
@@ -5,6 +6,7 @@ import { creditsFrom, fetchTmdbBundle, type Credit } from "@/lib/tmdb"
 import { SiteFrame, SectionHead } from "@/components/site/SiteFrame"
 import { HeroReel } from "@/components/site/HeroReel"
 import { MuxFacade } from "@/components/site/MuxFacade"
+import { SiteMotion } from "@/components/site/SiteMotion"
 import { PlayBadge } from "@/app/client/ui"
 import { GUIDE_IS_FINAL, draftsAllowed, faqIsUp, siteEnv } from "@/lib/faq"
 import { HOME } from "@/lib/home-copy"
@@ -89,7 +91,6 @@ const HOME_COPY = {
   "body:build-trust":
     "Your customers, or you, on camera talking honestly about the work. We shoot it so they sound like themselves.",
   workH2: "Some of our work.",
-  creditsH2: "We come from the movie business.",
 } as const
 
 const BOOK = "https://cal.com/oliverstreetcreative"
@@ -123,6 +124,14 @@ export default async function HomePage() {
 
   return (
     <SiteFrame>
+      {/* The microsites' subtle motion (Sam 10/8 ~12:02; the silo page's, which he picked 9/24): each block settles in
+          as it scrolls up, and a thin bar on the right edge fills as you read. CSS does it where scroll-driven
+          animation exists; SiteMotion is the fallback elsewhere. Reduced motion turns both off. */}
+      <div className="site-prog" aria-hidden="true">
+        <i id="site-prog" />
+      </div>
+      <SiteMotion />
+
       {/* 1 · HERO: the reel, the tagline (Sam's headline, 10/7) and its supporting line */}
       <section className="site-hero" aria-labelledby="hero-title">
         <HeroReel poster={posterSet(HERO_REEL.poster)} sources={heroReelSources(HERO_REEL)} />
@@ -151,7 +160,7 @@ export default async function HomePage() {
 
       {/* 2 · THE PITCH that follows the headline (Sam 10/7 22:45: "A is the pitch that follows") */}
       <section id="pitch" className="site-sec white">
-        <div className="site-in">
+        <div className="site-in r">
           <p className="site-pitch">{HOME.pitch.t}</p>
           {/* DRAFT MARKER: the rebuilt page's copy awaits Sam (shown wherever the page renders, like the old thesis pill) */}
           <span className="cs-pill site-draft">{HOME.draftPill.t}</span>
@@ -160,7 +169,7 @@ export default async function HomePage() {
 
       {/* 3 · SAM'S INTRO VIDEO: a placeholder until he shoots it (Sam 10/8 ~11:05: "Put a placeholder for the video") */}
       <section id="from-sam" className="site-sec ink">
-        <div className="site-in">
+        <div className="site-in r">
           <SectionHead eyebrow={HOME.videoEyebrow.t} title={HOME.videoH2.t} />
           <div className="site-tbd" role="img" aria-label={`Video placeholder: ${HOME.videoLabel.t}`}>
             <span>{HOME.videoLabel.t}</span>
@@ -171,7 +180,7 @@ export default async function HomePage() {
 
       {/* 4 · CONTENT VS STORY: Sam's 10/8 voice memo, under his 10/7 line */}
       <section id="story" className="site-sec">
-        <div className="site-in">
+        <div className="site-in r">
           <SectionHead title={HOME.storyH2.t} />
           <div className="site-prose">
             {HOME.story.map((p) => (
@@ -183,7 +192,7 @@ export default async function HomePage() {
 
       {/* 5 · WHAT WE MAKE: Sam's line, then the tagline's three clauses, each backed by public work */}
       <section id="what-we-make" className="site-sec white">
-        <div className="site-in">
+        <div className="site-in r">
           <SectionHead eyebrow="What we do" title={HOME_COPY.pillarsH2} lede={HOME.whatWeDo.t} />
           <p className="site-lede site-lede-2">{HOME_COPY.pillarsLede}</p>
           <div className="site-grid3">
@@ -231,7 +240,7 @@ export default async function HomePage() {
 
       {/* 6 · THE WORK: ink, because this is what you watch */}
       <section id="work" className="site-sec ink">
-        <div className="site-in">
+        <div className="site-in r">
           <SectionHead eyebrow="Work" title={HOME_COPY.workH2} lede={<>A few of the films we&rsquo;ve made.</>} />
           <div className="site-posters">
             {WORK_VIDEOS.map((v) => {
@@ -267,7 +276,7 @@ export default async function HomePage() {
       {/* 7 · EVERYBODY'S A FILMMAKER: DIY, encouraged, never discouraged (Sam 10/8) */}
       {showFaq || showGuide ? (
         <section id="diy" className="site-sec">
-          <div className="site-in">
+          <div className="site-in r">
             <SectionHead title={HOME.diyH2.t} lede={HOME.diyBody.t} />
             <ul className="site-res">
               {showFaq ? (
@@ -291,7 +300,7 @@ export default async function HomePage() {
 
       {/* 8 · TESTIMONIALS: the same three real quotes, the same film */}
       <section id="testimonials" className="site-sec white">
-        <div className="site-in">
+        <div className="site-in r">
           <SectionHead
             eyebrow="Testimonials"
             title="People like working with us."
@@ -342,33 +351,62 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 9 · FILM CREDITS: the craft has a paper trail */}
-      {credits.length > 0 ? (
-        <section id="credits" className="site-sec ink">
-          <div className="site-in">
-            <SectionHead
-              eyebrow="Film credits"
-              title={HOME_COPY.creditsH2}
-              lede={<>We&rsquo;ve spent years working on Hollywood film sets. These are some of the movies and shows.</>}
-            />
+      {/* 9 · WHY US, opened by the film credits (Sam 10/8 ~12:02: 'the movie credits should begin a "why us" ... we're
+          serious filmmakers, we're a nimble operation, and we're humble'). The posters drift slowly, posters only
+          (his words: "just the posters"). A hover, a focus or the pause control stops them, and reduced motion turns
+          the drift back into a swipe row. The second copy of the row only closes the loop: hidden from screen
+          readers and out of the tab order. */}
+      <section id="why-us" className="site-sec ink">
+        <div className="site-in r">
+          <SectionHead eyebrow={HOME.whyEyebrow.t} title={HOME.whyH2.t} lede={HOME.whyLede.t} />
+        </div>
+        {credits.length > 0 ? (
+          <div className="site-drift" role="region" aria-label={HOME.creditsLabel.t}>
+            <label className="site-drift-pause">
+              <input type="checkbox" />
+              <span>{HOME.drift.t}</span>
+            </label>
+            <div className="site-drift-track" style={{ "--n": credits.length } as CSSProperties}>
+              {[0, 1].map((copy) =>
+                credits.map((c) => (
+                  <a
+                    key={`${copy}-${c.key}`}
+                    className={copy === 1 ? "site-drift-poster dup" : "site-drift-poster"}
+                    href={c.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-hidden={copy === 1 ? true : undefined}
+                    tabIndex={copy === 1 ? -1 : undefined}
+                    title={c.title}
+                  >
+                    {c.poster ? (
+                      <img src={c.poster} alt={copy === 1 ? "" : c.title} loading="lazy" />
+                    ) : (
+                      <span className="ph">{c.title}</span>
+                    )}
+                  </a>
+                )),
+              )}
+            </div>
           </div>
-          <div className="site-strip">
-            {credits.map((c) => (
-              <a key={c.key} className="site-credit" href={c.href} target="_blank" rel="noopener noreferrer">
-                {c.poster ? <img src={c.poster} alt="" loading="lazy" /> : <span className="ph">{c.title}</span>}
-                <b>{c.title}</b>
-                <small>
-                  {[c.year, c.jobs.join(", ")].filter(Boolean).join(" · ")}
-                </small>
-              </a>
-            ))}
+        ) : null}
+        <div className="site-in r">
+          <div className="site-why">
+            <div>
+              <h3>{HOME.whyNimble.t}</h3>
+              <p className="site-open-mark">{HOME.whyOpen.t}</p>
+            </div>
+            <div>
+              <h3>{HOME.whyHumble.t}</h3>
+              <p className="site-open-mark">{HOME.whyOpen.t}</p>
+            </div>
           </div>
-        </section>
-      ) : null}
+        </div>
+      </section>
 
       {/* 10 · CONTACT: Sam's 10/8 close */}
       <section id="contact" className="site-sec">
-        <div className="site-in">
+        <div className="site-in r">
           <div className="site-contact">
             <div>
               <div className="cs-eyebrow">{HOME.closeEyebrow.t}</div>

@@ -399,3 +399,37 @@ html[data-motion="io"] .site .r > .seen { opacity: 1; transform: none; }
 /* the DIY screen's resources: plain links, 44 px targets */
 .site-res { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 4px; font-size: 18px; }
 .site .site-res .site-link { display: inline-flex; align-items: center; min-height: 44px; }
+
+/* Why us, opened by the film-credit posters (Sam 10/8 ~12:02): posters only, drifting slowly. Each poster carries its
+   own right margin (no flex gap), so the second copy starts exactly at -50% and the loop has no jump. About 6 s a
+   poster. A hover, a keyboard focus or the pause box stops it; reduced motion turns it into a plain swipe row. */
+.site-drift { margin-top: 30px; padding-left: 16px; overflow: hidden; }
+.site .site-drift-pause { display: none; align-items: center; justify-content: flex-end; gap: 8px; min-height: 44px; padding-right: 16px; font-size: 13px; color: var(--on-ink-muted); cursor: pointer; }
+.site .site-drift-pause input { width: 18px; height: 18px; accent-color: var(--orange); margin: 0; }
+.site-drift-track { display: flex; width: max-content; animation: site-drift calc(var(--n, 12) * 6s) linear infinite; }
+.site .site-drift-poster { flex: 0 0 auto; width: 128px; margin-right: 12px; display: block; }
+.site-drift-poster img, .site-drift-poster .ph { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 10px; background: var(--ink-2); display: block; }
+.site-drift-poster .ph { display: grid; place-items: center; padding: 10px; text-align: center; font-size: 12px; color: var(--on-ink-muted); }
+@keyframes site-drift { to { transform: translateX(-50%); } }
+.site-drift:hover .site-drift-track, .site-drift:focus-within .site-drift-track { animation-play-state: paused; }
+@supports selector(:has(*)) {
+  .site .site-drift-pause { display: flex; }
+  .site-drift:has(.site-drift-pause input:checked) .site-drift-track { animation-play-state: paused; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-drift { overflow-x: auto; scrollbar-width: none; }
+  .site-drift-track { animation: none; }
+  .site .site-drift-pause, .site .site-drift-poster.dup { display: none; }
+}
+/* the two other differentiators, Sam's own lines; their words are his to write (the dashed OPEN mark) */
+.site-why { display: grid; gap: 26px; margin-top: 44px; }
+.site .site-why h3 { font-size: clamp(28px, 5.4vw, 44px); letter-spacing: -0.032em; line-height: 1.05; }
+.site .site-open-mark {
+  display: inline-flex; margin-top: 12px; padding: 6px 10px; border: 1px dashed rgba(247, 246, 243, 0.35); border-radius: 999px;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--on-ink-muted);
+}
+@media (min-width: 640px) {
+  .site .site-drift-poster { width: 150px; }
+  .site-why { grid-template-columns: 1fr 1fr; gap: 36px; }
+}
+@media (min-width: 900px) { .site-drift { padding-left: max(32px, calc((100vw - 1120px) / 2 + 32px)); } }

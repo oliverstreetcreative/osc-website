@@ -19,9 +19,12 @@ test("house voice: no em dashes, no straight apostrophes", () => {
   }
 })
 
-test("humility is shown, never claimed: no 'humble', no superlatives", () => {
-  const banned = /\b(humble|humility|best|award[- ]winning|world[- ]class|leading|premier|top[- ]rated|unmatched|unparalleled|#1)\b/i
+test("no superlatives; 'humble' only in Sam's own differentiator line (10/8 12:02)", () => {
+  const banned = /\b(best|award[- ]winning|world[- ]class|leading|premier|top[- ]rated|unmatched|unparalleled|#1)\b/i
   for (const l of allLines()) assert.doesNotMatch(l.t, banned, l.t)
+  const humble = allLines().filter((l) => /\bhumbl/i.test(l.t))
+  assert.deepEqual(humble.map((l) => l.t), [HOME.whyHumble.t])
+  assert.match(HOME.whyHumble.src, /^SAM 10\/8 12:02/)
 })
 
 test("the headline's pitch and Sam's memo lines are his words, tagged SAM", () => {
@@ -35,6 +38,6 @@ test("open lines are few and listed", () => {
   const open = allLines().filter((l) => /^OPEN/.test(l.src))
   assert.deepEqual(
     open.map((l) => l.t),
-    ["From Sam"],
+    ["From Sam", "Open · Sam’s words go here"],
   )
 })

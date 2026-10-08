@@ -5,8 +5,8 @@
 // Rules this file keeps:
 //   - Sam's OWN words only (his 10/8 voice memo, the 10/7 rulings, or approved site copy). A missing line is OPEN,
 //     never filled with marketing copy.
-//   - Humility is shown, never claimed (Sam 10/7: "I genuinely want the brand to be humble"): the page never calls
-//     OSC humble, and carries no superlatives.
+//   - Humility is shown, not boasted (Sam 10/7: "I genuinely want the brand to be humble"): no superlatives. The
+//     one place the page says "humble" is Sam's own differentiator line (10/8 12:02, "we're humble, I guess").
 //   - His landing-video script file is never edited (thread 8). The memo lines are quoted from his raw transcript;
 //     when his reworked script lands, these follow it.
 // src tags: SAM <when/where> · SITE (approved site copy or the ruled tagline) · OPEN (needs his words).
@@ -35,7 +35,7 @@ export const HOME = {
   storyH2: L("You don’t need content. You need trust.", "SAM 10/7 13:15 (held as a section line, 10/7 22:45)"),
   story: [
     L(
-      "Content is designed to steal your attention. It’s designed to get engagement, which really means stealing your attention so it can be sold to advertisers.",
+      "Content, to me, is something that’s designed to steal your attention. It’s designed to get engagement, which really means stealing your attention so it can be sold to advertisers.",
       "SAM 10/8 memo l.2",
     ),
     L("The world’s awash in content. The world doesn’t need more content.", "SAM 10/8 memo l.2"),
@@ -65,6 +65,21 @@ export const HOME = {
   ),
   diyFaq: L("Questions people ask us", "the FAQ page’s h1 (NEW, 10/8)"),
   diyGuide: L("How to shoot a customer testimonial on your iPhone (PDF)", "the guide’s own title"),
+
+  // WHY US (Sam 10/8 ~12:02): 'the movie credits should begin a "why us" i.e. not someone else section - that pitch
+  // is - we're serious filmmakers, we're a nimble operation, and we're humble, I guess. The differentiators.'
+  // His three lines are used as he said them; the words under the last two are his to write (OPEN).
+  whyEyebrow: L("Why us", "SAM 10/8 12:02"),
+  whyH2: L("We’re serious filmmakers.", "SAM 10/8 12:02"),
+  whyLede: L(
+    "We’ve spent years working on Hollywood film sets. These are some of the movies and shows.",
+    "SITE (the credits band, 9/27)",
+  ),
+  whyNimble: L("We’re a nimble operation.", "SAM 10/8 12:02"),
+  whyHumble: L("And we’re humble.", "SAM 10/8 12:02 ('and we're humble, I guess')"),
+  whyOpen: L("Open · Sam’s words go here", "OPEN (marker under the last two differentiators)"),
+  creditsLabel: L("Film credits", "SITE (the old section's eyebrow)"),
+  drift: L("Pause the posters", "control label (WCAG 2.2.2: moving content needs a pause)"),
 
   closeEyebrow: L("Get started", "SITE"),
   closeH2: L("Let’s do this together.", "SAM 10/8 memo l.6"),
