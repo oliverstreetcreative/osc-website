@@ -6,18 +6,19 @@ import { SiteFrame, SectionHead } from "@/components/site/SiteFrame"
 import { HeroReel } from "@/components/site/HeroReel"
 import { MuxFacade } from "@/components/site/MuxFacade"
 import { PlayBadge } from "@/app/client/ui"
-import { faqIsUp, siteEnv } from "@/lib/faq"
+import { GUIDE_IS_FINAL, draftsAllowed, faqIsUp, siteEnv } from "@/lib/faq"
+import { HOME } from "@/lib/home-copy"
 
 // ---------------------------------------------------------------------------
-// THE HOMEPAGE, restyled in the hub's vein (Sam, 10/3/26 01:20: "I'm loving the
-// hub so much, I think it might be right to redesign the website, at least on
-// staging, in this vein"). Same design system as the client site: paper and ink,
-// white cards, big confident type, orange only where it means something, phone
-// first, one idea per screen.
+// THE HOMEPAGE, rebuilt on staging around Sam's positioning (10/8/26 ~11:05: "we're
+// humble storytellers in an age of endless content"; website-redesign SPEC
+// Feature 5). Same design system as the client site and every public page.
 //
-// The MESSAGE is unchanged and ruled by Sam: the tagline (9/23), the thesis
-// (sam-voice draft v3, still marked DRAFT), the three pillars (9/23), the copy
-// pass (9/27). Every film and quote is real and already public.
+// The words are Sam's own: the tagline (9/23) as the headline and pitch A under it
+// (his 10/7 22:45 ruling), his 10/8 voice memo for content vs story and the DIY
+// invitation, and the approved 9/27 copy for the pillars, work and quotes. They all
+// live in lib/home-copy.ts with their sources. Humility is shown, never claimed:
+// the page never calls OSC humble.
 //
 // The page is a server component. The only client JavaScript is the hero reel's
 // play/pause; the film credits render on the server (lib/tmdb.ts).
@@ -78,7 +79,7 @@ const PILLARS: Pillar[] = [
 ]
 
 // Homepage copy, plain-language pass (Jesse Dacri's claudespeak note 9/27; Sam
-// approved it outright 22:35). Written through sam-voice. Unchanged by the restyle.
+// approved it outright 22:35). Written through sam-voice. Unchanged by the rebuild.
 const HOME_COPY = {
   pillarsH2: "What we make.",
   pillarsLede: "We make three kinds of videos. Here’s each one, with work to show for it.",
@@ -89,12 +90,11 @@ const HOME_COPY = {
     "Your customers, or you, on camera talking honestly about the work. We shoot it so they sound like themselves.",
   workH2: "Some of our work.",
   creditsH2: "We come from the movie business.",
-  contactBody:
-    "Book a free call and tell us what you need. We’ll tell you how we’d shoot it and what it would cost.",
 } as const
 
 const BOOK = "https://cal.com/oliverstreetcreative"
 const TESTIMONIAL_REEL = "4YKpfx6WR7jjcdOfh2LcZfflSqwvz2k52TMNUcXbA28"
+const GUIDE = "/guides/iphone-testimonial-guide.pdf"
 
 const PILLAR_BY_SLUG: Record<string, Pillar> = Object.fromEntries(
   PILLARS.flatMap((p) => p.workSlugs.map((s) => [s, p])),
@@ -117,16 +117,17 @@ export default async function HomePage() {
   const credits = await loadCredits()
   const work = (slugs: string[]) =>
     slugs.map((s) => WORK_VIDEOS.find((v) => v.slug === s)).filter((v): v is WorkVideo => Boolean(v))
+  // The DIY screen's two resources, each behind its own gate (lib/faq.ts, fail closed). With neither, no screen.
+  const showFaq = faqIsUp(siteEnv())
+  const showGuide = GUIDE_IS_FINAL || draftsAllowed()
 
   return (
     <SiteFrame>
-      {/* 1 · HERO: the reel, and the tagline over it */}
+      {/* 1 · HERO: the reel, the tagline (Sam's headline, 10/7) and its supporting line */}
       <section className="site-hero" aria-labelledby="hero-title">
         <HeroReel poster={posterSet(HERO_REEL.poster)} sources={heroReelSources(HERO_REEL)} />
         <div className="site-hero-in">
-          {/* "Video production" added 10/3: with only a still on screen, the visible first
-              screen never said what OSC makes (adversarial review finding 11). */}
-          <div className="cs-eyebrow">Video production · Covington, KY</div>
+          <div className="cs-eyebrow">{HOME.heroEyebrow.t}</div>
           <h1 id="hero-title">
             <span className="sr-only">
               Oliver Street Creative — stories that move hearts, open minds, and build trust. Video production in
@@ -136,6 +137,7 @@ export default async function HomePage() {
               Stories that move hearts, open minds, and <em>build trust.</em>
             </span>
           </h1>
+          <p className="site-lede">{HOME.heroSub.t}</p>
           <div className="site-act">
             <a className="cs-btn light lg" href={BOOK} target="_blank" rel="noopener noreferrer">
               Book a call
@@ -147,33 +149,43 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 2 · WHY TRUST: the thesis (sam-voice draft v3, not yet approved by Sam) */}
-      <section id="why-trust" className="site-sec white">
+      {/* 2 · THE PITCH that follows the headline (Sam 10/7 22:45: "A is the pitch that follows") */}
+      <section id="pitch" className="site-sec white">
         <div className="site-in">
-          <SectionHead eyebrow="Why trust" title={<>Your brand doesn&rsquo;t need content. It needs trust.</>} />
-          <div className="site-prose">
-            <p>
-              Screens aren&rsquo;t going anywhere. More and more of how we meet people, hire people, give to causes, and
-              decide who to trust happens through a screen. And now anyone can make &ldquo;content.&rdquo; AI can make it
-              by the truckload, for free.
-            </p>
-            <p>But content isn&rsquo;t what moves people. Trust is. People have to believe you.</p>
-            <p>
-              That happens when a real person comes through the screen - a customer, a founder, a family your work
-              helped. Getting that to come through takes craft. Knowing what to ask, when to stop talking, how to light a
-              face so it looks like a person and not an ad, and how to cut it so it still sounds like them.
-            </p>
-            <p>It&rsquo;s not flashy. It&rsquo;s good, honest work. That&rsquo;s what we do.</p>
-          </div>
-          {/* DRAFT MARKER: thesis copy is sam-voice draft v3 (2026-09-23), not yet approved by Sam */}
-          <span className="cs-pill site-draft">Draft copy · v3 · 9/23/26 · awaiting Sam</span>
+          <p className="site-pitch">{HOME.pitch.t}</p>
+          {/* DRAFT MARKER: the rebuilt page's copy awaits Sam (shown wherever the page renders, like the old thesis pill) */}
+          <span className="cs-pill site-draft">{HOME.draftPill.t}</span>
         </div>
       </section>
 
-      {/* 3 · WHAT WE MAKE: the tagline's three clauses, each backed by public work */}
-      <section id="what-we-make" className="site-sec">
+      {/* 3 · SAM'S INTRO VIDEO: a placeholder until he shoots it (Sam 10/8 ~11:05: "Put a placeholder for the video") */}
+      <section id="from-sam" className="site-sec ink">
         <div className="site-in">
-          <SectionHead eyebrow="What we do" title={HOME_COPY.pillarsH2} lede={HOME_COPY.pillarsLede} />
+          <SectionHead eyebrow={HOME.videoEyebrow.t} title={HOME.videoH2.t} />
+          <div className="site-tbd" role="img" aria-label={`Video placeholder: ${HOME.videoLabel.t}`}>
+            <span>{HOME.videoLabel.t}</span>
+            <PlayBadge />
+          </div>
+        </div>
+      </section>
+
+      {/* 4 · CONTENT VS STORY: Sam's 10/8 voice memo, under his 10/7 line */}
+      <section id="story" className="site-sec">
+        <div className="site-in">
+          <SectionHead title={HOME.storyH2.t} />
+          <div className="site-prose">
+            {HOME.story.map((p) => (
+              <p key={p.t}>{p.t}</p>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 5 · WHAT WE MAKE: Sam's line, then the tagline's three clauses, each backed by public work */}
+      <section id="what-we-make" className="site-sec white">
+        <div className="site-in">
+          <SectionHead eyebrow="What we do" title={HOME_COPY.pillarsH2} lede={HOME.whatWeDo.t} />
+          <p className="site-lede site-lede-2">{HOME_COPY.pillarsLede}</p>
           <div className="site-grid3">
             {PILLARS.map((p) => {
               const films = work(p.workSlugs)
@@ -217,7 +229,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 4 · THE WORK: ink, because this is what you watch */}
+      {/* 6 · THE WORK: ink, because this is what you watch */}
       <section id="work" className="site-sec ink">
         <div className="site-in">
           <SectionHead eyebrow="Work" title={HOME_COPY.workH2} lede={<>A few of the films we&rsquo;ve made.</>} />
@@ -252,8 +264,33 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 5 · TESTIMONIALS: the same three real quotes, the same film */}
-      <section id="testimonials" className="site-sec">
+      {/* 7 · EVERYBODY'S A FILMMAKER: DIY, encouraged, never discouraged (Sam 10/8) */}
+      {showFaq || showGuide ? (
+        <section id="diy" className="site-sec">
+          <div className="site-in">
+            <SectionHead title={HOME.diyH2.t} lede={HOME.diyBody.t} />
+            <ul className="site-res">
+              {showFaq ? (
+                <li>
+                  <Link className="site-link" href="/faq">
+                    {HOME.diyFaq.t}
+                  </Link>
+                </li>
+              ) : null}
+              {showGuide ? (
+                <li>
+                  <a className="site-link" href={GUIDE} target="_blank" rel="noopener">
+                    {HOME.diyGuide.t}
+                  </a>
+                </li>
+              ) : null}
+            </ul>
+          </div>
+        </section>
+      ) : null}
+
+      {/* 8 · TESTIMONIALS: the same three real quotes, the same film */}
+      <section id="testimonials" className="site-sec white">
         <div className="site-in">
           <SectionHead
             eyebrow="Testimonials"
@@ -305,7 +342,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 6 · FILM CREDITS: the craft has a paper trail */}
+      {/* 9 · FILM CREDITS: the craft has a paper trail */}
       {credits.length > 0 ? (
         <section id="credits" className="site-sec ink">
           <div className="site-in">
@@ -329,22 +366,23 @@ export default async function HomePage() {
         </section>
       ) : null}
 
-      {/* 7 · CONTACT */}
+      {/* 10 · CONTACT: Sam's 10/8 close */}
       <section id="contact" className="site-sec">
         <div className="site-in">
           <div className="site-contact">
             <div>
-              <div className="cs-eyebrow">Get started</div>
+              <div className="cs-eyebrow">{HOME.closeEyebrow.t}</div>
               <h2 className="site-h2" style={{ marginTop: 14 }}>
-                Let&rsquo;s make something together.
+                {HOME.closeH2.t}
               </h2>
-              <p className="site-lede">{HOME_COPY.contactBody}</p>
+              <p className="site-lede">{HOME.closeLede.t}</p>
+              <p className="site-lede">{HOME.closeBody.t}</p>
               <div className="site-act">
                 <a className="cs-btn light lg" href={BOOK} target="_blank" rel="noopener noreferrer">
                   Schedule free consultation
                 </a>
                 {/* The FAQ (Sam 10/8): only where /faq is up - never on the live site before Sam approves it (fails closed) */}
-                {faqIsUp(siteEnv()) ? (
+                {showFaq ? (
                   <Link className="cs-btn on-ink lg" href="/faq">
                     Read the FAQ
                   </Link>

@@ -404,3 +404,11 @@ html[data-motion="io"] .site .r > .seen { opacity: 1; transform: none; }
   .site-faq-a { padding: 0 24px 28px; }
   .site-sh { padding: 24px 22px 10px; }
 }
+
+/* ---------- homepage v2 (website-redesign SPEC Feature 5) ---------- */
+/* the pitch that follows the headline: one statement on its own white screen */
+.site .site-pitch { font-size: clamp(26px, 5.4vw, 44px); font-weight: 700; line-height: 1.18; letter-spacing: -0.025em; max-width: 26ch; text-wrap: balance; }
+.site .site-lede-2 { margin-top: 10px; }
+/* the DIY screen's resources: plain links, 44 px targets */
+.site-res { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 4px; font-size: 18px; }
+.site .site-res .site-link { display: inline-flex; align-items: center; min-height: 44px; }
