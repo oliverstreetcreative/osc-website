@@ -4,7 +4,7 @@ import { test } from "node:test"
 import assert from "node:assert/strict"
 import {
   LONG, SCREENS, STEPS, allProblems, clientTypedFields, nextStep, parseScreen, prevStep, queueData, requestTitle, rowOp,
-  screenProblems, storedName, summary, type Answers, type Posted, type StoredFile,
+  fileType, screenProblems, storedName, summary, type Answers, type Posted, type StoredFile,
 } from "./request-form"
 
 const post = (pairs: [string, string][]): Posted => ({
@@ -29,9 +29,12 @@ test("the screens are v5's, in order, with Sam's six changes", () => {
 
 test("a save keeps every word: cleaned, never cut at the limit, flagged instead", () => {
   const long = "x".repeat(LONG + 50)
-  const v = parseScreen("project", post([["project_summary", `  A pitch‮ with a bidi override.\u0007 ${long}`], ["deliverables.count", "1"], ["deliverables.0.item", "Social cutdown"]]))
+  const v = parseScreen("project", post([["project_summary", `  A pitch\u202E with a bidi override.\u0007 ${long}`], ["deliverables.count", "1"], ["deliverables.0.item", "Social cutdown"]]))
   assert.ok(typeof v.project_summary === "string" && v.project_summary.length > LONG) // kept
-  assert.ok(!String(v.project_summary).includes("‮") && !String(v.project_summary).includes("\u0007"))
+  assert.ok(!String(v.project_summary).includes("\u202E") && !String(v.project_summary).includes("\u0007"))
+  // Hidden-text characters: supplementary selectors go; a run of ordinary ones keeps one.
+  const hidden = parseScreen("else", post([["anything_else", "hi\u{E0101}\u{E0102}\u{FE0F}\u{FE0F}\u{FE0F}"]]))
+  assert.equal(hidden.anything_else, "hi\u{FE0F}")
   assert.match(screenProblems("project", v).project_summary ?? "", /over 2,000 characters/)
 })
 
@@ -94,6 +97,7 @@ test("the card's title: the pitch's first sentence, cut at a word, never money",
   assert.equal(requestTitle(a("A landing video for our studio. It should feel warm.")), "A landing video for our studio")
   assert.equal(requestTitle(a("We need a $20k campaign spot for the fall.")), "Your project request")
   assert.equal(requestTitle(a("Budget is 15k for three spots.")), "Your project request")
+  assert.equal(requestTitle(a("A 4K brand film for 1,200 donors. Warm.")), "A 4K brand film for 1,200 donors")
   assert.equal(requestTitle(a("")), "Your project request")
   const long = requestTitle(a("A long pitch about a documentary following three generations of a family farm in rural Kentucky"))
   assert.ok(long.endsWith("…") && long.length <= 71, long)
@@ -156,4 +160,6 @@ test("a stored file: numbered, a safe stem, v5's types only", () => {
   assert.equal(storedName(1, "evil.html"), null)
   assert.equal(storedName(1, "noextension"), null)
   assert.equal(storedName(1, ".pdf"), null)
+  assert.equal(fileType("03_logo.svg"), "image/svg+xml")
+  assert.equal(fileType("01_brand.PDF"), "application/pdf")
 })

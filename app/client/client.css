@@ -567,6 +567,8 @@ a.cs-row:hover { background: var(--zebra); }
 .cs .cs-sheet-act { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 12px; }
 .cs .cs-sheet-act .cs-link { background: none; border: 0; font: inherit; color: var(--mut); cursor: pointer; }
 /* Start a project v3 (SPEC §31 v2): one section per screen, saved as she goes; no script needed anywhere. */
+.cs .cs-q-default { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.cs .cs-q { position: relative; }
 .cs .cs-q-progress { height: 4px; background: var(--line); border-radius: 2px; margin-top: 10px; overflow: hidden; }
 .cs .cs-q-progress i { display: block; height: 100%; background: var(--accent-fill); border-radius: 2px; }
 .cs .cs-q { gap: 20px; }

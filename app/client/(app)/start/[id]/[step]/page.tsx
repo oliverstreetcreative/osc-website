@@ -8,7 +8,7 @@ export const metadata = { title: "Start a project" }
 export const dynamic = "force-dynamic"
 
 // One screen of her draft, drawn from what's saved. `check=1` (after a refused save) shows each problem by its field.
-export default async function DraftScreen({ params, searchParams }: { params: { id: string; step: string }; searchParams: { check?: string; up?: string } }) {
+export default async function DraftScreen({ params, searchParams }: { params: { id: string; step: string }; searchParams: { check?: string; up?: string; from?: string } }) {
   const ctx = await requireClientContext()
   if (ctx.viewing) redirect("/client/start/look/about")
   if (!isStep(params.step)) notFound()
@@ -27,6 +27,7 @@ export default async function DraftScreen({ params, searchParams }: { params: { 
       who={{ name: ctx.user.name, email: ctx.user.email, company: ctx.org.name }}
       files={files}
       upload={searchParams.up ?? null}
+      fromReview={searchParams.from === "review"}
     />
   )
 }

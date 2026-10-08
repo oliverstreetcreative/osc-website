@@ -850,7 +850,9 @@ model ProjectRequest {
   assets          Json? // [{n, name, stored, type, size, path, at, state, removed_at?}]
   assets_later    Boolean      @default(false)
   sent_at         DateTime?
-  draft_slot      String?      @unique // "<person>:<org>" while a draft (one per person per org); null once sent
+  // "<person>:<org>" while a draft; null once sent. One draft per person per org is kept by an advisory lock in code,
+  // NOT a unique index: db push refuses a new unique index on a filled table without --accept-data-loss (built review).
+  draft_slot      String?
   queue_file      String?
   queued_at       DateTime?
   picked_up_at    DateTime?
@@ -864,6 +866,7 @@ model ProjectRequest {
 
   @@index([organization_id])
   @@index([status])
+  @@index([draft_slot])
   @@map("project_requests")
 }
 

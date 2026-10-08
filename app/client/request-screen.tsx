@@ -20,6 +20,8 @@ type Props = {
   who?: { name: string; email: string; company: string }
   files?: StoredFile[]
   upload?: string | null
+  /** Came from Review's "Change": a complete save goes straight back to Review. */
+  fromReview?: boolean
 }
 
 const UPLOAD_WORDS: Record<string, string> = {
@@ -32,16 +34,19 @@ const UPLOAD_WORDS: Record<string, string> = {
   none: "Pick a file first.",
 }
 
-export function RequestScreen({ step, values, problems, mode, id, who, files = [], upload }: Props) {
+export function RequestScreen({ step, values, problems, mode, id, who, files = [], upload, fromReview = false }: Props) {
   const screen = SCREENS[step]
   const n = stepNumber(step)
   const look = mode === "look"
   const has = Object.keys(problems).length > 0
   const nextHref = nextStep(step) === "review" ? null : `/client/start/look/${nextStep(step)}`
+  // Listed: everything not removed or failed (an upload a deploy cut short shows as "didn't finish", with Remove).
+  // Counted: stored files only, as the server counts them (built review: a stuck upload must not hide "later").
   const live = files.filter((f) => !f.removed_at && (f as { state?: string }).state !== "failed")
+  const stored = live.filter((f) => (f as { state?: string }).state !== "uploading")
   // v5: "I'll send these later" shows only while nothing is uploaded.
   const fields = screen.fields.filter(
-    (f) => !(screen.billing ?? []).includes(f.name) && !(f.name === "brand_assets_later" && live.length > 0),
+    (f) => !(screen.billing ?? []).includes(f.name) && !(f.name === "brand_assets_later" && stored.length > 0),
   )
   const billing = screen.fields.filter((f) => (screen.billing ?? []).includes(f.name))
   const billingOpen = billing.some((f) => valueText(values[f.name]) || problems[f.name])
@@ -96,9 +101,15 @@ export function RequestScreen({ step, values, problems, mode, id, who, files = [
           </div>
         </div>
       ) : (
-        <form action="/client/start/save" method="post" className="cs-start cs-q">
+        // noValidate: the browser's own checks (a URL without https://, a number out of range) would refuse EVERY
+        // button, Finish later included, before a word is saved; the server checks instead (built review).
+        <form action="/client/start/save" method="post" className="cs-start cs-q" noValidate>
+          {/* The keyboard's Go presses the FIRST submit button in the form. This one, drawn but out of sight (Safari
+              skips buttons that aren't rendered), makes that Save, never a row's Add or Remove. */}
+          <button className="cs-q-default" name="op" value="next" tabIndex={-1} aria-hidden="true">Save and continue</button>
           {id ? <input type="hidden" name="id" value={id} /> : null}
           <input type="hidden" name="step" value={step} />
+          {fromReview ? <input type="hidden" name="from" value="review" /> : null}
           {body}
           {/* "Save and continue" comes FIRST in the markup: the keyboard's Go presses the first submit button. CSS puts
               Back on the left. */}
@@ -283,7 +294,7 @@ function AssetsBlock({ id, files, look, upload }: { id?: string; files: StoredFi
           {files.map((f) => (
             <li key={f.n}>
               <Paperclip size={16} aria-hidden />
-              <span>{f.name}</span>
+              <span>{f.name}{(f as { state?: string }).state === "uploading" ? " (didn't finish uploading)" : ""}</span>
               {!look && id ? (
                 <form action="/client/start/remove" method="post">
                   <input type="hidden" name="id" value={id} />

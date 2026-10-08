@@ -226,27 +226,6 @@ export async function middleware(req: NextRequest) {
   }
   const isWrite = !['GET', 'HEAD', 'OPTIONS'].includes(req.method)
 
-  // SPEC §31 v2: an upload is ONE file of at most 25 MB. A bigger body, or one that won't say its size, is refused
-  // before anything reads it (Next would hold the whole body in memory). From an upload screen, back to it with the
-  // plain words; otherwise a bare 413.
-  if (req.method === 'POST' && req.nextUrl.pathname === '/client/start/upload') {
-    const len = Number(req.headers.get('content-length') ?? 'NaN')
-    if (!Number.isFinite(len) || len > 26 * 1024 * 1024) {
-      const from = req.headers.get('referer') ?? ''
-      try {
-        const u = new URL(from)
-        if (u.host === req.nextUrl.host && /^\/client\/(start|requests)\/[0-9a-f-]{36}\/assets$/i.test(u.pathname)) {
-          return NextResponse.redirect(new URL(`${u.pathname}?up=size`, req.nextUrl.origin), 303)
-        }
-      } catch {
-        /* no usable referer */
-      }
-      return new NextResponse('That file is too large to upload here (25 MB at most).', {
-        status: 413,
-        headers: { 'content-type': 'text/plain; charset=utf-8' },
-      })
-    }
-  }
 
   // The staging demo: valid only while it matches the current token; read-only everywhere (SPEC §19 v2). A demo token
   // from before the session rows (no `sid`) ends here too, with the "demo ended" note (SPEC §27 P0 v2).
@@ -483,5 +462,8 @@ async function protectedRoute(req: NextRequest, pathname: string): Promise<NextR
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  // SPEC §31 v2 (built review): the brand-asset upload never runs through middleware. Next 14 holds a request's whole
+  // body (twice) before middleware can answer, so a guard here couldn't stop a huge file; the upload route does its own
+  // checks (same origin, read-only and preview sessions refused, the size refused before the body is read).
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|client/start/upload$|start/upload$).*)'],
 }

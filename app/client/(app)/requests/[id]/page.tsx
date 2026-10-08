@@ -4,7 +4,7 @@ import { Paperclip } from "lucide-react"
 import { requireClientContext } from "@/lib/client/context"
 import { db } from "@/lib/db"
 import { seesMoney } from "@/lib/client/money"
-import { canRequest } from "@/lib/client/requests"
+import { canRequest, kindLabel, timingLabel } from "@/lib/client/requests"
 import { answersOf, filesOf, liveFiles } from "@/lib/client/request-drafts"
 import { summary } from "@/lib/client/request-form"
 import { HelpFooter, OSC_PHONE, OSC_SMS, PhaseTracker } from "@/app/client/ui"
@@ -24,7 +24,20 @@ export default async function RequestPage({ params }: { params: { id: string } }
   if (!r) notFound()
   const files = liveFiles(filesOf(r.assets))
   const { line, nudge } = requestStatus(r)
-  const groups = r.form_version >= 5 ? summary(answersOf(r.answers), { seesMoney: seesMoney(ctx.role), files, later: r.assets_later && !files.length }) : []
+  const groups =
+    r.form_version >= 5
+      ? summary(answersOf(r.answers), { seesMoney: seesMoney(ctx.role), files, later: r.assets_later && !files.length })
+      : [
+          {
+            step: "project" as const,
+            title: "Your request",
+            rows: [
+              { label: "Kind", value: kindLabel(r.kind, r.like_project) },
+              { label: "When", value: timingLabel(r.timing, r.due_on) },
+              ...(r.about ? [{ label: "What it's for", value: r.about }] : []),
+            ].filter((x) => x.value),
+          },
+        ]
   const mayUpload = r.assets_later && !files.length && !ctx.viewing && (r.person_id === ctx.user.id || canRequest(ctx))
   return (
     <>

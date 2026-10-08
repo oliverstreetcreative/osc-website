@@ -30,6 +30,7 @@ export async function POST(req: Request) {
   if (!draft) return NextResponse.redirect(`${base}/client/start`, 303)
 
   const op = posted.get("op") ?? "next"
+  const fromReview = posted.get("from") === "review"
   const values = parseScreen(step, posted, op)
   const files = liveFiles(filesOf(draft.assets)).length
   let to: Step | "review" | "home"
@@ -45,10 +46,11 @@ export async function POST(req: Request) {
     to = "home"
   } else if (Object.keys(screenProblems(step, values, { files })).length) {
     to = step
-    query = "?check=1"
+    query = fromReview ? "?check=1&from=review" : "?check=1"
   } else {
-    to = nextStep(step)
+    to = fromReview ? "review" : nextStep(step)
   }
+  if (rop && fromReview) query = "?from=review"
   await saveScreen(draft.id, step, values, to === "home" ? step : to)
   if (to === "home") return NextResponse.redirect(`${base}/client?saved=1`, 303)
   return NextResponse.redirect(`${base}/client/start/${draft.id}/${to}${query}${anchor}`, 303)

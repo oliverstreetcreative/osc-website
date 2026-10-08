@@ -321,10 +321,16 @@ export type Answers = Partial<Record<Step, ScreenValues>>
 
 /** Text as the client typed it, made safe to keep: no control, format or direction characters; bounded. */
 const CONTROL_OR_FORMAT = new RegExp("[\\p{Cc}\\p{Cf}]", "gu")
+// Supplementary variation selectors hide text Sam can't see but a model reading the queue can (the old cleanText's
+// rule, kept: built review 10/8); a run of ordinary selectors keeps one (emoji use one).
+const SUPPLEMENTARY_VARIATION = new RegExp("[\\u{E0100}-\\u{E01EF}]", "gu")
+const VARIATION_RUN = new RegExp("[\\u{FE00}-\\u{FE0F}]{2,}", "gu")
 export function cleanTyped(raw: string, max = CEILING): string {
   return raw
     .replace(/\r\n?/g, "\n")
     .replace(CONTROL_OR_FORMAT, (c) => (c === "\n" || c === "\t" ? c : ""))
+    .replace(SUPPLEMENTARY_VARIATION, "")
+    .replace(VARIATION_RUN, (m) => m[0])
     .replace(/\n{3,}/g, "\n\n")
     .trim()
     .slice(0, max)
@@ -464,7 +470,8 @@ export const stepNumber = (s: Step) => STEPS.indexOf(s) + 1
 
 // ------------------------------------------------------------------------------------------------- title + summary
 
-const MONEY = /\$|\b\d+(?:[.,]\d+)?\s?[kK]\b|\b\d{1,3}(?:,\d{3})+\b|\bdollars?\b/
+// Money words only: a "$", or dollars/USD/budget/bucks. ("A 4K brand film for 1,200 donors" keeps its title.)
+const MONEY = /\$|\b(dollars?|usd|budget|bucks)\b/i
 
 /** The card's title: the pitch's first sentence, up to ~70 characters cut at a word. Never money (Home is words only). */
 export function requestTitle(answers: Answers): string {
@@ -662,6 +669,17 @@ export function storedName(n: number, original: string): string | null {
       .slice(0, 40) || "file"
   return `${String(n).padStart(2, "0")}_${stem}${ext}`
 }
+
+const TYPES: Record<string, string> = {
+  ".pdf": "application/pdf", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".svg": "image/svg+xml",
+  ".ai": "application/postscript", ".eps": "application/postscript", ".psd": "image/vnd.adobe.photoshop",
+  ".zip": "application/zip", ".otf": "font/otf", ".ttf": "font/ttf", ".woff": "font/woff", ".woff2": "font/woff2",
+  ".txt": "text/plain", ".doc": "application/msword",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".key": "application/vnd.apple.keynote",
+  ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+}
+/** A stored file's type, from its extension (never what the browser said). */
+export const fileType = (stored: string) => TYPES[stored.slice(stored.lastIndexOf(".")).toLowerCase()] ?? "application/octet-stream"
 
 /** The name she sees: her own file name, cleaned and bounded (never a path). */
 export const shownName = (original: string) => cleanTyped(original.replace(/\\/g, "/").split("/").pop() ?? "", 120) || "file"

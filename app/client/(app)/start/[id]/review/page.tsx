@@ -36,7 +36,7 @@ export default async function Review({ params, searchParams }: { params: { id: s
         <section key={g.step} className="cs-section">
           <h2 className="cs-h2">
             <span>{g.title}</span>
-            <Link href={`/client/start/${draft.id}/${g.step}`}>Change</Link>
+            <Link href={`/client/start/${draft.id}/${g.step}?from=review`}>Change</Link>
           </h2>
           {g.rows.length ? (
             <div className="cs-rows">

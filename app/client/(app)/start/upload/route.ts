@@ -3,18 +3,35 @@ import { canWrite, getClientContext } from "@/lib/client/context"
 import { addFile } from "@/lib/client/request-drafts"
 import { MAX_FILE_BYTES } from "@/lib/client/request-form"
 import { publicOrigin } from "@/lib/client/host"
+import { sameOrigin } from "@/lib/support/http"
+import { isPreviewSession } from "@/lib/auth/require-session"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 // ONE brand-asset file (SPEC §31 v2), from the draft's assets screen (back=form) or a sent request's "later" page
-// (back=request). Middleware already refused a body over 26 MB, or one without a length, before this runs.
+// (back=request). This path skips middleware (it would buffer the whole body first), so the checks middleware gives
+// every other write happen HERE, before the body is read: the size it declares, the same origin, a real session that
+// may write (never staff viewing, the demo, or a preview sign-in).
 export async function POST(req: Request) {
-  const ctx = await getClientContext()
-  if (!canWrite(ctx)) return new NextResponse(null, { status: ctx ? 403 : 401 })
   const base = publicOrigin(req)
   const declared = Number(req.headers.get("content-length") ?? "NaN")
-  if (!Number.isFinite(declared) || declared > MAX_FILE_BYTES + 1024 * 1024) return new NextResponse("Too large", { status: 413 })
+  if (!Number.isFinite(declared) || declared > MAX_FILE_BYTES + 1024 * 1024) {
+    // From an upload screen of this site: back to it with plain words. Otherwise a bare 413.
+    try {
+      const from = new URL(req.headers.get("referer") ?? "")
+      if (from.origin === base && /^\/client\/(start|requests)\/[0-9a-f-]{36}\/assets$/i.test(from.pathname)) {
+        return NextResponse.redirect(`${base}${from.pathname}?up=size`, 303)
+      }
+    } catch {
+      /* no usable referer */
+    }
+    return new NextResponse("That file is too large to upload here (25 MB at most).", { status: 413, headers: { "content-type": "text/plain; charset=utf-8" } })
+  }
+  if (!sameOrigin(req)) return new NextResponse("This request came from another site and was refused.", { status: 403 })
+  const ctx = await getClientContext()
+  if (!canWrite(ctx)) return new NextResponse(null, { status: ctx ? 403 : 401 })
+  if (await isPreviewSession()) return new NextResponse("Read-only: this is a preview sign-in.", { status: 403 })
   let form: FormData
   try {
     form = await req.formData()

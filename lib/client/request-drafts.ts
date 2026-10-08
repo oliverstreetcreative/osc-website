@@ -6,7 +6,7 @@ import type { Prisma } from "@/generated/prisma"
 import type { ClientContext } from "./context"
 import { writeNewBinary } from "./dropbox-write"
 import { assetsFolder, canRequest, deliver, newFormKey } from "./requests"
-import { MAX_FILES, MAX_FILE_BYTES, allProblems, shownName, storedName, type Answers, type ScreenValues, type Step, type StoredFile } from "./request-form"
+import { MAX_FILES, MAX_FILE_BYTES, allProblems, fileType, shownName, storedName, type Answers, type ScreenValues, type Step, type StoredFile } from "./request-form"
 
 export const draftSlot = (personId: string, orgId: string) => `${personId}:${orgId}`
 
@@ -17,7 +17,7 @@ export const liveFiles = (files: StoredFile[]) => files.filter((f) => !f.removed
 
 /** Her open draft for the org she's in, if any. */
 export async function currentDraft(ctx: ClientContext) {
-  return db.projectRequest.findUnique({ where: { draft_slot: draftSlot(ctx.user.id, ctx.org.id) } })
+  return db.projectRequest.findFirst({ where: { draft_slot: draftSlot(ctx.user.id, ctx.org.id), status: "draft" }, orderBy: { created_at: "asc" } })
 }
 
 /** One of HER drafts, in the org she's in (anything else is nobody's business here). */
@@ -26,14 +26,18 @@ export async function draftFor(ctx: ClientContext, id: string) {
   return db.projectRequest.findFirst({ where: { id, person_id: ctx.user.id, organization_id: ctx.org.id, status: "draft" } })
 }
 
-const isUnique = (e: unknown) => (e as { code?: string } | null)?.code === "P2002"
-
-/** Her draft, made the first time she saves a screen. One per person per org: a race re-reads the winner. */
+/** Her draft, made the first time she saves a screen. One per person per org, kept by an advisory lock on her slot
+ *  (two tabs racing to make the first one get the same draft): not a unique index, which db push won't add to a
+ *  filled table (built review 10/8). */
 export async function ensureDraft(ctx: ClientContext) {
   const have = await currentDraft(ctx)
   if (have) return have
-  try {
-    return await db.projectRequest.create({
+  const slot = draftSlot(ctx.user.id, ctx.org.id)
+  return db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${slot}))`
+    const won = await tx.projectRequest.findFirst({ where: { draft_slot: slot, status: "draft" }, orderBy: { created_at: "asc" } })
+    if (won) return won
+    return tx.projectRequest.create({
       data: {
         organization_id: ctx.org.id,
         person_id: ctx.user.id,
@@ -44,15 +48,10 @@ export async function ensureDraft(ctx: ClientContext) {
         form_version: 5,
         answers: {},
         step: "about",
-        draft_slot: draftSlot(ctx.user.id, ctx.org.id),
+        draft_slot: slot,
       },
     })
-  } catch (e) {
-    if (!isUnique(e)) throw e
-    const won = await currentDraft(ctx)
-    if (!won) throw e
-    return won
-  }
+  })
 }
 
 type Tx = Prisma.TransactionClient
@@ -110,7 +109,7 @@ export async function addFile(
       n,
       name: shownName(file.name),
       stored,
-      type: file.type.slice(0, 100) || "application/octet-stream",
+      type: fileType(stored),
       size: file.bytes.byteLength,
       path: `${assetsFolder(r.organization.slug, id)}/${stored}`,
       at: new Date().toISOString(),

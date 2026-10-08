@@ -562,13 +562,13 @@ CREATE INDEX "proposal_views_document_id_at_idx" ON "proposal_views"("document_i
 CREATE UNIQUE INDEX "project_requests_form_key_key" ON "project_requests"("form_key");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "project_requests_draft_slot_key" ON "project_requests"("draft_slot");
-
--- CreateIndex
 CREATE INDEX "project_requests_organization_id_idx" ON "project_requests"("organization_id");
 
 -- CreateIndex
 CREATE INDEX "project_requests_status_idx" ON "project_requests"("status");
+
+-- CreateIndex
+CREATE INDEX "project_requests_draft_slot_idx" ON "project_requests"("draft_slot");
 
 -- CreateIndex
 CREATE INDEX "version_approvals_organization_id_idx" ON "version_approvals"("organization_id");
