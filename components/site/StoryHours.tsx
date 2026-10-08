@@ -1,39 +1,60 @@
-// "Where the hours go" (FAQ #1; website-redesign SPEC Feature 4). A server component with NO client JavaScript:
-// the kinds are native radios, the phone switch is a native checkbox, the steps are <details>. CSS :has() reads
-// which is checked and shows that kind's numbers (components/site/site.css, "where the hours go"), so it works
-// the moment the HTML paints, on a slow phone connection or with JavaScript off. Browsers without :has() get the
-// first kind as a captioned still picture and no controls.
-//
-// Every kind's numbers are in the page; CSS shows one set. The bar's two segments grow by custom properties
-// (--cap-<kind>, --story-<kind>) so switching kinds animates. One piece per page: the radio group's name is fixed.
-// The words live in lib/story-hours.ts (PIECE), where the house-voice test reads them.
-import type { CSSProperties } from "react"
-import { KINDS, PIECE, STEPS, hrs, kindSummary, storyTotal } from "@/lib/story-hours"
+// "Where the hours go" v2 (FAQ #1; website-redesign SPEC Feature 4, rebuilt 10/8 on price-estimator's per-finished-
+// minute model). A server component with NO client JavaScript: the kind and the length are native radios, the phone
+// switch is a native checkbox. CSS :has() reads which are checked and shows that combination's numbers and bar widths.
+// The combination rules are generated here from lib/story-hours.ts, so the numbers live in one place. Without :has(),
+// the default (a 3-minute video of people talking) shows as a captioned still picture and the controls are hidden.
+import { DEFAULT, KINDS, MINUTES, PIECE, REFERENCE, STEPS, captureHours, days, hrs, pct, shootDays, storyHours, summary } from "@/lib/story-hours"
 
-export function StoryHours({ placeholder }: { placeholder: boolean }) {
-  const vars: Record<string, number> = {}
-  for (const k of KINDS) {
-    vars[`--cap-${k.key}`] = k.filming
-    vars[`--story-${k.key}`] = storyTotal(k)
-  }
-  const most = Object.fromEntries(KINDS.map((k) => [k.key, Math.max(...k.steps)]))
+const combos = KINDS.flatMap((k) => MINUTES.map((m) => ({ k, m, key: `${k.key}-${m}` })))
+const def = combos.find((c) => c.k.key === DEFAULT.kind && c.m === DEFAULT.minutes)!
 
+/** The combination rules: which numbers show, and each bar's width. Built from the data, never typed twice. */
+function comboCss(): string {
+  const both = (k: string, m: number) =>
+    `.site-sh:has(.site-sh-k[value="${k}"]:checked):has(.site-sh-m[value="${m}"]:checked)`
+  const rules = [
+    // the default widths: the still picture without :has(), and the first paint everywhere
+    `.site-sh{--cap-w:${pct(captureHours(def.k, def.m))}%;--story-w:${pct(storyHours(def.m))}%}`,
+    "@supports selector(:has(*)){",
+    ".site-sh [data-c],.site-sh [data-m]{display:none}",
+    ...combos.map((c) => `${both(c.k.key, c.m)} [data-c="${c.key}"]{display:block}`),
+    ...MINUTES.map((m) => `.site-sh:has(.site-sh-m[value="${m}"]:checked) [data-m="${m}"]{display:block}`),
+    ...combos.map(
+      (c) => `${both(c.k.key, c.m)}{--cap-w:${pct(captureHours(c.k, c.m))}%;--story-w:${pct(storyHours(c.m))}%}`,
+    ),
+    "}",
+  ]
+  return rules.join("\n")
+}
+
+export function StoryHours({ draft }: { draft: boolean }) {
   return (
-    <div className="site-sh" style={vars as CSSProperties}>
+    <div className="site-sh">
+      {/* generated from constants only (no user input), so inlining is safe */}
+      <style dangerouslySetInnerHTML={{ __html: comboCss() }} />
       <div className="cs-eyebrow">{PIECE.eyebrow}</div>
       <h3 className="site-sh-h">{PIECE.heading}</h3>
-      {placeholder ? <span className="cs-pill site-sh-ph">{PIECE.placeholderPill}</span> : null}
+      {draft ? <span className="cs-pill site-sh-ph">{PIECE.draftPill}</span> : null}
 
-      {/* the row is a div inside the fieldset: older Safari won't make a fieldset itself a flex container */}
-      <fieldset className="site-sh-kinds site-sh-ctl">
-        <legend className="sr-only">{PIECE.kindsLegend}</legend>
+      {/* each row is a div inside its fieldset: older Safari won't make a fieldset itself a flex container */}
+      <fieldset className="site-sh-set site-sh-ctl">
+        <legend>{PIECE.kindsLegend}</legend>
         <div className="site-sh-row">
-          {KINDS.map((k, i) => (
+          {KINDS.map((k) => (
             <label key={k.key} className="site-sh-chip">
-              <input className="site-sh-k" type="radio" name="sh-kind" value={k.key} defaultChecked={i === 0} />
+              <input className="site-sh-k" type="radio" name="sh-kind" value={k.key} defaultChecked={k.key === DEFAULT.kind} />
               <span>{k.label}</span>
-              {/* heard with the choice, since the numbers it changes sit further down */}
-              <span className="sr-only">{`: ${kindSummary(k)}`}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <fieldset className="site-sh-set site-sh-ctl">
+        <legend>{PIECE.lengthLegend}</legend>
+        <div className="site-sh-row">
+          {MINUTES.map((m) => (
+            <label key={m} className="site-sh-chip min">
+              <input className="site-sh-m" type="radio" name="sh-min" value={m} defaultChecked={m === DEFAULT.minutes} />
+              <span>{m} min</span>
             </label>
           ))}
         </div>
@@ -41,28 +62,49 @@ export function StoryHours({ placeholder }: { placeholder: boolean }) {
       {/* shown only where the controls can't work (no :has()), so the still picture says what it is */}
       <p className="site-sh-still">{PIECE.stillCaption}</p>
 
-      <div className="site-sh-bar" aria-hidden="true">
-        <span className="site-sh-cap" />
-        <span className="site-sh-story" />
-      </div>
-      <div className="site-sh-legend">
-        <p>
-          {KINDS.map((k) => (
-            <b key={k.key} data-k={k.key}>
-              {hrs(k.filming)}
-            </b>
-          ))}
-          <span className="site-sh-off">{PIECE.filming}</span>
-          <span className="site-sh-on">{PIECE.filmingMine}</span>
+      {/* for screen readers: the chosen combination in one sentence (the bars are decorative) */}
+      {combos.map((c) => (
+        <p key={c.key} className="sr-only" data-c={c.key}>
+          {summary(c.k, c.m)}
         </p>
-        <p className="site-sh-r">
-          {KINDS.map((k) => (
-            <b key={k.key} data-k={k.key}>
-              {hrs(storyTotal(k))}
-            </b>
+      ))}
+
+      <div className="site-sh-rows" aria-hidden="true">
+        <div className="site-sh-line">
+          <div className="site-sh-top">
+            <span className="site-sh-name">
+              <span className="site-sh-off">{PIECE.filming}</span>
+              <span className="site-sh-on">{PIECE.filmingMine}</span>
+            </span>
+            {combos.map((c) => (
+              <b key={c.key} className="site-sh-num" data-c={c.key}>
+                {hrs(captureHours(c.k, c.m))}
+              </b>
+            ))}
+          </div>
+          <div className="site-sh-track">
+            <div className="site-sh-fill site-sh-cap" />
+          </div>
+          {combos.map((c) => (
+            <div key={c.key} className="site-sh-sub" data-c={c.key}>
+              {days(shootDays(c.k, c.m))}
+            </div>
           ))}
-          <span>{PIECE.story}</span>
-        </p>
+        </div>
+        <div className="site-sh-line site-sh-story-line">
+          <div className="site-sh-top">
+            <span className="site-sh-name">{PIECE.story}</span>
+            {MINUTES.map((m) => (
+              <b key={m} className="site-sh-num" data-m={m}>
+                {hrs(storyHours(m))}
+              </b>
+            ))}
+          </div>
+          <div className="site-sh-track">
+            <div className="site-sh-fill site-sh-story" />
+          </div>
+          <div className="site-sh-sub">{PIECE.storySub}</div>
+        </div>
       </div>
 
       <label className="cs-choice site-sh-diy site-sh-ctl">
@@ -75,37 +117,20 @@ export function StoryHours({ placeholder }: { placeholder: boolean }) {
       </label>
 
       <p className="site-sh-steps-h">{PIECE.stepsHeading}</p>
-      {/* role="list": WebKit drops list semantics from a list-style:none list */}
-      <ol className="site-sh-steps" role="list">
-        {STEPS.map((s, i) => (
-          <li key={s.name}>
-            <details>
-              {/* grid on an inner span, not the summary (older iOS Safari won't grid a <summary>) */}
-              <summary>
-                <span className="site-sh-srow">
-                  <span className="site-sh-nm">{s.name}</span>
-                  <span className="site-sh-hr">
-                    {KINDS.map((k) => (
-                      <span key={k.key} data-k={k.key}>
-                        {hrs(k.steps[i])}
-                      </span>
-                    ))}
-                  </span>
-                  <svg className="site-sh-chev" viewBox="0 0 16 16" aria-hidden="true">
-                    <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <span className="site-sh-mini" aria-hidden="true">
-                    {KINDS.map((k) => (
-                      <i key={k.key} data-k={k.key} style={{ width: `${(100 * k.steps[i]) / most[k.key]}%` }} />
-                    ))}
-                  </span>
-                </span>
-              </summary>
-              <p>{s.why}</p>
-            </details>
-          </li>
+      {/* role="list": WebKit drops list semantics from a styled list */}
+      <ul className="site-sh-steps" role="list">
+        {STEPS.map((s) => (
+          <li key={s}>{s}</li>
         ))}
-      </ol>
+      </ul>
+
+      <p className="site-sh-ref">
+        {REFERENCE.text}{" "}
+        <a className="site-link" href={REFERENCE.href} target="_blank" rel="noopener noreferrer">
+          {REFERENCE.label}
+        </a>
+      </p>
+      <p className="site-sh-close">{PIECE.close}</p>
     </div>
   )
 }

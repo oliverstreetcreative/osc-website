@@ -19,7 +19,7 @@ import {
   visibleEntries,
   type FaqEntry,
 } from "./faq"
-import { KINDS, PIECE, STEPS, STORY_PIECE_APPROVED, hrs, kindSummary, storyTotal } from "./story-hours"
+import { KINDS, MINUTES, PIECE, REFERENCE, STEPS, STORY_PIECE_APPROVED, captureHours, days, hrs, pct, shootDays, storyHours, summary } from "./story-hours"
 
 const prod = { production: true }
 const staging = { production: false }
@@ -110,17 +110,22 @@ test("every entry is well formed; an approval carries its date, and none is inve
   assert.equal(FAQ[0].widget, "story-hours")
 })
 
-test("the story work is the sum of its steps; every kind has one number per step", () => {
-  const expected: Record<string, [number, number]> = { testimonial: [2, 18], story: [16, 44], bigger: [24, 70] }
-  for (const k of KINDS) {
-    assert.equal(k.steps.length, STEPS.length, `${k.key} steps`)
-    assert.deepEqual([k.filming, storyTotal(k)], expected[k.key], `${k.key} (the mock's placeholders)`)
-    for (const h of k.steps) assert.ok(Number.isInteger(h) && h > 0, `${k.key} step hours`)
+test("the hours model matches price-estimator's table (hours-model.md): story 12/min, capture = shoot days x 10", () => {
+  const k = Object.fromEntries(KINDS.map((x) => [x.key, x]))
+  // hours-model.md's table: capture / story at 1, 3, 5 finished minutes
+  const table: Record<string, [number, number, number]> = { testimonial: [10, 10, 10], story: [10, 10, 20], bigger: [10, 20, 40] }
+  for (const [key, caps] of Object.entries(table)) {
+    assert.deepEqual([1, 3, 5].map((m) => captureHours(k[key], m)), caps, key)
   }
-  assert.deepEqual(
-    KINDS.map((k) => k.key),
-    ["testimonial", "story", "bigger"],
-  )
+  assert.deepEqual([1, 3, 5].map(storyHours), [12, 36, 60])
+  assert.equal(shootDays(k.bigger, 4), 3, "1.5 min a day: 4 min = 3 days, rounded up")
+  assert.equal(shootDays(k.testimonial, 1), 1, "never under one day")
+  for (const x of KINDS) for (const m of MINUTES) {
+    const c = pct(captureHours(x, m)), st = pct(storyHours(m))
+    assert.ok(c > 0 && c <= 100 && st > 0 && st <= 100, `${x.key} ${m}`)
+  }
+  assert.equal(STEPS.length, 7)
+  assert.ok(STEPS.every((s) => !/\d/.test(s)), "no hours per step (nobody measured the split)")
 })
 
 test("house voice: no em dashes and no straight apostrophes in anything a visitor reads", () => {
@@ -128,8 +133,9 @@ test("house voice: no em dashes and no straight apostrophes in anything a visito
   for (const x of FAQ) {
     for (const t of [x.q, ...x.a, ...(x.after ?? []), ...(x.link ? [x.link.lead, x.link.label] : [])]) texts.push([x.id, t])
   }
-  for (const s of STEPS) texts.push(["steps", s.name], ["steps", s.why])
-  for (const k of KINDS) texts.push(["kinds", k.label], ["kinds", kindSummary(k)])
+  for (const s of STEPS) texts.push(["steps", s])
+  for (const k of KINDS) for (const m of MINUTES) texts.push(["kinds", k.label], ["summary", summary(k, m)])
+  texts.push(["ref", REFERENCE.text], ["ref", REFERENCE.label])
   for (const [k, v] of Object.entries(PIECE)) texts.push([`PIECE.${k}`, v])
   for (const [k, v] of Object.entries(FAQ_PAGE)) {
     if (typeof v === "string") texts.push([`FAQ_PAGE.${k}`, v])
@@ -141,8 +147,10 @@ test("house voice: no em dashes and no straight apostrophes in anything a visito
   }
 })
 
-test("hours read 1 hr / N hrs; screen readers hear whole words", () => {
+test("hours and days read naturally; screen readers hear whole words", () => {
   assert.equal(hrs(1), "1 hr")
-  assert.equal(hrs(2), "2 hrs")
-  assert.equal(kindSummary(KINDS[0]), "2 hours filming, 18 hours of story work")
+  assert.equal(hrs(12), "12 hrs")
+  assert.equal(days(1), "1 shoot day")
+  assert.equal(days(2), "2 shoot days")
+  assert.equal(summary(KINDS[0], 3), "A 3-minute video of people talking: about 10 hours of filming and 36 hours of story work.")
 })

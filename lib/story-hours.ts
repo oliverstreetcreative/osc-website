@@ -1,74 +1,108 @@
-// "Where the hours go": what goes into a video, by kind. FAQ #1's answer, adapted from price-estimator's mock v1
-// (Matters/price-estimator/concept/story-hours-mock-v1.html), whose eyebrow "What goes into a video" Sam quoted back
-// on 10/8 ~10:55 ("I like this little 'what goes into a video' thing"). Sam's point (10/8 08:30): capture is very,
-// very inexpensive today; crafting a story still requires experience and human attention and skill.
+// "Where the hours go": what goes into a video, per FINISHED MINUTE. FAQ #1's answer, built from price-estimator's
+// model v2 (Matters/price-estimator/concept/hours-model.md + story-hours-mock-v2.html, Majordomo 10/8 ~11:58).
 //
-// EVERY HOUR BELOW IS A PLACEHOLDER the mock's worker made up, and the step names, sentences, labels and switch
-// lines are the mock's draft copy too. STORY_PIECE_APPROVED flips only when Sam has OK'd ALL of it (his real hours,
-// the steps, the words); until then the live site never shows the piece (lib/faq.ts showStoryHours).
+// Sam, 10/8 ~11:42: "We had it pegged at like 10 hours of editing per finished minute on average across the fleet.
+// Like 9-10. Editing and finishing. Add prep in and maybe it's 12 per finished minute. ... The point is we're trying to
+// illustrate for them that the capture is not the big deal. It's a big deal, but it's not the biggest deal."
+//
+// The model's rules (hours-model.md): story work = 12 hrs x finished minutes (Sam). Capture = shoot days x 10 hrs,
+// shoot days = ceil(minutes / finished-minutes-per-shoot-day), min 1, rates from the OSC rate library (density.json).
+// The steps are DESCRIPTIVE ONLY - no hours per step (nobody has measured the split). Never revive the dropped,
+// unsourced figures. The 10 hrs a shoot day and the 5 / 3 / 1.5 rates wait on Sam's OK (ticket T427);
+// STORY_PIECE_APPROVED flips only when he has OK'd the numbers AND the piece's words.
 
 export const STORY_PIECE_APPROVED = false
 
-/** The piece's words (the mock's, NEW; Sam OKs them with the piece). */
-export const PIECE = {
-  eyebrow: "What goes into a video",
-  heading: "Where the hours go",
-  placeholderPill: "Placeholder hours · Sam’s real numbers coming",
-  kindsLegend: "Kind of video",
-  stillCaption: "For a testimonial:",
-  filming: "Filming",
-  filmingMine: "Filming: you can do this part",
-  story: "Story work",
-  switchLabel: "I’ll film it myself on my phone",
-  switchOff: "Phones shoot beautiful video now. See what’s left.",
-  switchOn: "The story hours didn’t change. That’s the part that takes experience.",
-  stepsHeading: "The story work, step by step",
-} as const
-
-export interface StoryStep {
-  name: string
-  /** one plain sentence, shown when the step is opened */
-  why: string
-}
-
-export const STEPS: readonly StoryStep[] = [
-  { name: "Finding the right person", why: "Picking whose story it is, and why it matters to the people you want to reach." },
-  { name: "The pre-interview", why: "A real conversation before the camera is ever on, so we know what’s there." },
-  { name: "Planning the questions", why: "The order and the wording that get people talking in their own words." },
-  { name: "Logging every minute", why: "Watching all of it and transcribing it, so nothing good gets lost." },
-  { name: "Finding the story", why: "Deciding what it’s really about, and what to leave out." },
-  { name: "Editing", why: "Cutting an hour of talking down to a couple of minutes that hold together." },
-  { name: "Revisions with you", why: "Your notes, our changes, until it’s right." },
-]
+/** Sam 10/8: ~10 editing + finishing and ~2 prep per finished minute. */
+export const STORY_HOURS_PER_MIN = 12
+/** ASSUMPTION (price-estimator), the one capture number not from a document; awaiting Sam (T427). */
+export const HOURS_PER_SHOOT_DAY = 10
+export const MINUTES = [1, 2, 3, 4, 5] as const
+export type Minutes = (typeof MINUTES)[number]
 
 export type KindKey = "testimonial" | "story" | "bigger"
 
 export interface Kind {
   key: KindKey
   label: string
-  /** hours behind the camera on the day(s) */
-  filming: number
-  /** hours per STEPS entry, same order */
-  steps: readonly number[]
+  /** finished minutes per shoot day, from the rate library (density.json content levels) */
+  minPerDay: number
+  /** for the still-picture caption and the screen-reader summary */
+  noun: string
 }
 
 export const KINDS: readonly Kind[] = [
-  { key: "testimonial", label: "Testimonial", filming: 2, steps: [1, 1, 1, 2, 3, 8, 2] },
-  { key: "story", label: "A story", filming: 16, steps: [3, 3, 2, 6, 6, 20, 4] },
-  { key: "bigger", label: "Bigger", filming: 24, steps: [4, 4, 4, 10, 10, 32, 6] },
+  { key: "testimonial", label: "People talking", minPerDay: 5, noun: "video of people talking" },
+  { key: "story", label: "A story", minPerDay: 3, noun: "story" },
+  { key: "bigger", label: "Bigger", minPerDay: 1.5, noun: "bigger production" },
 ]
 
-/** The story work is the sum of its steps: computed, never typed twice. */
-export function storyTotal(k: Kind): number {
-  return k.steps.reduce((a, b) => a + b, 0)
+export const DEFAULT = { kind: "testimonial" as KindKey, minutes: 3 as Minutes }
+
+/** The bars share one scale: the largest story bar (5 min x 12 = 60 hrs), as in the mock. */
+export const SCALE_MAX = STORY_HOURS_PER_MIN * MINUTES[MINUTES.length - 1]
+
+export function shootDays(k: Kind, minutes: number): number {
+  return Math.max(1, Math.ceil(minutes / k.minPerDay))
+}
+export function captureHours(k: Kind, minutes: number): number {
+  return shootDays(k, minutes) * HOURS_PER_SHOOT_DAY
+}
+export function storyHours(minutes: number): number {
+  return minutes * STORY_HOURS_PER_MIN
+}
+/** Bar width, % of the shared scale (capture can't exceed it with these rates; capped anyway). */
+export function pct(hours: number): number {
+  return Math.round((1000 * Math.min(hours, SCALE_MAX)) / SCALE_MAX) / 10
 }
 
 export function hrs(n: number): string {
   return `${n} ${n === 1 ? "hr" : "hrs"}`
 }
-
-/** Read out inside each kind's chip, so choosing a kind is heard with its numbers (whole words, not "hrs"). */
-export function kindSummary(k: Kind): string {
-  const h = (n: number) => `${n} ${n === 1 ? "hour" : "hours"}`
-  return `${h(k.filming)} filming, ${h(storyTotal(k))} of story work`
+export function days(n: number): string {
+  return `${n} ${n === 1 ? "shoot day" : "shoot days"}`
 }
+
+/** One sentence for screen readers per kind + length (whole words, not "hrs"). */
+export function summary(k: Kind, minutes: number): string {
+  const h = (n: number) => `${n} ${n === 1 ? "hour" : "hours"}`
+  return `A ${minutes}-minute ${k.noun}: about ${h(captureHours(k, minutes))} of filming and ${h(storyHours(minutes))} of story work.`
+}
+
+/** What the story work is (descriptive only; no hours per step). The mock v2's list. */
+export const STEPS: readonly string[] = [
+  "Finding the right person and the story worth telling",
+  "A real conversation before the camera is on",
+  "Planning the questions",
+  "Watching and logging every minute of footage",
+  "Finding the story in it, and deciding what to leave out",
+  "Editing, then color, sound and music",
+  "Your notes, our changes, until it’s right",
+]
+
+/** The one outside reference point on the page (hours-model.md, checked by the coordinator 10/1). */
+export const REFERENCE = {
+  text: "For comparison: documentary editors plan about a month of editing for every 10 finished minutes.",
+  label: "Alliance of Documentary Editors",
+  href: "https://allianceofdoceditors.com/wp-content/uploads/2022/02/ADE_Edit_Schedules_final2.pdf",
+}
+
+/** The piece's words (the mock v2's, NEW unless tagged; Sam OKs them with the piece). */
+export const PIECE = {
+  eyebrow: "What goes into a video",
+  heading: "Where the hours go",
+  draftPill: "Draft numbers · waiting on Sam’s OK",
+  kindsLegend: "What kind of video?",
+  lengthLegend: "How long is the finished video?",
+  stillCaption: "For a 3-minute video of people talking:",
+  filming: "Filming",
+  filmingMine: "Filming: you can do this part",
+  story: "Story work",
+  storySub: "About 12 hours for every finished minute",
+  switchLabel: "I’ll film it myself on my phone",
+  switchOff: "See what’s left.",
+  switchOn: "The story work didn’t change. That’s the part that takes experience.",
+  stepsHeading: "The story work",
+  // SAM 10/8 ~11:42 ("It's a big deal, but it's not the biggest deal."), with "filming" for his "capture".
+  close: "Filming is a big deal, but it’s not the biggest deal.",
+} as const

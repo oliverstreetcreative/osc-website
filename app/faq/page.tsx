@@ -97,7 +97,7 @@ function FaqItem({ e, open, marks, env }: { e: FaqEntry; open: boolean; marks: b
         {e.a.map((p) => (
           <p key={p}>{p}</p>
         ))}
-        {e.widget === "story-hours" && showStoryHours(env) ? <StoryHours placeholder={!STORY_PIECE_APPROVED} /> : null}
+        {e.widget === "story-hours" && showStoryHours(env) ? <StoryHours draft={!STORY_PIECE_APPROVED} /> : null}
         {(e.after ?? []).map((p) => (
           <p key={p}>{p}</p>
         ))}
