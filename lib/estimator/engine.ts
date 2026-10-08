@@ -201,6 +201,10 @@ export function quote(answers: SimpleAnswers, edits: Edits = {}): Quote {
   add("pickup", "Days", "Pickup days (camera or drone)", spec.pickupDays, P.pickupDay, 0, "SAM")
   add("edit", "Days", "Sam, edit/finishing days", spec.editDays, P.samFinishDay, 0, dq("SAM"))
   add("extraVideos", "Days", "Extra finished videos (finishing days)", spec.extraVideos * P.extraVideoDays, P.samFinishDay, 0, tagOf("extraVideoDays"))
+  // Standard deliverable (Sam 10/7): every FINISHED video ships with its 9:16 + 1:1 adaptations, so they're
+  // in the quote by default, never an add-on. No editing = no finished video = no adaptations.
+  if (has("editing")) add("adaptations", "Days", "Vertical 9:16 + square 1:1 adaptations (every finished video)",
+    (1 + spec.extraVideos) * P.adaptationDays, P.samFinishDay, 0, tagOf("adaptationDays"))
 
   // Hired labor + rentals: cost x (1 + markup).
   if (spec.assistant) add("assistant", "Crew & rentals", "Assistant", spec.shootDays, P.assistantCost, M, "SAM")

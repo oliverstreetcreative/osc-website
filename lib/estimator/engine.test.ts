@@ -86,3 +86,16 @@ test("flexible is cheaper than firm, rush dearer (above the floor)", () => {
   const r = quote(parseAnswers({ ...base, deadline: "rush" })).total
   assert.ok(f < m && m < r)
 })
+
+test("doctrine (Sam 10/7): every finished video carries its 9:16 + 1:1 adaptations by default, tagged OPEN", () => {
+  const a = parseAnswers({ kind: "story", quality: "clean", deadline: "firm", handles: ["crewGear", "editing"] })
+  const ad = quote(a).lines.find((l) => l.id === "adaptations")!
+  assert.ok(ad, "adaptation line missing from a finished-video quote")
+  assert.equal(ad.qty, PARAMS.adaptationDays.value)
+  assert.equal(ad.unitCharge, PARAMS.samFinishDay.value)
+  assert.equal(ad.tag, "OPEN")                                  // price is Sam's (C11): never shown as ruled
+  const two = quote(a, { spec: { extraVideos: 2 } }).lines.find((l) => l.id === "adaptations")!
+  assert.equal(two.qty, 3 * PARAMS.adaptationDays.value)        // one set per finished video
+  const raw = quote(parseAnswers({ kind: "story", quality: "clean", deadline: "firm", handles: ["crewGear"] }))
+  assert.ok(!raw.lines.some((l) => l.id === "adaptations"), "no editing = no finished video = no adaptations")
+})

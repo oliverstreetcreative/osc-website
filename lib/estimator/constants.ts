@@ -41,6 +41,11 @@ export const PARAMS = {
   graphicsDays: p(1, "DRAFT", "Graphics: finishing days"),
   droneCharge: p(500, "DRAFT", "Drone on a shoot day (flat)", "Sam's $1,000 is for a drone-only pickup DAY"),
   extraVideoDays: p(1, "DRAFT", "Each extra finished video: finishing days"),
+  // Sam 10/7/26: "we'll have to start making those adaptations part of the deliverable going forward."
+  // Vertical 9:16 + square 1:1 of EVERY finished video are standard, quoted in, never offered later.
+  // The amount is Sam's call (production-pipeline conflict C11); this is a placeholder, so OPEN.
+  adaptationDays: p(0.5, "OPEN", "Vertical 9:16 + square 1:1 adaptations: finishing days per finished video",
+    "Sam 10/7: standard in every finished-video quote; price not ruled (C11)"),
 
   // --- deadline -----------------------------------------------------------------
   flexibleDiscount: p(0.1, "OPEN", "Flexible dates (booking-window) discount", "Sam decides % and which windows"),
