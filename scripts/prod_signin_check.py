@@ -96,8 +96,10 @@ def main():
     if "--staging" not in sys.argv:
         s, h, b = call("/")
         step("data-staging-gate" not in b and not h.get("x-robots-tag"), "production carries no staging gate and no noindex", f"{s}")
-        s, _, _ = call("/staging-gate")
-        step(s == 404, "the staging gate's page doesn't exist on production", str(s))
+        s, h, _ = call("/staging-gate")
+        # 404 on the public site; osc-app (SPEC §33) sends every non-app path to the public site instead
+        to_public = s == 308 and (h.get("location") or "").startswith("https://oliverstreetcreative.com/")
+        step(s == 404 or to_public, "the staging gate's page doesn't exist on production", f"{s} {h.get('location') or ''}".strip())
     s, _, _ = call("/client/signout", "POST", form={})
     step(s in (302, 303, 307), "signed out", str(s))
     s, h, _ = call("/client")
