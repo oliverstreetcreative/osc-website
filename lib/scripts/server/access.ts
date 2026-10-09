@@ -7,6 +7,7 @@
 import { cookies } from "next/headers"
 import { db } from "@/lib/db"
 import { sessionUser } from "@/lib/auth/require-session"
+import { mayViewClientSite } from "@/lib/auth/signin-only"
 import { personCode } from "../marks"
 
 export type ScriptRole = "viewer" | "commenter" | "suggester" | "editor"
@@ -34,6 +35,9 @@ export async function sessionFacts(): Promise<SessionFacts | null> {
   const s = await sessionUser()
   if (!s) return null
   const user = s.person
+  // Sam's test phase (SPEC §33 v2, built review #1): a script is a client page, so while the switch is on only staff
+  // and the listed addresses open one (crew may sign in, and still see no client's script), as the invite route does.
+  if (!mayViewClientSite(user)) return null
   const jar = await cookies()
   const viewingAs = !!jar.get("cs_view")?.value
   const preview = s.preview || s.kind === "preview"

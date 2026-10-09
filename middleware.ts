@@ -201,6 +201,34 @@ async function stagingGate(req: NextRequest): Promise<NextResponse | null> {
   return new NextResponse('Staging is password-protected: open it in a browser and enter the password.', { status: 401, headers: PLAIN_TEXT })
 }
 
+// This site's cookies, by exact name. Everything else in the Cookie header (Forms' own) passes to Forms untouched.
+const APP_COOKIES = new Set([
+  SESSION_COOKIE_SECURE,
+  SESSION_COOKIE_PLAIN,
+  '__Host-osc_device',
+  'osc_device',
+  'cs_org',
+  'cs_view',
+  'osc_impersonating',
+  'osc_quote_desk',
+  GATE_COOKIE_SECURE,
+  GATE_COOKIE_PLAIN,
+  'osc_gate_ui',
+  VILLAGE_COOKIE_NAME,
+])
+
+/** The request's headers for Forms: the raw Cookie header with this site's cookies taken out (never re-encoded). */
+function withoutAppCookies(req: NextRequest): Headers {
+  const headers = new Headers(req.headers)
+  const kept = (req.headers.get('cookie') ?? '')
+    .split(';')
+    .map((s) => s.trim())
+    .filter((s) => s && !APP_COOKIES.has(s.split('=')[0].trim()))
+  if (kept.length) headers.set('cookie', kept.join('; '))
+  else headers.delete('cookie')
+  return headers
+}
+
 /** osc-app (SPEC §33): null = carry on as built. Proxy responses go straight back: Forms has its own sessions, CSRF and
  *  limits, and none of this site's checks (demo, View-as, identity headers) apply to it. */
 function appHostRoute(req: NextRequest): NextResponse | null {
@@ -218,11 +246,19 @@ function appHostRoute(req: NextRequest): NextResponse | null {
         headers: { ...PLAIN_TEXT, connection: 'close' },
       })
     }
+    // This site's own cookies (the session above all) never travel to Forms; Forms' cookies (hub_sid, osc_portal) do
+    // (built review #7).
+    const res = NextResponse.rewrite(new URL(pathname + search, forms), { request: { headers: withoutAppCookies(req) } })
     // Forms' pages now share this origin with the client site: no MIME sniffing, and no framing by another site (v2
-    // review #10; Forms' own answer headers win where it sets them).
-    const res = NextResponse.rewrite(new URL(pathname + search, forms))
+    // review #10; Forms' own answer headers win where it sets them). The old portal's client logos can be SVG, served
+    // inline: sandboxed, so a logo opened on its own can't run anything here (built review #8).
     res.headers.set('X-Content-Type-Options', 'nosniff')
-    res.headers.set('Content-Security-Policy', "frame-ancestors 'self'")
+    res.headers.set(
+      'Content-Security-Policy',
+      pathname.startsWith('/portal/logo/')
+        ? "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:; frame-ancestors 'self'"
+        : "frame-ancestors 'self'",
+    )
     return res
   }
   if (kind === 'root') {

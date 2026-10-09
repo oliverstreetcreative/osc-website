@@ -69,13 +69,25 @@ export function appOrigins(): string[] {
 export const formsOrigin = () => formsOriginFrom(process.env.FORMS_ORIGIN)
 export const PUBLIC_SITE = "https://oliverstreetcreative.com"
 
-/** Why osc-app must not start, or null. Checked at boot (lib/client/boot.ts): a typo'd APP_ORIGIN would quietly serve
- *  the whole public site here, and a bad FORMS_ORIGIN would break every crew link, so the deploy fails instead and
- *  Railway keeps the last good one. */
+/** Why osc-app must not start, or null. Checked at boot (lib/client/boot.ts): a typo'd or dropped APP_ORIGIN would
+ *  quietly serve the whole public site here, and a bad FORMS_ORIGIN would break every crew link, so the deploy fails
+ *  instead and Railway keeps the last good one (its healthcheck is /api/health). Staging and the public site set none
+ *  of osc-app's switches, so nothing is checked there. */
 export function appConfigProblem(env: Record<string, string | undefined> = process.env): string | null {
   const raw = env.APP_ORIGIN?.trim()
-  if (!raw) return null
+  if (!raw) {
+    // osc-app's other switches without its origin: a dropped APP_ORIGIN (built review #2)
+    return env.FORMS_ORIGIN?.trim() || env.CLIENT_SITE_DB_PUSH === "1"
+      ? "APP_ORIGIN is missing, but FORMS_ORIGIN or CLIENT_SITE_DB_PUSH says this is osc-app"
+      : null
+  }
   if (!originFrom(raw)) return "APP_ORIGIN isn't a plain https origin"
-  if (!formsOriginFrom(env.FORMS_ORIGIN)) return "FORMS_ORIGIN must be the Forms service's own https://*.up.railway.app name"
+  // Every fail-closed rule (the test-phase switch above all) keys on production (built review #2).
+  const envName = (env.SITE_ENV?.trim() || env.RAILWAY_ENVIRONMENT_NAME?.trim() || "").toLowerCase()
+  if (envName !== "production") return "osc-app must run as production (SITE_ENV=production)"
+  const forms = formsOriginFrom(env.FORMS_ORIGIN)
+  if (!forms) return "FORMS_ORIGIN must be the Forms service's own https://*.up.railway.app name"
+  // localhost is for the local proxy tests only; nothing listens there on Railway (built review #9)
+  if (new URL(forms).hostname === "localhost" && env.RAILWAY_ENVIRONMENT_NAME?.trim()) return "FORMS_ORIGIN can't be localhost on Railway"
   return null
 }

@@ -61,12 +61,25 @@ test("Forms is reached only by its own Railway name, never one of ours (it would
   }
 })
 
-test("osc-app refuses to start on a bad origin; everywhere else nothing is checked", () => {
+test("osc-app refuses to start on a bad or missing origin, or off production; elsewhere nothing is checked", () => {
   const forms = "https://osc-forms-production.up.railway.app"
-  assert.equal(appConfigProblem({}), null) // staging, the public site, local
+  const app = "https://portal.oliverstreetcreative.com"
+  const prod = { SITE_ENV: "production" }
+  assert.equal(appConfigProblem({}), null) // the public site, local
+  assert.equal(appConfigProblem({ RAILWAY_ENVIRONMENT_NAME: "staging" }), null) // staging
   assert.equal(appConfigProblem({ APP_ORIGIN: "  " }), null)
-  assert.equal(appConfigProblem({ APP_ORIGIN: "https://portal.oliverstreetcreative.com", FORMS_ORIGIN: forms }), null)
-  assert.match(appConfigProblem({ APP_ORIGIN: "portal.oliverstreetcreative.com", FORMS_ORIGIN: forms })!, /APP_ORIGIN/)
-  assert.match(appConfigProblem({ APP_ORIGIN: "https://portal.oliverstreetcreative.com" })!, /FORMS_ORIGIN/)
-  assert.match(appConfigProblem({ APP_ORIGIN: "https://portal.oliverstreetcreative.com", FORMS_ORIGIN: "https://hub.oliverstreetcreative.com" })!, /FORMS_ORIGIN/)
+  assert.equal(appConfigProblem({ ...prod, APP_ORIGIN: app, FORMS_ORIGIN: forms }), null)
+  assert.equal(appConfigProblem({ RAILWAY_ENVIRONMENT_NAME: "production", APP_ORIGIN: app, FORMS_ORIGIN: forms }), null)
+  assert.match(appConfigProblem({ ...prod, APP_ORIGIN: "portal.oliverstreetcreative.com", FORMS_ORIGIN: forms })!, /APP_ORIGIN/)
+  assert.match(appConfigProblem({ ...prod, APP_ORIGIN: app })!, /FORMS_ORIGIN/)
+  assert.match(appConfigProblem({ ...prod, APP_ORIGIN: app, FORMS_ORIGIN: "https://hub.oliverstreetcreative.com" })!, /FORMS_ORIGIN/)
+  // a dropped APP_ORIGIN while the rest of osc-app's switches are there
+  assert.match(appConfigProblem({ ...prod, FORMS_ORIGIN: forms })!, /APP_ORIGIN is missing/)
+  assert.match(appConfigProblem({ ...prod, CLIENT_SITE_DB_PUSH: "1" })!, /APP_ORIGIN is missing/)
+  // osc-app only as production: the fail-closed rules key on it
+  assert.match(appConfigProblem({ APP_ORIGIN: app, FORMS_ORIGIN: forms })!, /production/)
+  assert.match(appConfigProblem({ RAILWAY_ENVIRONMENT_NAME: "staging", APP_ORIGIN: app, FORMS_ORIGIN: forms })!, /production/)
+  // localhost: the local tests only, never on Railway
+  assert.equal(appConfigProblem({ ...prod, APP_ORIGIN: app, FORMS_ORIGIN: "https://localhost:8443" }), null)
+  assert.match(appConfigProblem({ RAILWAY_ENVIRONMENT_NAME: "production", APP_ORIGIN: app, FORMS_ORIGIN: "https://localhost:8443" })!, /localhost/)
 })

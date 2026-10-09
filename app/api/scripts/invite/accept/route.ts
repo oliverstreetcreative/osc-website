@@ -9,7 +9,7 @@ import { revokeSession, sessionUser } from "@/lib/auth/require-session"
 import { deviceFrom } from "@/lib/auth/door"
 import { publicOrigin } from "@/lib/client/host"
 import { sameOrigin } from "@/lib/support/http"
-import { mayUseSite, mayViewClientSite } from "@/lib/auth/signin-only"
+import { mayViewClientSite } from "@/lib/auth/signin-only"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -22,8 +22,9 @@ export async function POST(req: NextRequest) {
   if (!sameOrigin(req)) return NextResponse.redirect(page, 303)
   const inv = await readInvite(token)
   if (!inv.ok) return NextResponse.redirect(page, 303)
-  // Sam's test phase (CLIENT_SIGNIN_ONLY): someone it refuses never spends the invite (it stays good for later).
-  if (!mayUseSite(inv.person) || !mayViewClientSite(inv.person)) return NextResponse.redirect(page, 303)
+  // Sam's test phase (CLIENT_SIGNIN_ONLY): someone it refuses never spends the invite (it stays good for later). Seeing
+  // a client page is the stricter test (it implies signing in).
+  if (!mayViewClientSite(inv.person)) return NextResponse.redirect(page, 303)
   const current = await sessionUser()
   const same = !!current && current.person.id === inv.person.id
   if (current && !same && form?.get("confirm") !== "1") return NextResponse.redirect(`${page}?switch=1`, 303)

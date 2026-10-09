@@ -21,8 +21,10 @@ export async function boot() {
   if (!enabled || !process.env.DATABASE_URL) return
 
   // osc-app (SPEC §33) starts on its OWN fresh database: CLIENT_SITE_DB_PUSH=1 (set there only) gives it the same
-  // create-only schema step staging has. Finished before the first sync is scheduled, and before the server answers
-  // (instrumentation awaits this). On osc-app a schema that didn't apply stops the boot (v2 review #7).
+  // create-only schema step staging has, finished before the first sync is scheduled. Next prints "Ready" BEFORE this
+  // finishes (staging's boot log, 10/8), so requests can arrive first: /api/health answers 503 until the client site's
+  // tables exist, which keeps Railway from sending traffic to a fresh deploy too early. On osc-app a schema that didn't
+  // apply stops the boot (v2 review #7).
   const strict = process.env.CLIENT_SITE_DB_PUSH === "1"
   if ((IS_STAGING && process.env.CLIENT_SITE_SKIP_DB_PUSH !== "1") || strict) {
     const ok = await stagingSchema(strict)

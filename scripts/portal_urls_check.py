@@ -121,11 +121,23 @@ def capture(base):
     return {p: one(base, p) for p in FIXED + real_urls()}
 
 
-def differ(a, b):
-    """'' when the two answers are the same, else what differs."""
+def differ(a, b, safe=False):
+    """'' when the two answers are the same, else what differs. EXACT after norm() (built review #6: a fuzzy score
+    called two pages with names swapped "the same"); no answer at all is never "the same". `safe` cuts redirect
+    targets, for keyed links."""
+    if a["status"] == 0 or b["status"] == 0:
+        return "no answer (network error)"
     heads = [k for k in ("status", "location", "type", "cookies") if a[k] != b[k]]
-    same_body = a["body"] == b["body"] or difflib.SequenceMatcher(None, a["body"], b["body"]).quick_ratio() > 0.995
-    return "; ".join(f"{k} {a[k]} → {b[k]}" for k in heads) + ("" if same_body else ("; " if heads else "") + "body differs")
+
+    def show(k, v):
+        return cut(v) if safe and k == "location" and v else v
+    out = "; ".join(f"{k} {show(k, a[k])} → {show(k, b[k])}" for k in heads)
+    if a["body"] != b["body"]:
+        sm = difflib.SequenceMatcher(None, a["body"], b["body"], autojunk=False)
+        i = next((op[1] for op in sm.get_opcodes() if op[0] != "equal"), 0)
+        where = "" if safe else f" near …{a['body'][max(0, i - 40):i + 40]!r}"
+        out += ("; " if out else "") + "body differs" + where
+    return out
 
 
 def cut(path):
@@ -151,7 +163,7 @@ def pair(base_a, base_b):
         # the day page (/day/<code>/<date>/<key>), its PDF and its live state
         for q in (p, f"{page}/pdf{query}", f"{page}/state{query}"):
             a, b = one(base_a, q), one(base_b, q)
-            d = differ(a, b) or ("" if a["status"] == 200 else f"both answered {a['status']}, not a real page")
+            d = differ(a, b, safe=True) or ("" if a["status"] == 200 else f"both answered {a['status']}, not a real page")
             bad += bool(d)
             print(f"  {'SAME' if not d else 'DIFF'} {cut(q)} ({a['status']} {a['type']})" + (f": {d}" if d else ""))
     print("REAL DAY PAGES ANSWER THE SAME" if not bad else f"{bad} REAL PAGE(S) DIFFER")

@@ -15,6 +15,8 @@ EXACT = {
     "APP_ORIGIN": APP,
     "LOGIN_HOST": "portal.oliverstreetcreative.com",
     "CLIENT_SITE_SYNC": "1",
+    "CLIENT_SITE_DB_PUSH": "1",  # osc-app's own database gets its schema at boot (built review #5)
+    "SITE_ENV": "production",  # every fail-closed rule keys on it (built review #2)
 }
 NEVER = {
     "STAGING_PASSWORD": "staging's password gate",

@@ -22,11 +22,14 @@ class EnvCheck(unittest.TestCase):
         self.assertEqual(problems, [])
         self.assertTrue(any("test phase is ON: 1 client" in n for n in notes))
 
-    def test_railways_production_environment_counts(self):
-        env = dict(GOOD)
-        del env["SITE_ENV"]
-        self.assertEqual(check({**env, "RAILWAY_ENVIRONMENT_NAME": "production"})[0], [])
-        self.assertTrue(check(env)[0])
+    def test_production_and_the_schema_switch_are_explicit(self):
+        # built review #2/#5: every fail-closed rule keys on production, and a fresh database needs its schema
+        for k in ("SITE_ENV", "CLIENT_SITE_DB_PUSH"):
+            env = dict(GOOD)
+            del env[k]
+            problems = check({**env, "RAILWAY_ENVIRONMENT_NAME": "production"})[0]
+            self.assertTrue(any(k in p for p in problems), k)
+        self.assertTrue(check({**GOOD, "CLIENT_SITE_DB_PUSH": "0"})[0])
 
     def test_forms_origin_only_its_own_railway_name(self):
         for bad in ("https://portal.oliverstreetcreative.com", "https://hub.oliverstreetcreative.com",
