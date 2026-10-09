@@ -2,6 +2,7 @@
 // Staging NEVER emails anyone outside @oliverstreetcreative.com (it holds real client records for rehearsal).
 // Emails carry the script title and who acted, never the script text or comment bodies (§14 "What can leak").
 import { IS_STAGING } from "@/lib/site-env"
+import { mayMailClient } from "@/lib/auth/signin-only"
 
 export type MailResult = { sent: true } | { sent: false; why: string }
 
@@ -10,6 +11,7 @@ export const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&
 export async function sendScriptMail(to: string, subject: string, html: string): Promise<MailResult> {
   const email = to.trim().toLowerCase()
   if (IS_STAGING && !email.endsWith("@oliverstreetcreative.com")) return { sent: false, why: "staging only emails OSC addresses" }
+  if (!mayMailClient(email)) return { sent: false, why: "the client site is in Sam's test phase: no client is emailed (CLIENT_SIGNIN_ONLY)" }
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) return { sent: false, why: "email isn't configured" }
   const res = await fetch("https://api.resend.com/emails", {

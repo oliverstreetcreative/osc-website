@@ -39,6 +39,12 @@ class EnvCheck(unittest.TestCase):
         self.assertTrue(any("merge itself would switch" in p for p in check(GOOD + "CLIENT_SITE_SYNC=1\n")[0]))
         self.assertTrue(any("still dark" in p for p in check(GOOD, "after")[0]))
 
+    def test_sams_test_phase_is_said_plainly(self):
+        problems, notes = check(GOOD + "CLIENT_SITE_SYNC=1\nCLIENT_SIGNIN_ONLY=internal@oliverstreetcreative.com\n", "after")
+        self.assertEqual(problems, [])
+        self.assertTrue(any("test phase" in n for n in notes))
+        self.assertTrue(any("can sign in" in n for n in check(GOOD + "CLIENT_SITE_SYNC=1\n", "after")[1]))
+
     def test_the_dangerous_ones(self):
         for line, words in (("SITE_ENV=staging", "prisma db push"), ("DROPBOX_ACCESS_TOKEN=x", "static token"),
                             ("DROPBOX_LOCAL_ROOT=/x", "local disk"), ("CLIENT_DEMO_TOKEN=x", "staging demo"),

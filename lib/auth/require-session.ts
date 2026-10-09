@@ -10,6 +10,7 @@ import { jwtVerify } from "jose"
 import { db } from "@/lib/db"
 import { parseScope, type Scope } from "./paths"
 import { rowProblem } from "./session-rules"
+import { mayUseSite } from "./signin-only"
 import { SESSION_COOKIE_PLAIN, SESSION_COOKIE_SECURE, type SessionKind } from "./session"
 
 export { IDLE_MS } from "./session-rules"
@@ -80,6 +81,9 @@ export const sessionUser = cache(async (): Promise<Session | null> => {
   const now = Date.now()
   if (rowProblem(row, createHash("sha256").update(token).digest("hex"), scope, now)) return null
   if (!row) return null
+  // Sam's test phase (CLIENT_SIGNIN_ONLY, SPEC §26 v3): an unlisted client's session reads as signed out, even one made
+  // before the switch went on. Staff and crew are never affected.
+  if (!mayUseSite(row.person)) return null
   if (!row.last_active_at || now - row.last_active_at.getTime() > TOUCH_MS) {
     await db.portalSession.update({ where: { id: sid }, data: { last_active_at: new Date(now) } }).catch(() => {})
   }
