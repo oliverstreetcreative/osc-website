@@ -14,6 +14,7 @@ import { db } from "@/lib/db"
 import { demoOn, isDemoSlug } from "./demo"
 import { isRehearsalSlug } from "./rehearsal"
 import { IS_STAGING } from "@/lib/site-env"
+import { mayViewClientSite } from "@/lib/auth/signin-only"
 
 export const ORG_COOKIE = "cs_org"
 export const VIEW_COOKIE = "cs_view"
@@ -48,6 +49,9 @@ export async function viewAsOrgSlug(staffId: string): Promise<string | null> {
 export async function getClientContext(): Promise<ClientContext | null> {
   const user = await getPortalUser()
   if (!user) return null
+  // Sam's test phase (CLIENT_SIGNIN_ONLY, SPEC §33): client pages for staff and the listed addresses only, whatever the
+  // role (a crew contact in a client's book signs in for the crew portal and still sees no client's pages).
+  if (!mayViewClientSite(user)) return null
   const person = await db.person.findUnique({ where: { id: user.id }, select: { first_name: true } })
   const me = { ...user, first_name: person?.first_name ?? null }
 

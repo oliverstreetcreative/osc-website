@@ -4,6 +4,7 @@ import { VILLAGE_COOKIE_NAME, verifyVillageCookie } from '@/app/village/lib'
 import { IS_STAGING } from '@/lib/site-env'
 import { scopeAllows, type Scope } from '@/lib/auth/paths'
 import { edgeSession, type EdgeSession } from '@/lib/auth/session-rules'
+import { PUBLIC_SITE, appOrigin, appRoute, formsOrigin } from '@/lib/app/routes'
 import {
   GATE_COOKIE_PLAIN,
   GATE_COOKIE_SECURE,
@@ -200,6 +201,29 @@ async function stagingGate(req: NextRequest): Promise<NextResponse | null> {
   return new NextResponse('Staging is password-protected: open it in a browser and enter the password.', { status: 401, headers: PLAIN_TEXT })
 }
 
+/** osc-app (SPEC §33): null = carry on as built. Proxy responses go straight back: Forms has its own sessions, CSRF and
+ *  limits, and none of this site's checks (demo, View-as, identity headers) apply to it. */
+function appHostRoute(req: NextRequest): NextResponse | null {
+  const app = appOrigin()
+  if (!app) return null
+  const { pathname, search } = req.nextUrl
+  const kind = appRoute(pathname)
+  if (kind === 'forms') {
+    const forms = formsOrigin()
+    if (!forms) return new NextResponse('This part of the site is unavailable right now.', { status: 503, headers: PLAIN_TEXT })
+    return NextResponse.rewrite(new URL(pathname + search, forms))
+  }
+  if (kind === 'root') {
+    // Same host (a relative Location): portal.* after the move, or osc-app's own Railway name while it's checked.
+    const url = req.nextUrl.clone()
+    url.pathname = '/client'
+    url.search = ''
+    return NextResponse.redirect(url, 302)
+  }
+  if (kind === 'public') return NextResponse.redirect(`${PUBLIC_SITE}${pathname}${search}`, 308)
+  return null
+}
+
 function getSubdomain(host: string): 'login' | 'client' | 'crew' | 'village' | null {
   const h = host.split(':')[0].toLowerCase()
 
@@ -280,6 +304,10 @@ export async function middleware(req: NextRequest) {
   // Staging's password gate, before everything else (robots, the demo, View-as, CSRF, every host rewrite).
   const gated = await stagingGate(req)
   if (gated) return finish(req, gated)
+  // osc-app on portal.oliverstreetcreative.com (SPEC §33): Forms' URLs are proxied, "/" opens the client site, public
+  // routes go to the public site. Only when APP_ORIGIN is set; everything else falls through to the site as built.
+  const hosted = appHostRoute(req)
+  if (hosted) return hosted
   if (IS_STAGING && req.nextUrl.pathname === '/robots.txt') {
     // Staging's robots.txt closes the door. Production keeps /public/robots.txt.
     return new NextResponse('User-agent: *\nDisallow: /\n', {

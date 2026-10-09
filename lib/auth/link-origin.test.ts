@@ -26,6 +26,20 @@ test("production: a staff link never points at a host this app doesn't serve", (
   assert.equal(magicLinkOrigin({ isProduction: true, requestOrigin: CREW, role: "STAFF", isStaff: true }), CREW)
 })
 
+test("osc-app: everyone signs in on the app's own host (portal.*, or its Railway name while it's checked)", () => {
+  const portal = "https://portal.oliverstreetcreative.com"
+  const railway = "https://osc-app-production.up.railway.app"
+  const appOrigins = [portal, railway]
+  for (const role of ["CLIENT", "CREW", "STAFF"]) {
+    assert.equal(magicLinkOrigin({ isProduction: true, requestOrigin: portal, role, isStaff: role === "STAFF", appOrigins }), portal)
+    assert.equal(magicLinkOrigin({ isProduction: true, requestOrigin: railway, role, isStaff: role === "STAFF", appOrigins }), railway)
+    assert.equal(magicLinkOrigin({ isProduction: true, requestOrigin: APEX, role, isStaff: role === "STAFF", appOrigins }), portal)
+    assert.equal(magicLinkOrigin({ isProduction: true, requestOrigin: "https://evil.example", role, isStaff: false, appOrigins }), portal)
+  }
+  // an empty list is the site as built
+  assert.equal(magicLinkOrigin({ isProduction: true, requestOrigin: login, role: "CLIENT", isStaff: false, appOrigins: [] }), APEX)
+})
+
 test("staging and local keep the host they asked from", () => {
   const staging = "https://osc-website-staging.up.railway.app"
   assert.equal(magicLinkOrigin({ isProduction: false, requestOrigin: staging, role: "CLIENT", isStaff: false }), staging)

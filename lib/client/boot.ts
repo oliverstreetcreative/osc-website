@@ -12,7 +12,9 @@ export async function boot() {
   const enabled = IS_STAGING || process.env.CLIENT_SITE_SYNC === "1"
   if (!enabled || !process.env.DATABASE_URL) return
 
-  if (IS_STAGING && process.env.CLIENT_SITE_SKIP_DB_PUSH !== "1") await stagingSchema()
+  // osc-app (SPEC §33) starts on its OWN fresh database: CLIENT_SITE_DB_PUSH=1 (set there only) gives it the same
+  // create-only schema step staging has. Finished before the first sync is scheduled.
+  if ((IS_STAGING && process.env.CLIENT_SITE_SKIP_DB_PUSH !== "1") || process.env.CLIENT_SITE_DB_PUSH === "1") await stagingSchema()
 
   const { syncBooks } = await import("./sync")
   const { deliverRequests } = await import("./requests")
@@ -49,7 +51,7 @@ export async function boot() {
   setInterval(run, 5 * 60_000).unref?.()
 }
 
-// STAGING ONLY. Prefer `prisma db push` (no --accept-data-loss). If the prisma
+// STAGING, and osc-app's fresh database (CLIENT_SITE_DB_PUSH=1). Prefer `prisma db push` (no --accept-data-loss). If the prisma
 // CLI isn't in the runtime image and the database is EMPTY, apply the
 // generated full-schema script prisma/client-site-bootstrap.sql instead.
 async function stagingSchema() {

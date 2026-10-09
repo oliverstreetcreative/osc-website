@@ -4,6 +4,7 @@
 import { db } from "@/lib/db"
 import { IS_PRODUCTION } from "@/lib/site-env"
 import { escapeHtml, sendScriptMail } from "./mail"
+import { mayMailClient } from "@/lib/auth/signin-only"
 
 const QUIET_MS = 15 * 60 * 1000
 export type NoticeKind = "comment" | "suggestion" | "shared" | "mention"
@@ -87,7 +88,9 @@ export async function sendDueNotices() {
     if (last?.sent_at && Date.now() - last.sent_at.getTime() < QUIET_MS) continue
     const person = await db.person.findUnique({ where: { id: personId }, select: { email: true, portal_allowed: true } })
     const ids = items.map((n) => n.id)
-    if (!person?.portal_allowed) {
+    // Not allowed, or Sam's test phase refuses the address (CLIENT_SIGNIN_ONLY): these notices are consumed, never sent,
+    // so lifting the switch later can't release a backlog.
+    if (!person?.portal_allowed || !mayMailClient(person.email)) {
       await db.scriptNotice.updateMany({ where: { id: { in: ids } }, data: { sent_at: new Date() } })
       continue
     }

@@ -10,8 +10,16 @@ export const CREW = "https://crew.oliverstreetcreative.com"
  *  send a real sign-in link to blog.*, review.* or a dangling subdomain. */
 export const SIGNIN_HOSTS = new Set([APEX, CREW, "https://client.oliverstreetcreative.com", "https://login.oliverstreetcreative.com"])
 
-export function magicLinkOrigin(opts: { isProduction: boolean; requestOrigin: string; role: string | null | undefined; isStaff: boolean }): string {
+export function magicLinkOrigin(opts: {
+  isProduction: boolean
+  requestOrigin: string
+  role: string | null | undefined
+  isStaff: boolean
+  /** osc-app (SPEC §33): its own origins, canonical first (portal.*, then its Railway name). Everyone signs in there. */
+  appOrigins?: string[]
+}): string {
   if (!opts.isProduction) return opts.requestOrigin
+  if (opts.appOrigins?.length) return opts.appOrigins.includes(opts.requestOrigin) ? opts.requestOrigin : opts.appOrigins[0]
   if (opts.isStaff || opts.role === "STAFF") return SIGNIN_HOSTS.has(opts.requestOrigin) ? opts.requestOrigin : APEX
   if (opts.role === "CREW") return CREW
   return APEX

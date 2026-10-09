@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server"
 import { IS_PRODUCTION } from "@/lib/site-env"
+import { appOrigins } from "@/lib/app/routes"
 
 // Only these hosts may appear in links we email or redirect to. Anything else (a forged X-Forwarded-Host) falls back
 // to the login host. Production: EXACTLY the hosts this app serves, never "any subdomain" (SPEC §27 P0 v2 #8), and
@@ -15,12 +16,14 @@ const SERVED = new Set([
 function allowedHost(host: string) {
   const h = host.split(":")[0].toLowerCase()
   if (SERVED.has(h)) return true
+  // osc-app (SPEC §33): its own hosts (portal.*, its Railway name) and nothing more.
+  if (appOrigins().some((o) => new URL(o).hostname === h)) return true
   if (IS_PRODUCTION) return false
   return h.endsWith(".oliverstreetcreative.com") || h === "osc-website-staging.up.railway.app" || h === "localhost" || h === "127.0.0.1"
 }
 function originFrom(fwdHost: string | null, host: string | null, fwdProto: string | null) {
   const raw = (fwdHost ?? host ?? "").split(",")[0].trim()
-  if (!raw || !allowedHost(raw)) return `https://${process.env.LOGIN_HOST ?? "login.oliverstreetcreative.com"}`
+  if (!raw || !allowedHost(raw)) return appOrigins()[0] ?? `https://${process.env.LOGIN_HOST ?? "login.oliverstreetcreative.com"}`
   const local = raw.startsWith("localhost") || raw.startsWith("127.")
   const proto = local ? (fwdProto ?? "http").split(",")[0] : "https"
   return `${proto}://${raw}`

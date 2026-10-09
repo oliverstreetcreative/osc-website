@@ -11,6 +11,7 @@ import { db } from "@/lib/db"
 import { IS_PRODUCTION } from "@/lib/site-env"
 import { publicOrigin } from "@/lib/client/host"
 import { magicLinkOrigin } from "@/lib/auth/link-origin"
+import { appOrigins } from "@/lib/app/routes"
 import { codeHash, newCode, safeRedirect } from "@/lib/auth/front-door"
 import { decideLink, ensureDevice, hashesFor, mayEmail, raiseAlarm, sendSignIn } from "@/lib/auth/door"
 import { mayUseSite } from "@/lib/auth/signin-only"
@@ -45,7 +46,9 @@ export async function POST(req: NextRequest) {
 
   // The invite's writes and the email happen AFTER the answer: a real address must not take longer to answer than an
   // unknown one (built review). A failure here is logged; the person asks again.
-  const origin = magicLinkOrigin({ isProduction: IS_PRODUCTION, requestOrigin: publicOrigin(req), role: eligible.role, isStaff: eligible.is_staff })
+  const origin = magicLinkOrigin({
+    isProduction: IS_PRODUCTION, requestOrigin: publicOrigin(req), role: eligible.role, isStaff: eligible.is_staff, appOrigins: appOrigins(),
+  })
   const redirect = safeRedirect(read.body.redirect)
   void (async () => {
     // One live invite per person: older unspent ones end now.
