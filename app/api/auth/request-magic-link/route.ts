@@ -13,6 +13,7 @@ import { publicOrigin } from "@/lib/client/host"
 import { magicLinkOrigin } from "@/lib/auth/link-origin"
 import { codeHash, newCode, safeRedirect } from "@/lib/auth/front-door"
 import { decideLink, ensureDevice, hashesFor, mayEmail, raiseAlarm, sendSignIn } from "@/lib/auth/door"
+import { mayUseSite } from "@/lib/auth/signin-only"
 import { readJsonCapped, sameOrigin } from "@/lib/support/http"
 
 export const runtime = "nodejs"
@@ -34,8 +35,9 @@ export async function POST(req: NextRequest) {
   if (!secret) return res // misconfigured: the same answer, nothing sent (logged by whatever needs the secret)
 
   const person = await db.person.findUnique({ where: { email }, select: { id: true, portal_allowed: true, role: true, is_staff: true } })
-  // Who may get a link: a portal-allowed person, and on staging only OSC addresses (staging never emails a client).
-  const eligible = person && person.portal_allowed && mayEmail(email) ? person : null
+  // Who may get a link: a portal-allowed person, on staging only OSC addresses (staging never emails a client), and
+  // during Sam's test phase on production (CLIENT_SIGNIN_ONLY) no client but the listed ones.
+  const eligible = person && person.portal_allowed && mayEmail(email) && mayUseSite({ email, role: person.role, is_staff: person.is_staff }) ? person : null
   const h = hashesFor(req, email, deviceId)
   const { send, alarm } = await decideLink(h, eligible?.id ?? null)
   if (alarm) raiseAlarm(alarm)

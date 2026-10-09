@@ -86,6 +86,11 @@ def check_env(env, phase):
         problems.append("CLIENT_SITE_SYNC is set: the merge itself would switch the client site on")
     if phase == "after" and sync != "1":
         problems.append("CLIENT_SITE_SYNC isn't 1: the client site is still dark")
+    # Sam's test phase (10/8 ~19:40): he is the only user; no client is invited or emailed (SPEC §26 v3).
+    if env.get("CLIENT_SIGNIN_ONLY"):
+        notes.append("CLIENT_SIGNIN_ONLY is set: Sam's test phase (only staff, crew and the listed client addresses sign in; no client mail)")
+    elif phase == "after":
+        notes.append("CLIENT_SIGNIN_ONLY is unset: every client in a published book can sign in (the test phase is over)")
     return problems, notes
 
 

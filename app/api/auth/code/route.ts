@@ -9,6 +9,7 @@ import { clientHome, deviceLabel, startSession } from "@/lib/auth/session"
 import { CODE_LIMITS, codeHash, codeMatches, normalizeCode, safeRedirect } from "@/lib/auth/front-door"
 import { decideCodeTry, ensureDevice, hashesFor, homeFor, noticeIfNewDevice, recordCodeFail, recordEvent } from "@/lib/auth/door"
 import { readJsonCapped, sameOrigin } from "@/lib/support/http"
+import { mayUseSite } from "@/lib/auth/signin-only"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -30,7 +31,9 @@ export async function POST(req: NextRequest) {
   const secret = process.env.SESSION_JWT_SECRET
   if (!email || !code || !secret) return reply({ error: "wrong" }, 400)
 
-  const person = await db.person.findUnique({ where: { email }, select: { id: true, email: true, role: true, is_staff: true, portal_allowed: true } })
+  const found = await db.person.findUnique({ where: { email }, select: { id: true, email: true, role: true, is_staff: true, portal_allowed: true } })
+  // Sam's test phase (CLIENT_SIGNIN_ONLY): an unlisted client is no one here, exactly like an unknown address.
+  const person = found && mayUseSite(found) ? found : null
   const invite = person?.portal_allowed
     ? await db.portalInvite.findFirst({
         where: { person_id: person.id, accepted_at: null, expires_at: { gt: new Date() }, code_hash: { not: null } },

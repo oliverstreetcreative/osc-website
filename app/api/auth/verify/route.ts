@@ -12,6 +12,7 @@ import { deviceHash } from "@/lib/auth/front-door"
 import { deviceFrom, hashesFor, homeFor, noticeIfNewDevice, recordEvent } from "@/lib/auth/door"
 import { publicOrigin } from "@/lib/client/host"
 import { sameOrigin } from "@/lib/support/http"
+import { mayUseSite } from "@/lib/auth/signin-only"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -28,7 +29,10 @@ export async function POST(req: NextRequest) {
     where: { magic_link_hash: createHash("sha256").update(token).digest("hex") },
     include: { person: { select: { id: true, email: true, role: true, is_staff: true, portal_allowed: true } } },
   })
-  if (!invite || invite.accepted_at || invite.expires_at <= new Date() || !invite.person.portal_allowed) return to("/login?link=used")
+  // (Sam's test phase, CLIENT_SIGNIN_ONLY: an unlisted client's link reads as used, like any dead link.)
+  if (!invite || invite.accepted_at || invite.expires_at <= new Date() || !invite.person.portal_allowed || !mayUseSite(invite.person)) {
+    return to("/login?link=used")
+  }
 
   // Only the browser that asked. Anywhere else spends nothing: the code (same email) is the way in there.
   const deviceId = deviceFrom(req)
