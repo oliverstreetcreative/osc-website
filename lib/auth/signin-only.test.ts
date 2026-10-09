@@ -8,16 +8,35 @@ import { mayMailClient, mayUseSite, mayViewClientSite, signInOnly } from "./sign
 const ONLY = signInOnly(" Internal@OliverStreetCreative.com , ")
 const client = (email: string) => ({ email, role: "CLIENT", is_staff: false })
 
-test("off only when UNSET: the site as built", () => {
-  assert.equal(signInOnly(undefined), null)
+test("off when UNSET off production (staging, local): the site as built", () => {
+  assert.equal(signInOnly(undefined, false), null)
   assert.equal(mayUseSite(client("jane@beechacres.org"), null), true)
   assert.equal(mayViewClientSite(client("jane@beechacres.org"), null), true)
   assert.equal(mayMailClient("jane@beechacres.org", null), true)
 })
 
+test("PRODUCTION fails closed when UNSET: no client, no client mail; staff and crew still sign in (§33 v2)", () => {
+  const none = signInOnly(undefined, true)
+  assert.ok(none && none.size === 0)
+  assert.equal(mayUseSite(client("jane@beechacres.org"), none), false)
+  assert.equal(mayUseSite(client("internal@oliverstreetcreative.com"), none), false)
+  assert.equal(mayViewClientSite(client("jane@beechacres.org"), none), false)
+  assert.equal(mayMailClient("jane@beechacres.org", none), false)
+  assert.equal(mayUseSite({ email: "sam@oliverstreetcreative.com", role: "STAFF", is_staff: true }, none), true)
+  assert.equal(mayUseSite({ email: "grip@gmail.com", role: "CREW", is_staff: false }, none), true)
+})
+
+test("only an explicit `off` opens it, on production or anywhere", () => {
+  for (const raw of ["off", " OFF ", "Off"]) {
+    assert.equal(signInOnly(raw, true), null, raw)
+    assert.equal(signInOnly(raw, false), null, raw)
+  }
+  assert.deepEqual([...signInOnly("off@oliverstreetcreative.com", true)!], ["off@oliverstreetcreative.com"]) // an address, not the word
+})
+
 test("set but listing nobody FAILS CLOSED: no client at all (20:10 review)", () => {
   for (const raw of ["", " ", ",", " , "]) {
-    const none = signInOnly(raw)
+    const none = signInOnly(raw, false)
     assert.ok(none && none.size === 0, JSON.stringify(raw))
     assert.equal(mayUseSite(client("internal@oliverstreetcreative.com"), none), false)
     assert.equal(mayViewClientSite(client("jane@beechacres.org"), none), false)

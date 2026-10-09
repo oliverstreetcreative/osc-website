@@ -8,13 +8,29 @@
 //   2. syncs the client books from Dropbox into Postgres, then every 5 minutes.
 // Production does nothing here until CLIENT_SITE_SYNC=1 is set on purpose.
 export async function boot() {
+  // osc-app (SPEC §33 v2): a bad APP_ORIGIN or FORMS_ORIGIN fails the deploy (Railway keeps the last good one) instead
+  // of quietly serving the public site here or breaking every crew link. Nothing is checked where APP_ORIGIN is unset.
+  const { appConfigProblem } = await import("../app/routes")
+  const problem = appConfigProblem()
+  if (problem) {
+    console.error(`osc-app: refusing to start: ${problem}`)
+    process.exit(1)
+  }
   const { IS_STAGING } = await import("../site-env")
   const enabled = IS_STAGING || process.env.CLIENT_SITE_SYNC === "1"
   if (!enabled || !process.env.DATABASE_URL) return
 
   // osc-app (SPEC §33) starts on its OWN fresh database: CLIENT_SITE_DB_PUSH=1 (set there only) gives it the same
-  // create-only schema step staging has. Finished before the first sync is scheduled.
-  if ((IS_STAGING && process.env.CLIENT_SITE_SKIP_DB_PUSH !== "1") || process.env.CLIENT_SITE_DB_PUSH === "1") await stagingSchema()
+  // create-only schema step staging has. Finished before the first sync is scheduled, and before the server answers
+  // (instrumentation awaits this). On osc-app a schema that didn't apply stops the boot (v2 review #7).
+  const strict = process.env.CLIENT_SITE_DB_PUSH === "1"
+  if ((IS_STAGING && process.env.CLIENT_SITE_SKIP_DB_PUSH !== "1") || strict) {
+    const ok = await stagingSchema(strict)
+    if (!ok && strict) {
+      console.error("osc-app: refusing to start: the database schema didn't apply (see the line above)")
+      process.exit(1)
+    }
+  }
 
   const { syncBooks } = await import("./sync")
   const { deliverRequests } = await import("./requests")
@@ -53,8 +69,9 @@ export async function boot() {
 
 // STAGING, and osc-app's fresh database (CLIENT_SITE_DB_PUSH=1). Prefer `prisma db push` (no --accept-data-loss). If the prisma
 // CLI isn't in the runtime image and the database is EMPTY, apply the
-// generated full-schema script prisma/client-site-bootstrap.sql instead.
-async function stagingSchema() {
+// generated full-schema script prisma/client-site-bootstrap.sql instead (staging only: on osc-app (`strict`) the CLI must
+// be there, or every later deploy would leave the schema behind). True = the schema is in place.
+async function stagingSchema(strict = false): Promise<boolean> {
   const { existsSync, readFileSync } = await import("fs")
   const { join } = await import("path")
   const bin = join(process.cwd(), "node_modules", ".bin", "prisma")
@@ -68,25 +85,33 @@ async function stagingSchema() {
         encoding: "utf8",
       })
       console.log("client-site: prisma db push:", out.trim().split("\n").slice(-2).join(" | "))
-      return
+      return true
     } catch (err) {
       console.error("client-site: prisma db push FAILED:", String((err as any)?.stdout ?? err).slice(-800))
-      return
+      return false
     }
+  }
+  if (strict) {
+    console.error("client-site: the prisma CLI isn't in this image (node_modules/.bin/prisma): the schema can't be applied")
+    return false
   }
   try {
     const pg = (await import("pg")).default
     const client = new pg.Client({ connectionString: process.env.DATABASE_URL })
     await client.connect()
     const { rows } = await client.query("select to_regclass('public.people') as t")
+    let ok = true
     if (!rows[0]?.t) {
       await client.query(readFileSync(join(process.cwd(), "prisma", "client-site-bootstrap.sql"), "utf8"))
       console.log("client-site: empty database bootstrapped from client-site-bootstrap.sql")
     } else {
       console.warn("client-site: prisma CLI missing and database not empty; schema NOT updated")
+      ok = false
     }
     await client.end()
+    return ok
   } catch (err) {
     console.error("client-site: SQL bootstrap failed:", err)
+    return false
   }
 }

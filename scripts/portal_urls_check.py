@@ -1,17 +1,23 @@
 #!/usr/bin/env python3
 """Every URL "OSC - Forms" answers on portal.oliverstreetcreative.com, before and after osc-app takes the name
-(client-website SPEC §33). 🤖 Stdlib only, read-only: GETs and HEADs, no cookies, nothing written anywhere.
+(client-website SPEC §33). 🤖 Stdlib only, read-only: GETs, no cookies, nothing written but the snapshot.
 
   python3 scripts/portal_urls_check.py snapshot https://portal.oliverstreetcreative.com <dir>
   python3 scripts/portal_urls_check.py compare  <base> <dir>
       <base> = osc-app's own Railway name BEFORE the move (its proxy must answer like Forms), then
                https://portal.oliverstreetcreative.com AFTER the move.
+      Run snapshot/compare on https://hub.oliverstreetcreative.com too (its own <dir>): the move must not touch it.
+  python3 scripts/portal_urls_check.py pair <base A> <base B> < links.txt
+      Real shoot-day links (from a calendar invite: they carry a key, so they come on STDIN, one per line, never argv
+      or disk, and are printed cut to their first segments). Each is fetched from both bases NOW and compared, e.g.
+      osc-app (proxy) against https://hub.oliverstreetcreative.com (Forms itself). Day pages and their PDFs, read-only.
 
-The URLs: every route family Forms serves there (the old portal, the hub and its doors, shoot days, invoicing, fonts,
-static files, its own pages), with REAL job codes and shoot days read from Dropbox. Each is compared on status,
-redirect target, content type, the NAMES of the cookies it sets, and the body with per-request bits taken out.
+The fixed list: every route family Forms serves there (the old portal, the hub and its doors, shoot days, invoicing,
+fonts, static files, its own pages), with REAL job codes read from Dropbox. Each is compared on status, redirect
+target, content type, the NAMES of the cookies it sets, and the body with per-request bits taken out.
 `/` and `/client` are reported, not judged: osc-app changes them on purpose (the client site's front door and Home).
-Exit 0 = every other URL answers the same.
+Known, harmless differences (design review 10/8): a trailing-slash URL gets Next's 308 instead of Forms' 307 to the
+same place, and Forms' /openapi.json now goes to the public site. Exit 0 = every other URL answers the same.
 """
 import difflib
 import glob
@@ -40,7 +46,8 @@ def dropbox_root():
 
 
 def real_urls():
-    """Job codes from the AP files and their shoot days from project.json; one real hub font name."""
+    """Job codes from the AP files and their shoot days from project.json; one real hub font name. (A day URL without
+    its key answers Forms' own refusal: that answer must match too. Real day pages go through `pair`.)"""
     out = []
     root = dropbox_root()
     if root:
@@ -100,20 +107,60 @@ def norm(body, ctype):
     return re.sub(r"\s+", " ", s).strip()
 
 
+def one(base, path):
+    status, h, body = fetch(base + path)
+    ctype = (h.get("content-type") if hasattr(h, "get") else "") or ""
+    loc = h.get("location") if hasattr(h, "get") else None
+    if loc:
+        parts = urlsplit(loc)
+        loc = loc if parts.netloc and parts.netloc not in (urlsplit(base).netloc,) else (parts.path + (f"?{parts.query}" if parts.query else ""))
+    return {"status": status, "location": loc, "type": ctype.split(";")[0], "cookies": cookie_names(h), "body": norm(body, ctype)}
+
+
 def capture(base):
-    snap = {}
-    for p in FIXED + real_urls():
-        status, h, body = fetch(base + p)
-        ctype = (h.get("content-type") if hasattr(h, "get") else "") or ""
-        loc = h.get("location") if hasattr(h, "get") else None
-        if loc:
-            parts = urlsplit(loc)
-            loc = loc if parts.netloc and parts.netloc not in (urlsplit(base).netloc,) else (parts.path + (f"?{parts.query}" if parts.query else ""))
-        snap[p] = {"status": status, "location": loc, "type": ctype.split(";")[0], "cookies": cookie_names(h), "body": norm(body, ctype)}
-    return snap
+    return {p: one(base, p) for p in FIXED + real_urls()}
+
+
+def differ(a, b):
+    """'' when the two answers are the same, else what differs."""
+    heads = [k for k in ("status", "location", "type", "cookies") if a[k] != b[k]]
+    same_body = a["body"] == b["body"] or difflib.SequenceMatcher(None, a["body"], b["body"]).quick_ratio() > 0.995
+    return "; ".join(f"{k} {a[k]} → {b[k]}" for k in heads) + ("" if same_body else ("; " if heads else "") + "body differs")
+
+
+def cut(path):
+    """A keyed link, printed safely: its first three segments, then the last one if it's a known tail."""
+    segs = path.split("?")[0].split("/")
+    tail = f"/…/{segs[-1]}" if len(segs) > 5 and segs[-1] in ("pdf", "state") else "/…"
+    return "/".join(segs[:4]) + (tail if len(segs) > 4 or "?" in path else "")
+
+
+def pair(base_a, base_b):
+    paths = []
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
+            continue
+        u = urlsplit(line)
+        paths.append((u.path or "/") + (f"?{u.query}" if u.query else "") if u.scheme else line)
+    if not paths:
+        sys.exit("no links on stdin")
+    bad = 0
+    for p in paths:
+        page, query = p.split("?")[0].rstrip("/"), (f"?{p.split('?', 1)[1]}" if "?" in p else "")
+        # the day page (/day/<code>/<date>/<key>), its PDF and its live state
+        for q in (p, f"{page}/pdf{query}", f"{page}/state{query}"):
+            a, b = one(base_a, q), one(base_b, q)
+            d = differ(a, b) or ("" if a["status"] == 200 else f"both answered {a['status']}, not a real page")
+            bad += bool(d)
+            print(f"  {'SAME' if not d else 'DIFF'} {cut(q)} ({a['status']} {a['type']})" + (f": {d}" if d else ""))
+    print("REAL DAY PAGES ANSWER THE SAME" if not bad else f"{bad} REAL PAGE(S) DIFFER")
+    sys.exit(1 if bad else 0)
 
 
 def main():
+    if len(sys.argv) == 4 and sys.argv[1] == "pair":
+        return pair(sys.argv[2].rstrip("/"), sys.argv[3].rstrip("/"))
     if len(sys.argv) != 4 or sys.argv[1] not in ("snapshot", "compare"):
         sys.exit(__doc__)
     cmd, base, folder = sys.argv[1], sys.argv[2].rstrip("/"), sys.argv[3]
@@ -133,15 +180,12 @@ def main():
             print(f"  MISSING {p}")
             bad += 1
             continue
-        heads = [k for k in ("status", "location", "type", "cookies") if a[k] != b[k]]
-        same_body = a["body"] == b["body"] or difflib.SequenceMatcher(None, a["body"], b["body"]).quick_ratio() > 0.995
         if p in CHANGES_ON_PURPOSE:
             print(f"  ON PURPOSE {p}: {a['status']} {a['location'] or ''} → {b['status']} {b['location'] or ''}")
             continue
-        ok = not heads and same_body
-        bad += not ok
-        detail = "; ".join(f"{k} {a[k]} → {b[k]}" for k in heads) + ("" if same_body else ("; " if heads else "") + "body differs")
-        print(f"  {'SAME' if ok else 'DIFF'} {p}" + ("" if ok else f": {detail}"))
+        d = differ(a, b)
+        bad += bool(d)
+        print(f"  {'SAME' if not d else 'DIFF'} {p}" + (f": {d}" if d else ""))
     print("EVERY FORMS URL ANSWERS THE SAME" if not bad else f"{bad} URL(S) ANSWER DIFFERENTLY")
     sys.exit(1 if bad else 0)
 

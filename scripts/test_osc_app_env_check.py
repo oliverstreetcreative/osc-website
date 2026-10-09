@@ -28,10 +28,13 @@ class EnvCheck(unittest.TestCase):
         self.assertEqual(check({**env, "RAILWAY_ENVIRONMENT_NAME": "production"})[0], [])
         self.assertTrue(check(env)[0])
 
-    def test_forms_origin_never_portal_itself(self):
-        problems, _ = check({**GOOD, "FORMS_ORIGIN": "https://portal.oliverstreetcreative.com"})
-        self.assertTrue(any("proxy to itself" in p for p in problems))
-        self.assertTrue(check({**GOOD, "FORMS_ORIGIN": "http://osc-forms-production.up.railway.app"})[0])
+    def test_forms_origin_only_its_own_railway_name(self):
+        for bad in ("https://portal.oliverstreetcreative.com", "https://hub.oliverstreetcreative.com",
+                    "https://forms.oliverstreetcreative.com", "http://osc-forms-production.up.railway.app",
+                    "https://osc-forms-production.up.railway.app.evil.com", "https://x.up.railway.app/path", ""):
+            problems, _ = check({**GOOD, "FORMS_ORIGIN": bad})
+            self.assertTrue(any("FORMS_ORIGIN" in p for p in problems), bad)
+        self.assertEqual(check({**GOOD, "FORMS_ORIGIN": "https://osc-forms-production.up.railway.app/"})[0], [])
 
     def test_staging_things_stop_it(self):
         for k, v in (("STAGING_PASSWORD", "x"), ("CLIENT_DEMO_TOKEN", "x"), ("CREW_PORTAL_URL", "https://x"),
@@ -44,12 +47,15 @@ class EnvCheck(unittest.TestCase):
         self.assertEqual(check({**GOOD, "MUX_SIGNING_KEY_ID": "a", "MUX_SIGNING_KEY_B64": "b"})[0], [])
         self.assertTrue(check({**GOOD, "SIGN_HERE_URL": "https://sign.oliverstreetcreative.com"})[0])
 
-    def test_the_switch_by_presence(self):
+    def test_the_switch_must_be_explicit(self):
         _, notes = check({**GOOD, "CLIENT_SIGNIN_ONLY": ""})
         self.assertTrue(any("test phase is ON: 0 client" in n for n in notes))  # set but empty = closed, never "off"
         env = dict(GOOD)
         del env["CLIENT_SIGNIN_ONLY"]
-        self.assertTrue(any("is unset" in n for n in check(env)[1]))
+        self.assertTrue(any("CLIENT_SIGNIN_ONLY is missing" in p for p in check(env)[0]))
+        problems, notes = check({**GOOD, "CLIENT_SIGNIN_ONLY": "off"})
+        self.assertEqual(problems, [])
+        self.assertTrue(any("OPEN to every client" in n for n in notes))
 
     def test_reads_kv_lines(self):
         self.assertEqual(read_env(["A=1\n", "export B='two words'\n", "junk\n", 'C="x=y"\n']), {"A": "1", "B": "two words", "C": "x=y"})

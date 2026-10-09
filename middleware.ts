@@ -4,7 +4,7 @@ import { VILLAGE_COOKIE_NAME, verifyVillageCookie } from '@/app/village/lib'
 import { IS_STAGING } from '@/lib/site-env'
 import { scopeAllows, type Scope } from '@/lib/auth/paths'
 import { edgeSession, type EdgeSession } from '@/lib/auth/session-rules'
-import { PUBLIC_SITE, appOrigin, appRoute, formsOrigin } from '@/lib/app/routes'
+import { PUBLIC_SITE, appOrigin, appRoute, formsMaxBody, formsOrigin } from '@/lib/app/routes'
 import {
   GATE_COOKIE_PLAIN,
   GATE_COOKIE_SECURE,
@@ -211,7 +211,19 @@ function appHostRoute(req: NextRequest): NextResponse | null {
   if (kind === 'forms') {
     const forms = formsOrigin()
     if (!forms) return new NextResponse('This part of the site is unavailable right now.', { status: 503, headers: PLAIN_TEXT })
-    return NextResponse.rewrite(new URL(pathname + search, forms))
+    // Next holds a proxied body in memory: nothing bigger than Forms' own largest upload gets read (v2 review #4/#6).
+    if (Number(req.headers.get('content-length') ?? '0') > formsMaxBody(pathname)) {
+      return new NextResponse("That's too large to send here. Email Sam and he'll send you a link.", {
+        status: 413,
+        headers: { ...PLAIN_TEXT, connection: 'close' },
+      })
+    }
+    // Forms' pages now share this origin with the client site: no MIME sniffing, and no framing by another site (v2
+    // review #10; Forms' own answer headers win where it sets them).
+    const res = NextResponse.rewrite(new URL(pathname + search, forms))
+    res.headers.set('X-Content-Type-Options', 'nosniff')
+    res.headers.set('Content-Security-Policy', "frame-ancestors 'self'")
+    return res
   }
   if (kind === 'root') {
     // Same host (a relative Location): portal.* after the move, or osc-app's own Railway name while it's checked.

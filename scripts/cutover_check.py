@@ -87,11 +87,16 @@ def check_env(env, phase):
     if phase == "after" and sync != "1":
         problems.append("CLIENT_SITE_SYNC isn't 1: the client site is still dark")
     # Sam's test phase (10/8 ~19:40): he is the only user; no client is invited or emailed (SPEC §26 v3).
-    # Presence, not truthiness: set-but-empty is the test phase failing CLOSED (no client signs in), never "off".
-    if "CLIENT_SIGNIN_ONLY" in env:
+    # Presence, not truthiness: set-but-empty is the test phase failing CLOSED (no client signs in). On production a
+    # MISSING switch fails closed too (SPEC §33 v2); only `off` opens the site to clients.
+    only = env.get("CLIENT_SIGNIN_ONLY")
+    if only is not None and only.strip().lower() == "off":
+        if phase == "after":
+            notes.append("CLIENT_SIGNIN_ONLY=off: every client in a published book can sign in (the test phase is over)")
+    elif only is not None:
         notes.append("CLIENT_SIGNIN_ONLY is set: Sam's test phase (only staff, crew and the listed client addresses sign in; no client mail)")
     elif phase == "after":
-        notes.append("CLIENT_SIGNIN_ONLY is unset: every client in a published book can sign in (the test phase is over)")
+        notes.append("CLIENT_SIGNIN_ONLY is missing: on production NO client can sign in (it fails closed); `off` opens it")
     return problems, notes
 
 

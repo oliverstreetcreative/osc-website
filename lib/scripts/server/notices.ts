@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import { IS_PRODUCTION } from "@/lib/site-env"
 import { escapeHtml, sendScriptMail } from "./mail"
 import { mayMailClient } from "@/lib/auth/signin-only"
+import { appOrigin } from "@/lib/app/routes"
 
 const QUIET_MS = 15 * 60 * 1000
 export type NoticeKind = "comment" | "suggestion" | "shared" | "mention"
@@ -64,6 +65,9 @@ export async function notifyMentions(scriptId: string, body: string, actorId: st
 }
 
 function origin(): string | null {
+  // osc-app (SPEC §33 v2, design review #6): the logged-in site lives on its own host, so its notices link there.
+  const app = appOrigin()
+  if (app) return app
   if (IS_PRODUCTION) return "https://oliverstreetcreative.com"
   const d = process.env.RAILWAY_PUBLIC_DOMAIN?.trim()
   return d ? `https://${d}` : null

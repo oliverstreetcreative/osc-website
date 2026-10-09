@@ -2,16 +2,17 @@
 """Give osc-app its settings without a value ever reaching the screen, argv or disk (client-website SPEC §33). 🤖
 
   python3 scripts/osc_app_env_copy.py --from-project <id> --from-env staging --from-service osc-website \\
-      --to-project <osc-app project id> [--to-env production] [--to-service osc-app] [--db-service osc-app-db] [--apply]
+      --to-project <osc-app project id> [--to-env production] [--to-service osc-app] [--db-service Postgres] [--apply]
 
 Without --apply it prints the plan (NAMES only) and changes nothing. With --apply each value goes to
 `railway variable set NAME --stdin --skip-deploys` on its stdin, one name at a time.
   - COPIED from the source service (read in memory from `railway variable list --json`, never printed):
     the Dropbox app (4) and Resend; Mux's signing key too when the source has it (footage plays).
   - GENERATED here: SESSION_JWT_SECRET (osc-app's own; never staging's, so no staging session opens osc-app).
-  - LITERAL: the osc-app switches (production, its origin, Forms' origin, the sign-in host, sync, schema at boot,
-    Sam the only user).
+  - LITERAL: the osc-app switches (production, its origin, Forms' origin (its own Railway name, read from Railway's API
+    10/8), the sign-in host, sync, schema at boot, Sam the only user).
   - REFERENCE: DATABASE_URL = ${{<db-service>.DATABASE_URL}} (Railway resolves it; the URL itself is never handled).
+    `railway add --database postgres` names that service "Postgres".
 Then run scripts/osc_app_env_check.py on the result.
 """
 import argparse
@@ -67,7 +68,7 @@ def main():
         p.add_argument(f"--{k}", required=True)
     p.add_argument("--to-env", default="production")
     p.add_argument("--to-service", default="osc-app")
-    p.add_argument("--db-service", default="osc-app-db")
+    p.add_argument("--db-service", default="Postgres")
     p.add_argument("--apply", action="store_true")
     a = p.parse_args()
     if a.to_project == a.from_project and a.to_service == a.from_service:

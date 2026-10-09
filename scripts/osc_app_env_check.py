@@ -54,8 +54,10 @@ def check(env):
             problems.append(f"{k} must be {v!r}")
         elif k not in env:
             problems.append(f"missing {k} (must be {v!r})")
-    if not (env.get("FORMS_ORIGIN", "").startswith("https://") and "portal.oliverstreetcreative.com" not in env.get("FORMS_ORIGIN", "")):
-        problems.append("FORMS_ORIGIN must be the Forms service's OWN https name (never portal.*: that would proxy to itself)")
+    forms = env.get("FORMS_ORIGIN", "").strip().rstrip("/")
+    if not re.fullmatch(r"https://[a-z0-9-]+\.up\.railway\.app", forms):
+        problems.append("FORMS_ORIGIN must be the Forms service's OWN Railway name, https://<name>.up.railway.app (never one of "
+                        "our names: once that name moves here, the proxy would call itself)")
     site_env = env.get("SITE_ENV", "").lower()
     if site_env and site_env != "production":
         problems.append(f"SITE_ENV={site_env}: osc-app is production (no staging gate, no staging rules)")
@@ -71,11 +73,16 @@ def check(env):
         problems.append("MUX_SIGNING_KEY_ID is set without its key (MUX_SIGNING_KEY or MUX_SIGNING_KEY_B64)")
     if bool(env.get("SIGN_HERE_URL")) != bool(env.get("SIGN_HERE_SERVICE_TOKEN")):
         problems.append("SIGN_HERE_URL and SIGN_HERE_SERVICE_TOKEN go together")
-    if "CLIENT_SIGNIN_ONLY" in env:
-        listed = [x for x in env["CLIENT_SIGNIN_ONLY"].split(",") if x.strip()]
-        notes.append(f"Sam's test phase is ON: {len(listed)} client address(es) may sign in; staff and crew always")
+    # Production fails closed when it's missing (no client at all), so absence is safe but never what's meant: say it.
+    only = env.get("CLIENT_SIGNIN_ONLY")
+    if only is None:
+        problems.append("CLIENT_SIGNIN_ONLY is missing: set it to the test list (internal@oliverstreetcreative.com), or to "
+                        "`off` when Sam opens the site to clients (missing = no client can sign in)")
+    elif only.strip().lower() == "off":
+        notes.append("CLIENT_SIGNIN_ONLY=off: OPEN to every client in a published book (the test phase is over)")
     else:
-        notes.append("CLIENT_SIGNIN_ONLY is unset: every client in a published book can sign in (the test phase is over)")
+        listed = [x for x in only.split(",") if x.strip()]
+        notes.append(f"Sam's test phase is ON: {len(listed)} client address(es) may sign in; staff and crew always")
     if env.get("CLIENT_SITE_DB_PUSH") == "1":
         notes.append("CLIENT_SITE_DB_PUSH=1: the schema is created/updated at boot (create-only; fine for osc-app's own database)")
     for k, why in WANTED.items():
