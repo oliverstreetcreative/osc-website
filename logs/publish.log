@@ -1,0 +1,1209 @@
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:382:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:557:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:560:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
+Fatal error: SqliteError: unable to open database file
+    at new Database (/Users/sampatton/code/osc-website/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/lib/database.js:69:26)
+    at main (/Users/sampatton/code/osc-website/scripts/publish.ts:396:14)
+    at Database (/Users/sampatton/code/osc-website/scripts/publish.ts:584:1)
+    at Object.<anonymous> (/Users/sampatton/code/osc-website/scripts/publish.ts:587:2)
+    at Module._compile (node:internal/modules/cjs/loader:1809:14)
+    at Object.transformer (/Users/sampatton/code/osc-website/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1530:32)
+    at Module._load (node:internal/modules/cjs/loader:1332:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at loadCJSModuleWithModuleLoad (node:internal/modules/esm/translators:338:3) {
+  code: 'SQLITE_CANTOPEN'
+}
