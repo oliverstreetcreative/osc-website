@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter, EB_Garamond } from "next/font/google"
+import { inter, ebGaramond } from "@/components/site/fonts"
 import "./globals.css"
 import dynamic from "next/dynamic"
 import { IS_STAGING } from "@/lib/site-env"
@@ -8,20 +8,6 @@ import { IS_STAGING } from "@/lib/site-env"
 // Staging's Comment button (client-website SPEC §32), loaded lazily so production never downloads its code: it is
 // fetched only when rendered, and it renders only on staging.
 const StagingComment = dynamic(() => import("./staging-comment").then((m) => m.StagingComment))
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-inter",
-})
-
-const ebGaramond = EB_Garamond({
-  subsets: ["latin"],
-  style: ["italic"],
-  weight: ["400"],
-  display: "swap",
-  variable: "--font-garamond",
-})
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://oliverstreetcreative.com"),

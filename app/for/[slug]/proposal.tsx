@@ -7,11 +7,11 @@ import type { ForProposal } from "@/lib/for-pages"
 import type { WorkVideo } from "@/lib/work-videos"
 import { VideoGrid } from "./video-grid"
 
-const ORANGE = "#E07830"
-const DIM = "rgba(255,255,255,0.62)"
-const QUIET = "rgba(255,255,255,0.45)"
-const RULE = "rgba(255,255,255,0.12)"
-const serif = "'EB Garamond', Georgia, serif"
+const ORANGE = "var(--accent)"
+const DIM = "var(--mut)"
+const QUIET = "var(--mut)"
+const RULE = "var(--line)"
+const serif = "var(--serif)"
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
@@ -66,7 +66,7 @@ function Lead({ text }: { text: string }) {
   if (!m) return <span>{text}</span>
   return (
     <span>
-      <strong style={{ color: "white", fontWeight: 700 }}>{m[1]}</strong> {m[2]}
+      <strong style={{ color: "var(--ink)", fontWeight: 700 }}>{m[1]}</strong> {m[2]}
     </span>
   )
 }
@@ -102,15 +102,16 @@ function Button({
       style={{
         display: "inline-block",
         padding: primary ? "16px 36px" : "14px 32px",
-        backgroundColor: primary ? ORANGE : "transparent",
+        backgroundColor: primary ? "var(--ink)" : "transparent",
         border: `2px solid ${ORANGE}`,
-        color: primary ? "#141412" : ORANGE,
+        color: primary ? "var(--on-strong)" : ORANGE,
         fontSize: "13px",
         fontWeight: 700,
         textTransform: "uppercase",
         letterSpacing: "0.08em",
         textDecoration: "none",
-        whiteSpace: "nowrap",
+        maxWidth: "100%",
+        textAlign: "center",
       }}
     >
       {children}
@@ -263,7 +264,7 @@ export function ProposalBody({
                 key={i}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1fr)",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
                   gap: "24px",
                   padding: "18px 0",
                   borderTop: i === 0 ? "none" : `1px solid ${RULE}`,
@@ -288,7 +289,7 @@ export function ProposalBody({
           <H2>How it goes</H2>
           <div style={{ display: "grid", gap: "20px", maxWidth: "760px" }}>
             {proposal.timeline.map((t, i) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(120px, 180px) 1fr", gap: "20px" }}>
+              <div key={i} className="prospect-timeline">
                 <div style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: ORANGE, paddingTop: "4px" }}>
                   {t.when}
                 </div>
@@ -397,7 +398,7 @@ export function ProposalBody({
           {cta.changesUrl && (
             <p style={{ fontSize: "15px", color: DIM, marginTop: "28px", lineHeight: 1.6 }}>
               Not quite right?{" "}
-              <a href={cta.changesUrl} style={{ color: "white", textDecoration: "underline", textUnderlineOffset: "3px" }}>
+              <a href={cta.changesUrl} style={{ color: "var(--ink)", textDecoration: "underline", textUnderlineOffset: "3px" }}>
                 {cta.changesLabel ?? "Tell me what needs to move"}
               </a>
               . Pricing is modular.

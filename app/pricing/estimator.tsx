@@ -78,9 +78,9 @@ export default function Estimator({ vocab }: { vocab: Vocab }) {
 
       <fieldset className="pe-q">
         <legend>How strict is your deadline?</legend>
-        <div className="pe-seg" role="radiogroup">
+        <div className="pe-seg">
           {vocab.deadlines.map((d) => (
-            <button key={d.id} type="button" role="radio" aria-checked={deadline === d.id} className={deadline === d.id ? "on" : ""} onClick={() => setDeadline(d.id)}>
+            <button key={d.id} type="button" aria-pressed={deadline === d.id} className={deadline === d.id ? "on" : ""} onClick={() => setDeadline(d.id)}>
               {d.label}
             </button>
           ))}
@@ -128,7 +128,7 @@ export default function Estimator({ vocab }: { vocab: Vocab }) {
         </div>
       )}
 
-      <div className="pe-result" aria-live="polite">
+      <div className="pe-result" aria-live="polite" aria-atomic="true">
         <p className="pe-say">Projects like this usually land between</p>
         <p className="pe-num">
           {range ? (

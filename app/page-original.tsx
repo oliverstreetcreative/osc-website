@@ -169,8 +169,8 @@ export default function HomePage() {
                 href="#hero"
                 className="text-gray-700 transition-colors"
                 style={{ color: "inherit" }}
-                onMouseEnter={(e) => (e.target.style.color = "#ff9300")}
-                onMouseLeave={(e) => (e.target.style.color = "inherit")}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#ff9300")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "inherit")}
               >
                 Home
               </a>
@@ -178,8 +178,8 @@ export default function HomePage() {
                 href="#about"
                 className="text-gray-700 transition-colors"
                 style={{ color: "inherit" }}
-                onMouseEnter={(e) => (e.target.style.color = "#ff9300")}
-                onMouseLeave={(e) => (e.target.style.color = "inherit")}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#ff9300")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "inherit")}
               >
                 About
               </a>
@@ -187,8 +187,8 @@ export default function HomePage() {
                 href="#portfolio"
                 className="text-gray-700 transition-colors"
                 style={{ color: "inherit" }}
-                onMouseEnter={(e) => (e.target.style.color = "#ff9300")}
-                onMouseLeave={(e) => (e.target.style.color = "inherit")}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#ff9300")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "inherit")}
               >
                 Portfolio
               </a>
@@ -196,8 +196,8 @@ export default function HomePage() {
                 href="#connect"
                 className="text-gray-700 transition-colors"
                 style={{ color: "inherit" }}
-                onMouseEnter={(e) => (e.target.style.color = "#ff9300")}
-                onMouseLeave={(e) => (e.target.style.color = "inherit")}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#ff9300")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "inherit")}
               >
                 Contact
               </a>
@@ -207,8 +207,8 @@ export default function HomePage() {
                 rel="noopener noreferrer"
                 className="text-gray-700 transition-colors"
                 style={{ color: "inherit" }}
-                onMouseEnter={(e) => (e.target.style.color = "#ff9300")}
-                onMouseLeave={(e) => (e.target.style.color = "inherit")}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#ff9300")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "inherit")}
               >
                 Client Portal
               </a>
@@ -227,8 +227,8 @@ export default function HomePage() {
               onClick={toggleMobileMenu}
               className="md:hidden p-2 text-gray-700 transition-colors"
               style={{ color: "inherit" }}
-              onMouseEnter={(e) => (e.target.style.color = "#ff9300")}
-              onMouseLeave={(e) => (e.target.style.color = "inherit")}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#ff9300")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "inherit")}
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -244,8 +244,8 @@ export default function HomePage() {
                 onClick={closeMobileMenu}
                 className="block text-lg text-gray-700 transition-colors py-2"
                 style={{ color: "inherit" }}
-                onMouseEnter={(e) => (e.target.style.color = "#ff9300")}
-                onMouseLeave={(e) => (e.target.style.color = "inherit")}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#ff9300")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "inherit")}
               >
                 Home
               </a>
@@ -254,8 +254,8 @@ export default function HomePage() {
                 onClick={closeMobileMenu}
                 className="block text-lg text-gray-700 transition-colors py-2"
                 style={{ color: "inherit" }}
-                onMouseEnter={(e) => (e.target.style.color = "#ff9300")}
-                onMouseLeave={(e) => (e.target.style.color = "inherit")}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#ff9300")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "inherit")}
               >
                 About
               </a>
@@ -264,8 +264,8 @@ export default function HomePage() {
                 onClick={closeMobileMenu}
                 className="block text-lg text-gray-700 transition-colors py-2"
                 style={{ color: "inherit" }}
-                onMouseEnter={(e) => (e.target.style.color = "#ff9300")}
-                onMouseLeave={(e) => (e.target.style.color = "inherit")}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#ff9300")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "inherit")}
               >
                 Portfolio
               </a>
@@ -274,8 +274,8 @@ export default function HomePage() {
                 onClick={closeMobileMenu}
                 className="block text-lg text-gray-700 transition-colors py-2"
                 style={{ color: "inherit" }}
-                onMouseEnter={(e) => (e.target.style.color = "#ff9300")}
-                onMouseLeave={(e) => (e.target.style.color = "inherit")}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#ff9300")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "inherit")}
               >
                 Contact
               </a>
@@ -286,8 +286,8 @@ export default function HomePage() {
                 onClick={closeMobileMenu}
                 className="block text-lg text-gray-700 transition-colors py-2"
                 style={{ color: "inherit" }}
-                onMouseEnter={(e) => (e.target.style.color = "#ff9300")}
-                onMouseLeave={(e) => (e.target.style.color = "inherit")}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#ff9300")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "inherit")}
               >
                 Client Portal
               </a>
@@ -714,7 +714,6 @@ export default function HomePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-6xl mx-auto">
               <Card
                 className="group overflow-hidden bg-gray-800 border border-gray-700 shadow-lg hover:shadow-xl transition-all duration-300"
-                style={{ "--hover-border-color": "#ff9300" }}
                 onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#ff9300")}
                 onMouseLeave={(e) => (e.currentTarget.style.borderColor = "")}
               >
@@ -843,8 +842,8 @@ export default function HomePage() {
                             href="tel:+18595121419"
                             className="transition-colors"
                             style={{ color: "#ff9300" }}
-                            onMouseEnter={(e) => (e.target.style.color = "#e6840a")}
-                            onMouseLeave={(e) => (e.target.style.color = "#ff9300")}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = "#e6840a")}
+                            onMouseLeave={(e) => (e.currentTarget.style.color = "#ff9300")}
                           >
                             (859) 512-1419
                           </a>
@@ -860,8 +859,8 @@ export default function HomePage() {
                             href="mailto:hello@oliverstreetcreative.com"
                             className="transition-colors"
                             style={{ color: "#ff9300" }}
-                            onMouseEnter={(e) => (e.target.style.color = "#e6840a")}
-                            onMouseLeave={(e) => (e.target.style.color = "#ff9300")}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = "#e6840a")}
+                            onMouseLeave={(e) => (e.currentTarget.style.color = "#ff9300")}
                           >
                             hello@oliverstreetcreative.com
                           </a>
@@ -889,8 +888,8 @@ export default function HomePage() {
                             download="Sam Patton - Oliver Street Creative.vcf"
                             className="inline-flex items-center gap-2 text-sm transition-colors"
                             style={{ color: "#ff9300" }}
-                            onMouseEnter={(e) => (e.target.style.color = "#e6840a")}
-                            onMouseLeave={(e) => (e.target.style.color = "#ff9300")}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = "#e6840a")}
+                            onMouseLeave={(e) => (e.currentTarget.style.color = "#ff9300")}
                           >
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M14,2L20,8V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V4A2,2 0 0,1 6,2H14M18,20V9H13V4H6V20H18Z" />
