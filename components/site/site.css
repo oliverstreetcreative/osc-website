@@ -15,6 +15,7 @@
 
 .site {
   --cond: var(--font-barlow), "Barlow Condensed", "Avenir Next Condensed", "Arial Narrow", sans-serif;
+  --site-header-offset: 120px;
   overflow-x: clip;
 }
 .site h1, .site h2, .site h3 { font-weight: 800; }
@@ -25,6 +26,12 @@
 /* ---------- top bar (client.css .cs-top) ---------- */
 .site .site-login { height: 40px; padding: 0 16px; }
 .site .cs-nav a[aria-current="page"] { color: var(--ink); background: var(--on-ink); }
+.site-mobile-nav { display:flex; justify-content:center; gap:4px; padding:0 12px 4px; border-top:1px solid rgba(255,255,255,.06); }
+.site .site-mobile-nav a { display:flex; align-items:center; min-height:44px; padding:8px 10px; font-size:14px; color:var(--on-ink-muted); border-radius:var(--radius-sm); }
+.site .site-mobile-nav a[aria-current="page"] { color:var(--on-ink); background:var(--deep-2); }
+.site [id] { scroll-margin-top:var(--site-header-offset); }
+.site #main:focus { outline:none; }
+@media (min-width:900px) { .site { --site-header-offset:72px; } .site-mobile-nav { display:none; } }
 
 /* ---------- frame ---------- */
 .site-in { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
@@ -488,7 +495,7 @@ html[data-motion="io"] .site .r > .seen { opacity: 1; transform: none; }
 @media print { .site-logo-switch { display: none; } }
 
 /* Remaining surfaces share the frame's tokens, including narrow phones. */
-.site #main { scroll-margin-top:72px; }
+.site #main { scroll-margin-top:var(--site-header-offset); }
 .site .site-login { min-height:44px; }
 .site .site-foot-nav a { display:inline-flex; align-items:center; min-height:44px; }
 .prospect-body { padding-top:32px; padding-bottom:64px; overflow-wrap:anywhere; }
@@ -517,6 +524,12 @@ html[data-motion="io"] .site .r > .seen { opacity: 1; transform: none; }
 .crew-nav > a { display:flex; align-items:center; min-height:44px; padding:8px 12px; border-radius:var(--radius-sm); background:var(--zone); }
 .crew-main { padding:24px 16px 64px; min-width:0; overflow-wrap:anywhere; --paper:var(--ink); --quiet:var(--mut); }
 .crew-main [data-slot="card"] { background:var(--zone); color:var(--ink); border-color:var(--line); }
+.crew-field-grid, .crew-stats { grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr)) !important; }
+.crew-field-grid > *, .crew-stats > * { min-width:0; }
+.crew-main :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { min-height:44px; font-size:16px !important; }
+/* Legacy crew inputs set outline:none inline. Keyboard focus must still show. */
+.crew-main :is(input, select, textarea, button, a):focus-visible { outline:2px solid var(--accent-fill) !important; outline-offset:3px; }
+@media (forced-colors:active) { .crew-main :is(input, select, textarea, button, a):focus-visible { outline-color:Highlight !important; } }
 @media (min-width:720px) {
   .prospect-timeline { grid-template-columns:minmax(120px,180px) minmax(0,1fr); gap:20px; }
   .crew-account > span { display:block; max-width:220px; overflow:hidden; text-overflow:ellipsis; font-size:13px; color:var(--on-ink-muted); }

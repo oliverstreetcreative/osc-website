@@ -77,8 +77,17 @@ export function SiteFrame({
             )}
           </div>
         </div>
+        {bare ? null : (
+          <nav className="site-mobile-nav" aria-label="Main">
+            {NAV.map((n) => (
+              <Link key={n.key} href={n.href} aria-current={current === n.key ? "page" : undefined}>
+                {n.label}
+              </Link>
+            ))}
+          </nav>
+        )}
       </header>
-      <main id="main">{children}</main>
+      <main id="main" tabIndex={-1}>{children}</main>
       <SiteFoot variant={footer} stacked={logoOptions} />
       {logoOptions ? <LogoSwitch /> : null}
     </div>

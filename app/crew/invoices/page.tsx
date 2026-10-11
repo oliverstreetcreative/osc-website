@@ -97,6 +97,7 @@ export default async function CrewInvoicesPage() {
 
       {/* Summary stats */}
       <div
+        className="crew-stats"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
