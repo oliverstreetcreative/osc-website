@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { getFormDefinition } from "@/lib/form-definitions"
 import { getContinuation } from "@/lib/continuations"
-import { IntakeLayout } from "../../components/intake/layout"
+import { IntakeLayout } from "../../components/intake/IntakeLayout"
 import SurveyRenderer from "../../components/intake/survey-renderer"
 
 interface PageProps {
