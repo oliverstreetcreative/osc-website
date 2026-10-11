@@ -524,3 +524,9 @@ html[data-motion="io"] .site .r > .seen { opacity: 1; transform: none; }
   .crew-nav { display:flex; flex-direction:column; align-content:stretch; border-bottom:0; border-right:1px solid var(--line); }
   .crew-main { padding:32px 32px 64px; }
 }
+
+.intake-system { max-width:900px; }
+.intake-system-nav { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:28px; }
+.site .intake-system-nav a { min-height:44px; display:flex; align-items:center; padding:8px 16px; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--zone); }
+.intake-system-form { margin-top:32px; --sjs-general-backcolor:var(--bg); --sjs-general-backcolor-light:var(--zone); --sjs-general-forecolor:var(--ink); --sjs-general-forecolor-light:var(--mut); --sjs-primary-backcolor:var(--ink); --sjs-primary-forecolor:var(--on-strong); --sjs-font-family:var(--sans); }
+.intake-system-form .sd-root-modern { background:var(--bg); font-family:var(--sans); }
