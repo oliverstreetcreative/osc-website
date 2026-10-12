@@ -6,16 +6,13 @@
 //   node --conditions=import --import tsx scripts/rehearse_scripts.ts <base-url> <suggester email:code> <editor email:code> [report.md]
 // Sign-in (SPEC §27 P0 v2): ask for each person's link, read the CODE from each email, pass email:code (a link signs
 // in only the browser that asked for it, so a driver uses the code).
-// Staging's password gate (SPEC §32 v2): checks /client with no cookies shows the gate, then carries a pass made from
-// the password (STAGING_PASSWORD in the environment, else the Keychain's osc-staging-password / sam; never argv,
-// never printed) with every request.
+// Staging's email gate: operator-provided OSC_STAGING_GATE_EMAIL and OSC_STAGING_GATE_CODE
+// authorize the run. This driver never asks for an email or reads Keychain/signing keys.
 //
 // Leaves the script as it found it (restores the imported version at the end; the rehearsal's versions and one
 // resolved comment stay in history, labelled "Rehearsal").
 import * as Y from "yjs"
 import { writeFileSync } from "node:fs"
-import { execFileSync } from "node:child_process"
-import { GATE_COOKIE_PLAIN, GATE_COOKIE_SECURE, makePass, nowSeconds, passwordUsable } from "../lib/staging/gate"
 import { EditorState, type Transaction } from "@tiptap/pm/state"
 import { updateYFragment } from "@tiptap/y-tiptap"
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from "y-protocols/awareness"
@@ -52,23 +49,19 @@ async function until(pred: () => boolean, ms = 8000) {
 const b64 = (u: Uint8Array) => Buffer.from(u).toString("base64")
 const fromB64 = (s: string) => new Uint8Array(Buffer.from(s, "base64"))
 
-/** Staging's password: the environment, else the Keychain. Never printed. */
-function stagingPassword(): string | null {
-  const env = passwordUsable(process.env.STAGING_PASSWORD)
-  if (env) return env
-  try {
-    return passwordUsable(execFileSync("security", ["find-generic-password", "-s", "osc-staging-password", "-a", "sam", "-w"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }))
-  } catch {
-    return null
-  }
-}
-
-/** The gate's pass for this run (2 hours), as a Cookie header piece. */
+// The operator supplies the one-time code from the staging email; no key/password minting.
 async function gateCookie(): Promise<string> {
-  const pw = stagingPassword()
-  if (!pw) throw new Error("staging's password isn't on this Mac (STAGING_PASSWORD or the Keychain's osc-staging-password)")
-  const name = new URL(base).protocol === "https:" ? GATE_COOKIE_SECURE : GATE_COOKIE_PLAIN
-  return `${name}=${await makePass(pw, nowSeconds() + 7200)}`
+  const email = process.env.OSC_STAGING_GATE_EMAIL
+  const code = process.env.OSC_STAGING_GATE_CODE
+  if (!email || !code) throw new Error("Provide OSC_STAGING_GATE_EMAIL and OSC_STAGING_GATE_CODE from a staging sign-in email")
+  const res = await fetch(`${base}/staging-gate/code`, {
+    method: "POST", redirect: "manual",
+    headers: { "content-type": "application/x-www-form-urlencoded", origin: base },
+    body: new URLSearchParams({ email, code }).toString(),
+  })
+  const match = /((?:__Host-osc_gate|__Secure-osc_staging_gate|osc_gate)=[^;]+)/.exec(res.headers.get("set-cookie") ?? "")
+  if (res.status !== 303 || !match) throw new Error("Staging code did not grant access")
+  return match[1]
 }
 let GATE = ""
 

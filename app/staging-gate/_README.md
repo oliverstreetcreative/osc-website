@@ -1,14 +1,31 @@
-# app/staging-gate/ — staging's password page 🤖
+# Staging access by OSC email
 
-Made 10/8/26 by the client-website worker for SPEC §32 (Matters/client-website/SPEC.md).
+Sam 10/11 23:20: replace the password with magic-link access for any exact
+@oliverstreetcreative.com address, including addresses absent from the portal.
 
-**What the machine was thinking:** middleware shows this page IN PLACE of any page asked for without a pass (status
-200, the address kept), so a tapped link lands where it pointed once the password is in. `page.tsx` is the form (a
-read-only username `osc` so Safari and iCloud Keychain save the pair; only the password is checked); `enter/route.ts`
-checks it and sets the pass. Both answer 404 on production.
+The gate grants staging access only. It never creates a Person, staff role,
+portal session or client membership. Existing portal auth remains separate.
+Existing mail transport, device cookies, hashed counting and bounded Postgres
+rate limits are reused. No mail is sent by tests.
 
-**Rules:** no images or files from `public/` on this page (they sit behind the gate themselves). No rate limiter on
-purpose (see the route's header). Never add anything here that reads the database.
+Native POST /enter requests a 15-minute token and six-digit code. Only hashes
+are stored in staging_access_links. GET /magic is passive; POST /verify checks
+the requesting device and consumes atomically. On another device, POST /code
+has five tries and uses the existing address/network failure limits. Expired,
+spent, cross-host and non-OSC records fail closed. POST /signout clears access.
 
-**Related:** `lib/staging/gate.ts` (the rules), `middleware.ts` (`stagingGate`). Live status: the client-website
-matter's HANDOFF.md.
+Passes are v2, signed for this purpose using SESSION_JWT_SECRET (at least 32
+characters after trimming outer whitespace); no STAGING_PASSWORD is used. Old v1 passes expire
+immediately on rollout. All gate endpoints 404 off staging. A missing key closes
+staging rather than opening it.
+
+HTTPS cookies are HttpOnly/Secure/SameSite=Lax for 30 days. Only the staging
+hostname family shares .staging.oliverstreetcreative.com; Railway uses a
+host-only __Host- cookie. Production parent domains never receive this grant.
+The preview harness still has its separate protected entrance and no Comment UI.
+
+Deploy prerequisites: additive staging_access_links table (Prisma staging boot,
+or prisma/staging-access-links.sql if schema push is disabled), existing staging
+DB/signing/mail setup. No production schema/data change is needed for the gate.
+Pure/injected tests do not contact a DB or delivery provider. A staging-only
+delivery/DB/browser smoke test remains a deployer check, not a worker action.

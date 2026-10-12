@@ -3,7 +3,7 @@
 // The key lives in Keychain "osc-client-preview-key"; only its sha256 is here.
 //   ?key=…&as=<email>[&next=/client/…|&frames=/a,/b][&view=<org>][&theme=dark|light]  signed in as that person (read-only)
 //   ?key=…[&next=/faq|&frames=/,/faq][&theme=…]                                         past the gate only, signed in as no one
-// Either way the response carries a 12-hour pass through staging's password gate (SPEC §32).
+// Either way the response carries a 12-hour pass through staging's email gate (SPEC §32).
 import { NextRequest, NextResponse } from "next/server"
 import { createHash, timingSafeEqual } from "crypto"
 import { db } from "@/lib/db"
@@ -12,7 +12,7 @@ import { cookieDomainFor, isSecure, publicOrigin } from "@/lib/client/host"
 import { startSession } from "@/lib/auth/session"
 import { VIEW_COOKIE } from "@/lib/client/context"
 import { logViewAs, mintViewCookie, VIEW_TTL_SECONDS } from "@/lib/client/view-as"
-import { PREVIEW_PASS_SECONDS, gatePassword, makePass, nowSeconds, passCookie, safeNext } from "@/lib/staging/gate"
+import { PREVIEW_PASS_SECONDS, gateKey, makePass, nowSeconds, passCookie, safeNext } from "@/lib/staging/gate"
 
 const KEY_SHA256 = "541190cb348c7ac8454b5ae2eda83deecf9a35d8c72810539c1133fddc9c84ea"
 
@@ -32,13 +32,13 @@ export async function GET(req: NextRequest) {
   const framePaths = (frames ?? "").split(",").map((p) => p.trim()).filter((p) => p && safeNext(p) === p)
   const framesPage = () =>
     new NextResponse(framesHtml(framePaths, look), { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } })
-  // Past staging's password gate for 12 hours (SPEC §32 v2): this key is its own way in, so the headless browser can keep
+  // Past staging's email gate for 12 hours (SPEC §32 v2): this key is its own way in, so the headless browser can keep
   // browsing. Never the Comment button's cookie: screenshots show the page as a client would.
   const withPass = async (res: NextResponse) => {
-    const gatePw = gatePassword()
-    if (gatePw) {
-      const pass = passCookie(isSecure(req), PREVIEW_PASS_SECONDS)
-      res.cookies.set(pass.name, await makePass(gatePw, nowSeconds() + PREVIEW_PASS_SECONDS), pass.options)
+    const signingKey = gateKey()
+    if (signingKey) {
+      const pass = passCookie(isSecure(req), PREVIEW_PASS_SECONDS, new URL(publicOrigin(req)).hostname)
+      res.cookies.set(pass.name, await makePass(signingKey, nowSeconds() + PREVIEW_PASS_SECONDS), pass.options)
     }
     return res
   }

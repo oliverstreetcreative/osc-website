@@ -5,13 +5,10 @@ import { IS_STAGING } from '@/lib/site-env'
 import { scopeAllows, type Scope } from '@/lib/auth/paths'
 import { edgeSession, type EdgeSession } from '@/lib/auth/session-rules'
 import {
-  GATE_COOKIE_PLAIN,
-  GATE_COOKIE_SECURE,
   GATE_PAGE,
   gateExemption,
-  gatePassword,
-  nowSeconds,
-  passValid,
+  gateKey,
+  requestHasPass,
   withoutPass,
 } from '@/lib/staging/gate'
 
@@ -150,9 +147,9 @@ function endDemoSession(req: NextRequest): NextResponse {
 }
 
 // ---------------------------------------------------------------------------
-// STAGING'S PASSWORD GATE (client-website SPEC §32 v2; Sam 10/8: "we can password protect staging"). Staging only, and
+// STAGING'S EMAIL GATE (Sam 10/11 23:20). Staging only, and
 // FIRST: nothing on staging answers without a pass except the exact exemptions in lib/staging/gate.ts. It fails CLOSED:
-// with no usable STAGING_PASSWORD every request gets 503. Production never runs any of it (IS_STAGING is false there).
+// with no usable SESSION_JWT_SECRET every request gets 503. Production never runs any of it (IS_STAGING is false there).
 // ---------------------------------------------------------------------------
 const PLAIN_TEXT = { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' }
 
@@ -164,9 +161,11 @@ async function demoSession(req: NextRequest): Promise<'valid' | 'ended' | null> 
   return fingerprint && String(claims.demo) === fingerprint && claims.sid ? 'valid' : 'ended'
 }
 
-/** The gate and its page are never framed by another site (a framed password form invites a steered tap). */
+/** The gate and its page are never framed by another site (a framed sign-in form invites a steered tap). */
 function noFraming(res: NextResponse): NextResponse {
   res.headers.set('X-Frame-Options', 'SAMEORIGIN')
+  res.headers.set('Referrer-Policy', 'no-referrer')
+  res.headers.set('Cache-Control', 'no-store')
   res.headers.set('Content-Security-Policy', "frame-ancestors 'self'")
   return res
 }
@@ -174,15 +173,14 @@ function noFraming(res: NextResponse): NextResponse {
 /** null = carry on (production, always; staging with a valid pass or an exemption). Otherwise, the answer. */
 async function stagingGate(req: NextRequest): Promise<NextResponse | null> {
   if (!IS_STAGING) return null
-  const password = gatePassword()
-  if (!password) return new NextResponse('Staging is closed.', { status: 503, headers: { ...PLAIN_TEXT, 'retry-after': '300' } })
+  const key = gateKey()
+  if (!key) return new NextResponse('Staging is closed.', { status: 503, headers: { ...PLAIN_TEXT, 'retry-after': '300' } })
   const { pathname, search } = req.nextUrl
   const exempt = gateExemption(pathname, req.method)
   // The gate's own page and form are served as they are (a client.* host would otherwise rewrite them).
   if (exempt === 'gate') return noFraming(NextResponse.next())
   if (exempt === 'open') return null
-  const pass = req.cookies.get(GATE_COOKIE_SECURE)?.value ?? (isLocalhost(req) ? req.cookies.get(GATE_COOKIE_PLAIN)?.value : undefined)
-  if (await passValid(pass, password, nowSeconds())) return null
+  if (await requestHasPass(req.headers)) return null
   // No pass. A valid demo session reads its client pages (prospects never meet the gate); an ended one is signed out
   // with the "demo ended" note, which the gate page then shows.
   if (sessionCookie(req)) {
@@ -197,7 +195,7 @@ async function stagingGate(req: NextRequest): Promise<NextResponse | null> {
     url.search = `?next=${encodeURIComponent(pathname + search)}`
     return noFraming(NextResponse.rewrite(url))
   }
-  return new NextResponse('Staging is password-protected: open it in a browser and enter the password.', { status: 401, headers: PLAIN_TEXT })
+  return new NextResponse('Sign in to staging with your Oliver Street Creative email.', { status: 401, headers: PLAIN_TEXT })
 }
 
 function getSubdomain(host: string): 'login' | 'client' | 'crew' | 'village' | null {
@@ -277,7 +275,11 @@ function redirectToLogin(req: NextRequest): NextResponse {
 // draft ever ends up in a search index next to the real site. Production is
 // untouched (IS_STAGING is false there). See app/robots.ts for the robots.txt half.
 export async function middleware(req: NextRequest) {
-  // Staging's password gate, before everything else (robots, the demo, View-as, CSRF, every host rewrite).
+  // Gate routes belong only to staging, even before normal portal auth/host rewrites.
+  if (!IS_STAGING && (req.nextUrl.pathname === GATE_PAGE || req.nextUrl.pathname.startsWith(GATE_PAGE + "/"))) {
+    return new NextResponse(null, { status: 404 })
+  }
+  // Staging's email gate, before everything else (robots, the demo, View-as, CSRF, every host rewrite).
   const gated = await stagingGate(req)
   if (gated) return finish(req, gated)
   if (IS_STAGING && req.nextUrl.pathname === '/robots.txt') {
@@ -359,6 +361,8 @@ function finish(req: NextRequest, res: NextResponse): NextResponse {
   // Same-origin frames (the proposal PDF) still work.
   if (req.nextUrl.pathname.startsWith('/client') || getSubdomain(req.headers.get('host') ?? '') === 'client') {
     res.headers.set('X-Frame-Options', 'SAMEORIGIN')
+  res.headers.set('Referrer-Policy', 'no-referrer')
+  res.headers.set('Cache-Control', 'no-store')
     res.headers.set('Content-Security-Policy', "frame-ancestors 'self'")
   }
   return res

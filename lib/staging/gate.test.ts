@@ -1,40 +1,41 @@
 // node --conditions=import --import ./node_modules/tsx/dist/loader.mjs --test lib/staging/gate.test.ts
-// Staging's password gate (client-website SPEC §32 v2): the pass, the exemptions, `next`.
+// Staging's signing key gate (client-website SPEC §32 v2): the pass, the exemptions, `next`.
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import {
   GATE_COOKIE_PLAIN, GATE_COOKIE_SECURE, PASS_SECONDS, cookieFrom, gateExemption, makePass, passCookie, passValid,
-  passwordUsable, requestHasPass, safeNext, withoutPass,
+  signingKeyUsable, requestHasPass, safeNext, withoutPass,
 } from "./gate"
 
-const PW = "correct-horse-battery-1"
+const PW = "test-only-staging-signing-key-123456789"
 const NOW = 1_800_000_000
 
-test("a pass verifies with its password until it expires, and never with another password", async () => {
+test("a pass verifies with its signing key until it expires, and never with another signing key", async () => {
   const pass = await makePass(PW, NOW + 3600)
-  assert.match(pass, /^v1\.\d{10}\.[A-Za-z0-9_-]{43}$/)
+  assert.match(pass, /^v2\.\d{10}\.[A-Za-z0-9_-]{43}$/)
   assert.equal(await passValid(pass, PW, NOW), true)
   assert.equal(await passValid(pass, PW, NOW + 3599), true)
   assert.equal(await passValid(pass, PW, NOW + 3600), false) // expired at exp
-  assert.equal(await passValid(pass, "another-password-xyz", NOW), false) // a new password ends every pass
+  assert.equal(await passValid(pass, "another-signing key-xyz", NOW), false) // a new signing key ends every pass
 })
 
 test("a pass can't be stretched, forged or stuffed", async () => {
   const pass = await makePass(PW, NOW + 3600)
   const [, , sig] = pass.split(".")
-  assert.equal(await passValid(`v1.${NOW + 999999}.${sig}`, PW, NOW), false) // a later expiry with the old signature
+  assert.equal(await passValid(`v2.${NOW + 999999}.${sig}`, PW, NOW), false) // a later expiry with the old signature
   assert.equal(await passValid(await makePass(PW, NOW + PASS_SECONDS + 3 * 86400), PW, NOW), false) // further out than any pass
-  assert.equal(await passValid(`v1.${NOW + 3600}.${"A".repeat(43)}`, PW, NOW), false)
-  for (const junk of [undefined, null, "", "v1", "v2." + pass.slice(3), pass + "x", pass.replace("v1.", "v1.0"), "x".repeat(500)]) {
+  assert.equal(await passValid(`v2.${NOW + 3600}.${"A".repeat(43)}`, PW, NOW), false)
+  for (const junk of [undefined, null, "", "v2", "v1." + pass.slice(3), pass + "x", pass.replace("v2.", "v2.0"), "x".repeat(500)]) {
     assert.equal(await passValid(junk as string, PW, NOW), false, String(junk).slice(0, 20))
   }
 })
 
-test("a short or missing password closes staging (the gate fails closed)", () => {
-  assert.equal(passwordUsable(undefined), null)
-  assert.equal(passwordUsable(""), null)
-  assert.equal(passwordUsable("fifteen-chars!!"), null) // 15
-  assert.equal(passwordUsable("  sixteen-chars!!!  "), "sixteen-chars!!!") // 16, trimmed
+test("a short or missing signing key closes staging (the gate fails closed)", () => {
+  assert.equal(signingKeyUsable(undefined), null)
+  assert.equal(signingKeyUsable(""), null)
+  assert.equal(signingKeyUsable("x".repeat(31)), null)
+  assert.equal(signingKeyUsable(" ".repeat(40)), null)
+  assert.equal(signingKeyUsable("x".repeat(32)), "x".repeat(32)) // minimum 32 bytes; original key bytes retained
 })
 
 test("exemptions are exact: path AND method", () => {
@@ -92,31 +93,31 @@ test("next is a path on this site or /", () => {
 })
 
 test("cookies: the __Host- pass everywhere, the plain one only on localhost", async () => {
-  assert.equal(cookieFrom("a=1; __Host-osc_gate=v1.x; b=2", GATE_COOKIE_SECURE), "v1.x")
+  assert.equal(cookieFrom("a=1; __Host-osc_gate=v2.x; b=2", GATE_COOKIE_SECURE), "v2.x")
   assert.equal(cookieFrom("a=1", GATE_COOKIE_SECURE), undefined)
   assert.equal(cookieFrom(null, GATE_COOKIE_SECURE), undefined)
   const pass = await makePass(PW, Math.floor(Date.now() / 1000) + 3600)
-  const was = process.env.STAGING_PASSWORD
-  process.env.STAGING_PASSWORD = PW
+  const was = process.env.SESSION_JWT_SECRET
+  process.env.SESSION_JWT_SECRET = PW
   try {
     const h = (host: string, cookie: string) => new Headers({ host, cookie })
     assert.equal(await requestHasPass(h("osc-website-staging.up.railway.app", `${GATE_COOKIE_SECURE}=${pass}`)), true)
     assert.equal(await requestHasPass(h("osc-website-staging.up.railway.app", `${GATE_COOKIE_PLAIN}=${pass}`)), false)
     assert.equal(await requestHasPass(h("localhost:3000", `${GATE_COOKIE_PLAIN}=${pass}`)), true)
     assert.equal(await requestHasPass(h("osc-website-staging.up.railway.app", "")), false)
-    process.env.STAGING_PASSWORD = "short"
+    process.env.SESSION_JWT_SECRET = "short"
     assert.equal(await requestHasPass(h("osc-website-staging.up.railway.app", `${GATE_COOKIE_SECURE}=${pass}`)), false) // closed
   } finally {
-    if (was === undefined) delete process.env.STAGING_PASSWORD
-    else process.env.STAGING_PASSWORD = was
+    if (was === undefined) delete process.env.SESSION_JWT_SECRET
+    else process.env.SESSION_JWT_SECRET = was
   }
   assert.deepEqual(passCookie(true, 60), { name: GATE_COOKIE_SECURE, options: { path: "/", httpOnly: true, secure: true, sameSite: "lax", maxAge: 60 } })
   assert.equal(passCookie(false, 60).name, GATE_COOKIE_PLAIN)
 })
 
-test("the pass format is pinned (the Python driver computes the same bytes)", async () => {
-  // HMAC-SHA256(key "correct-horse-battery-1", "osc-staging-gate:v1|1800003600"), base64url without padding.
+test("the pass format is pinned (purpose-bound HMAC bytes)", async () => {
+  // HMAC-SHA256(synthetic test signing key, "osc-staging-gate:v2|1800003600"), base64url without padding.
   const { createHmac } = await import("node:crypto")
-  const want = createHmac("sha256", PW).update("osc-staging-gate:v1|1800003600").digest("base64url")
-  assert.equal(await makePass(PW, 1800003600), `v1.1800003600.${want}`)
+  const want = createHmac("sha256", PW).update("osc-staging-gate:v2|1800003600").digest("base64url")
+  assert.equal(await makePass(PW, 1800003600), `v2.1800003600.${want}`)
 })

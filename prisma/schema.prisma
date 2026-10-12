@@ -1224,3 +1224,21 @@ model SupportAttachment {
   @@index([ticket_id])
   @@map("support_attachments")
 }
+
+// Gate-only proof of email ownership. Does not create a Person or portal session.
+model StagingAccessLink {
+  id String @id @default(uuid()) @db.Uuid
+  token_hash String @unique
+  email String
+  origin String
+  next_path String
+  device_hash String
+  code_hash String
+  code_tries Int @default(0)
+  expires_at DateTime
+  consumed_at DateTime?
+  created_at DateTime @default(now())
+  @@index([email, origin, created_at])
+  @@index([expires_at])
+  @@map("staging_access_links")
+}

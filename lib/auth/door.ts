@@ -90,8 +90,8 @@ const hourAgo = () => new Date(Date.now() - 3600_000)
 /** Record a link request and decide whether an email goes. The answer to the person is the same either way. A browser
  *  that has signed in as this person before is TRUSTED: it skips the per-address and per-network caps and never
  *  counts toward its network's (built review: a crew on one hotspot must not lock each other out). */
-export async function decideLink(h: Hashes, personId: string | null): Promise<{ send: boolean; alarm: string | null }> {
-  const known = !!personId
+export async function decideLink(h: Hashes, personId: string | null, eligibleStagingAddress = false): Promise<{ send: boolean; alarm: string | null }> {
+  const known = !!personId || (IS_STAGING && eligibleStagingAddress)
   const trusted = await knownDevice(db, personId, h.device)
   // A network already over its cap never takes the lock (the same answer, no transaction).
   if (!trusted && h.ip) {
@@ -215,6 +215,7 @@ export async function noticeIfNewDevice(person: { id: string; email: string }, d
 /** The 5-minute run's clean-up: counts older than 3 days; session rows that ended more than 90 days ago. */
 export async function cleanUpFrontDoor(): Promise<void> {
   const now = Date.now()
+  if (IS_STAGING) await db.stagingAccessLink.deleteMany({ where: { expires_at: { lt: new Date(now - 86400_000) } } })
   await db.authEvent.deleteMany({ where: { created_at: { lt: new Date(now - 3 * 86400_000) } } })
   await db.portalSession.deleteMany({
     where: { OR: [{ expires_at: { lt: new Date(now - 90 * 86400_000) } }, { revoked_at: { lt: new Date(now - 90 * 86400_000) } }] },

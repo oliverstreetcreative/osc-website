@@ -1,21 +1,17 @@
-# lib/staging/ — staging is Sam's 🤖
+# Staging gate
 
-Made 10/8/26 by the client-website worker for SPEC §32 (Matters/client-website/SPEC.md): Sam's rule that everything
-built for the new website goes to staging automatically, that he can "just browse it and comment", and that staging
-can be password protected.
+Sam 10/11 23:20 replaces STAGING_PASSWORD with proof of an exact OSC email address.
+gate.ts is Edge-safe: v2 purpose-bound signed passes, strict cookie scopes, safe
+redirects and exact method/path exemptions. Middleware invokes it before routing.
+The existing protected preview/demo/calendar/script entrances retain their
+independent authorization.
 
-**What the machine was thinking:** two small things that only ever run on staging, kept apart from the client site's
-own code so production can't reach them by accident. Pure modules (no database, no Next imports) so the same code runs
-in middleware (Edge), in the Node routes and in the plain `node --test` runs.
+magic.ts is server-side pure logic with injected storage, limits and delivery.
+magic-server.ts adapts the committed staging_access_links model and reuses
+auth/door.ts's database-backed limits, device cookie and existing email sender.
+Unknown OSC addresses need no Person row; gate access adds no portal privileges.
 
-- `gate.ts` — the password gate: the pass cookie (`v1.<exp>.<HMAC>`), the exact list of requests that never need it,
-  `next` checking. Middleware calls it FIRST on staging; it fails closed (503) without a usable `STAGING_PASSWORD`.
-- `comment.ts` — what a Comment-button note may hold (cleaned, secrets scrubbed) and where it's filed in Dropbox.
-
-**Rules:** nothing here may run on production (every caller checks `IS_STAGING` first). The pass format is pinned by a
-test because the drivers compute the same bytes. The owners table (which matter a page belongs to) lives in
-`scripts/route_staging_comments.py`, not here. Tests sit beside the code (`*.test.ts`).
-
-**Related:** `app/staging-gate/` (the page and its form), `app/api/staging/comment/` (the note's endpoint),
-`app/staging-comment.tsx` (the button), `scripts/route_staging_comments.py` (notes → PENDING-RULINGS),
-`scripts/set_staging_password.py` (the secret). Live status: the client-website matter's HANDOFF.md.
+Tests use fake storage and email delivery. Expiry, replay/races, device/code
+fallback, malformed input, code limits, external redirects, production-off and
+domain/cookie boundaries are tested without network, database or real secrets.
+See app/staging-gate/_README.md for deployment prerequisites and endpoint flow.
