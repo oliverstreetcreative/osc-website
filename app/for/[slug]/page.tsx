@@ -1,8 +1,10 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { SiteFrame } from "@/components/site/SiteFrame"
+import { MuxFacade } from "@/components/site/MuxFacade"
 import { notFound } from "next/navigation"
 import { getPortfolioData, logoSrc } from "@/lib/portfolio-data"
-import { muxEmbedSrc } from "@/lib/work-videos"
+import { muxThumbnail, muxEmbedSrc } from "@/lib/work-videos"
 import { ProposalBody, ProposalHero } from "./proposal"
 
 interface Props {
@@ -49,7 +51,7 @@ export default async function ForProspectPage({ params }: Props) {
           style={{
             height: "clamp(48px, 8vw, 80px)",
             width: "auto",
-            filter: page.isLightLogo ? "none" : "brightness(0) invert(1)",
+            filter: page.isLightLogo ? "brightness(0)" : "none",
           }}
         />
       )}
@@ -69,55 +71,8 @@ export default async function ForProspectPage({ params }: Props) {
   )
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#141412",
-        color: "white",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* Header */}
-      <header
-        style={{
-          padding: "24px clamp(20px, 5vw, 64px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <Link href="/" style={{ display: "flex", alignItems: "center" }}>
-          <img
-            src="/logo.png"
-            alt="Oliver Street Creative"
-            style={{ height: "64px", width: "auto" }}
-          />
-        </Link>
-        <Link
-          href="/#contact"
-          style={{
-            fontSize: "12px",
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: "0.12em",
-            color: "rgba(255,255,255,0.7)",
-            textDecoration: "none",
-          }}
-        >
-          Work with us
-        </Link>
-      </header>
-
-      <main
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          padding: "16px clamp(16px, 4vw, 48px) 48px",
-        }}
-      >
+    <SiteFrame>
+      <div className="site-in prospect-body">
         <div style={{ width: "100%", maxWidth: "1200px" }}>
           {page.proposal ? (
             <>
@@ -135,7 +90,7 @@ export default async function ForProspectPage({ params }: Props) {
                 textTransform: "uppercase",
                 letterSpacing: "0.15em",
                 marginBottom: "20px",
-                color: "rgba(255,255,255,0.45)",
+                color: "var(--mut)",
               }}
             >
               Selected work for
@@ -161,8 +116,8 @@ export default async function ForProspectPage({ params }: Props) {
                     height: "clamp(48px, 8vw, 80px)",
                     width: "auto",
                     filter: page.isLightLogo
-                      ? "none"
-                      : "brightness(0) invert(1)",
+                      ? "brightness(0)"
+                      : "none",
                   }}
                 />
               )}
@@ -175,7 +130,7 @@ export default async function ForProspectPage({ params }: Props) {
                 style={{
                   fontSize: "17px",
                   lineHeight: 1.6,
-                  color: "rgba(255,255,255,0.65)",
+                  color: "var(--mut)",
                   maxWidth: "640px",
                   margin: "20px 0 0",
                 }}
@@ -196,13 +151,7 @@ export default async function ForProspectPage({ params }: Props) {
                   overflow: "hidden",
                 }}
               >
-                <iframe
-                  src={muxEmbedSrc(video)}
-                  title={video.title}
-                  style={{ width: "100%", height: "100%", border: 0 }}
-                  allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                  allowFullScreen
-                />
+                <MuxFacade src={muxEmbedSrc(video)} poster={muxThumbnail(video)} title={video.title} />
               </div>
 
               <div style={{ padding: "24px 4px 0" }}>
@@ -222,8 +171,8 @@ export default async function ForProspectPage({ params }: Props) {
                       height: "34px",
                       width: "auto",
                       filter: video.isLightLogo
-                        ? "none"
-                        : "brightness(0) invert(1)",
+                        ? "brightness(0)"
+                        : "none",
                     }}
                   />
                   <h2
@@ -240,7 +189,7 @@ export default async function ForProspectPage({ params }: Props) {
                 <p
                   style={{
                     fontSize: "15px",
-                    color: "rgba(255,255,255,0.6)",
+                    color: "var(--mut)",
                     margin: 0,
                   }}
                 >
@@ -269,7 +218,7 @@ export default async function ForProspectPage({ params }: Props) {
               textTransform: "uppercase",
               letterSpacing: "0.15em",
               marginBottom: "16px",
-              color: "rgba(255,255,255,0.45)",
+              color: "var(--mut)",
             }}
           >
             Oliver Street Creative
@@ -291,8 +240,8 @@ export default async function ForProspectPage({ params }: Props) {
               display: "inline-block",
               padding: "10px 24px",
               backgroundColor: "transparent",
-              border: "1px solid #E07830",
-              color: "#E07830",
+              border: "1px solid var(--accent)",
+              color: "var(--accent)",
               fontSize: "12px",
               fontWeight: 600,
               textTransform: "uppercase",
@@ -304,19 +253,7 @@ export default async function ForProspectPage({ params }: Props) {
           </Link>
         </div>
         )}
-      </main>
-
-      {/* Footer */}
-      <footer
-        style={{
-          padding: "24px clamp(20px, 5vw, 64px)",
-          fontSize: "12px",
-          color: "rgba(255,255,255,0.4)",
-          textAlign: "center",
-        }}
-      >
-        © {new Date().getFullYear()} Oliver Street Creative · Covington, KY
-      </footer>
-    </div>
+      </div>
+    </SiteFrame>
   )
 }

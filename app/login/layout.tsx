@@ -1,10 +1,8 @@
-import { Barlow_Condensed, Lobster } from "next/font/google"
+import { barlow, lobster } from "@/components/site/fonts"
 import { LOOK_SCRIPT } from "@/lib/client/theme"
 import { LookApplier } from "../client/look"
 import "../client/client.css"
 
-const barlow = Barlow_Condensed({ subsets: ["latin"], weight: ["600"], variable: "--font-barlow", display: "swap" })
-const lobster = Lobster({ subsets: ["latin"], weight: ["400"], variable: "--font-lobster", display: "swap" })
 
 export const metadata = { title: "Sign in · Oliver Street Creative" }
 

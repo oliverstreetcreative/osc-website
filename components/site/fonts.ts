@@ -1,7 +1,11 @@
-import { Barlow_Condensed, Lobster } from "next/font/google"
+import localFont from "next/font/local"
 
-// Same faces as the client site (app/client/layout.tsx), so the wordmark and the
-// public pages render identically. 700 is for the big numbers (the shoot-day hub's
-// call-time face).
-export const barlow = Barlow_Condensed({ subsets: ["latin"], weight: ["600", "700"], variable: "--font-barlow", display: "swap" })
-export const lobster = Lobster({ subsets: ["latin"], weight: ["400"], variable: "--font-lobster", display: "swap" })
+// Exact Latin font bytes already vendored for the OSC blog. Builds need no
+// Google Fonts connection; public pages, portal and login use one definition.
+export const inter = localFont({ src: "./font-assets/inter-normal-100-900-latin.woff2", weight: "100 900", variable: "--font-inter", display: "swap" })
+export const ebGaramond = localFont({ src: "./font-assets/ebgaramond-italic-400-latin.woff2", weight: "400", style: "italic", variable: "--font-garamond", display: "swap" })
+export const barlow = localFont({ src: [
+  { path: "./font-assets/barlowcondensed-normal-600-latin.woff2", weight: "600" },
+  { path: "./font-assets/barlowcondensed-normal-700-latin.woff2", weight: "700" },
+], variable: "--font-barlow", display: "swap" })
+export const lobster = localFont({ src: "./font-assets/lobster-normal-400-latin.woff2", weight: "400", variable: "--font-lobster", display: "swap" })

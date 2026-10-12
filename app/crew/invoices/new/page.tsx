@@ -274,8 +274,8 @@ export default function SubmitInvoicePage() {
 
           {/* Project */}
           <div style={{ ...fieldStyle, marginBottom: '20px' }}>
-            <label style={labelStyle}>Project *</label>
-            <select
+            <label htmlFor="crew-invoice-project" style={labelStyle}>Project *</label>
+            <select id="crew-invoice-project"
               value={projectId}
               onChange={(e) => handleProjectChange(e.target.value)}
               required
@@ -292,8 +292,8 @@ export default function SubmitInvoicePage() {
 
           {/* Role */}
           <div style={{ ...fieldStyle, marginBottom: '20px' }}>
-            <label style={labelStyle}>Role</label>
-            <input
+            <label htmlFor="crew-invoice-role" style={labelStyle}>Role</label>
+            <input id="crew-invoice-role"
               type="text"
               value={role}
               onChange={(e) => setRole(e.target.value)}
@@ -304,6 +304,7 @@ export default function SubmitInvoicePage() {
 
           {/* Rate */}
           <div
+            className="crew-field-grid"
             style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
@@ -312,8 +313,8 @@ export default function SubmitInvoicePage() {
             }}
           >
             <div style={fieldStyle}>
-              <label style={labelStyle}>Rate Amount ($)</label>
-              <input
+              <label htmlFor="crew-invoice-rate" style={labelStyle}>Rate Amount ($)</label>
+              <input id="crew-invoice-rate"
                 type="number"
                 value={rateAmount}
                 onChange={(e) => setRateAmount(e.target.value)}
@@ -324,8 +325,8 @@ export default function SubmitInvoicePage() {
               />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Rate Type</label>
-              <select
+              <label htmlFor="crew-invoice-rate-type" style={labelStyle}>Rate Type</label>
+              <select id="crew-invoice-rate-type"
                 value={rateType}
                 onChange={(e) => setRateType(e.target.value as RateType)}
                 style={{ ...inputStyle, cursor: 'pointer' }}
@@ -340,6 +341,7 @@ export default function SubmitInvoicePage() {
 
           {/* Dates */}
           <div
+            className="crew-field-grid"
             style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
@@ -348,8 +350,8 @@ export default function SubmitInvoicePage() {
             }}
           >
             <div style={fieldStyle}>
-              <label style={labelStyle}>Start Date</label>
-              <input
+              <label htmlFor="crew-invoice-start-date" style={labelStyle}>Start Date</label>
+              <input id="crew-invoice-start-date"
                 type="date"
                 value={dateStart}
                 onChange={(e) => setDateStart(e.target.value)}
@@ -357,8 +359,8 @@ export default function SubmitInvoicePage() {
               />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>End Date</label>
-              <input
+              <label htmlFor="crew-invoice-end-date" style={labelStyle}>End Date</label>
+              <input id="crew-invoice-end-date"
                 type="date"
                 value={dateEnd}
                 onChange={(e) => setDateEnd(e.target.value)}
@@ -369,6 +371,7 @@ export default function SubmitInvoicePage() {
 
           {/* Days / Hours */}
           <div
+            className="crew-field-grid"
             style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
@@ -377,8 +380,8 @@ export default function SubmitInvoicePage() {
             }}
           >
             <div style={fieldStyle}>
-              <label style={labelStyle}>Days Worked</label>
-              <input
+              <label htmlFor="crew-invoice-days" style={labelStyle}>Days Worked</label>
+              <input id="crew-invoice-days"
                 type="number"
                 value={daysWorked}
                 onChange={(e) => setDaysWorked(e.target.value)}
@@ -389,8 +392,8 @@ export default function SubmitInvoicePage() {
             </div>
             {rateType === 'hourly' && (
               <div style={fieldStyle}>
-                <label style={labelStyle}>Hours Per Day</label>
-                <input
+                <label htmlFor="crew-invoice-hours" style={labelStyle}>Hours Per Day</label>
+                <input id="crew-invoice-hours"
                   type="number"
                   value={hoursPerDay}
                   onChange={(e) => setHoursPerDay(e.target.value)}
@@ -404,6 +407,7 @@ export default function SubmitInvoicePage() {
 
           {/* Additional expenses */}
           <div
+            className="crew-field-grid"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
@@ -412,8 +416,8 @@ export default function SubmitInvoicePage() {
             }}
           >
             <div style={fieldStyle}>
-              <label style={labelStyle}>Kit Rental ($)</label>
-              <input
+              <label htmlFor="crew-invoice-kit" style={labelStyle}>Kit Rental ($)</label>
+              <input id="crew-invoice-kit"
                 type="number"
                 value={kitRental}
                 onChange={(e) => setKitRental(e.target.value)}
@@ -424,8 +428,8 @@ export default function SubmitInvoicePage() {
               />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Mileage (mi)</label>
-              <input
+              <label htmlFor="crew-invoice-mileage" style={labelStyle}>Mileage (mi)</label>
+              <input id="crew-invoice-mileage"
                 type="number"
                 value={mileage}
                 onChange={(e) => setMileage(e.target.value)}
@@ -436,8 +440,8 @@ export default function SubmitInvoicePage() {
               />
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>Per Diem ($)</label>
-              <input
+              <label htmlFor="crew-invoice-per-diem" style={labelStyle}>Per Diem ($)</label>
+              <input id="crew-invoice-per-diem"
                 type="number"
                 value={perDiem}
                 onChange={(e) => setPerDiem(e.target.value)}
@@ -451,8 +455,8 @@ export default function SubmitInvoicePage() {
 
           {/* Notes */}
           <div style={{ ...fieldStyle, marginBottom: '28px' }}>
-            <label style={labelStyle}>Notes</label>
-            <textarea
+            <label htmlFor="crew-invoice-notes" style={labelStyle}>Notes</label>
+            <textarea id="crew-invoice-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Any additional notes or details..."
@@ -464,7 +468,7 @@ export default function SubmitInvoicePage() {
           {/* Invoice PDF upload */}
           {projectId && (
             <div style={{ marginBottom: '28px' }}>
-              <label style={labelStyle}>Attach Invoice PDF (optional)</label>
+              <p style={labelStyle}>Attach Invoice PDF (optional)</p>
               <p style={{ fontSize: '12px', color: 'var(--quiet)', marginBottom: '12px' }}>
                 Upload a PDF invoice if you have one prepared.
               </p>

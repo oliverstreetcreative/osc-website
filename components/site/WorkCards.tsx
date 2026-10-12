@@ -24,7 +24,14 @@ export function WorkCards({
         <Link key={v.slug} href={`/work/${v.slug}`} className="cs-card cs-pcard">
           <div className="cs-poster">
             {/* alt="": the title is right below, inside the same link */}
-            <img src={workStill(v)} alt="" loading="lazy" />
+            <img
+              srcSet={`${workStill(v, 480)} 480w, ${workStill(v, 960)} 960w`}
+              sizes="(min-width: 900px) 350px, (min-width: 640px) 50vw, 100vw"
+              src={workStill(v)}
+              alt=""
+              loading="lazy"
+              decoding="async"
+            />
             <PlayBadge />
           </div>
           <div className="cs-pcard-body">

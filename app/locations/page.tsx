@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { IntakeLayout } from "../components/intake/shared"
+import { IntakeLayout } from "../components/intake/IntakeLayout"
 import SurveyRenderer from "../components/intake/survey-renderer"
 import { getFormDefinition } from "@/lib/form-definitions"
 

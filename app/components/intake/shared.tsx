@@ -2,59 +2,6 @@
 
 import { useState, type ReactNode } from "react"
 
-export function IntakeLayout({
-  children,
-  title,
-  subtitle,
-}: {
-  children: ReactNode
-  title: string
-  subtitle: string
-}) {
-  return (
-    <div className="intake-page">
-      <nav className="nav-bar">
-        <a href="/" style={{ textDecoration: "none" }}>
-          <span
-            style={{
-              fontWeight: 900,
-              fontSize: 18,
-              letterSpacing: "-0.02em",
-              color: "var(--paper)",
-            }}
-          >
-            OLIVER STREET CREATIVE
-          </span>
-        </a>
-        <div className="nav-links">
-          <a href="/join-our-crew" className="intake-nav-link">
-            Crew
-          </a>
-          <a href="/casting" className="intake-nav-link">
-            Casting
-          </a>
-          <a href="/locations" className="intake-nav-link">
-            Locations
-          </a>
-        </div>
-      </nav>
-
-      <div className="intake-container">
-        <div className="intake-header">
-          <h1>{title}</h1>
-          <p className="font-accent">{subtitle}</p>
-        </div>
-        {children}
-      </div>
-
-      <footer className="footer-bar">
-        <span>&copy; {new Date().getFullYear()} Oliver Street Creative</span>
-        <span>Covington, KY &middot; Serving Cincinnati &amp; Northern Kentucky</span>
-      </footer>
-    </div>
-  )
-}
-
 export function FieldGroup({
   label,
   error,
