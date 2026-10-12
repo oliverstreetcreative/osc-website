@@ -16,7 +16,6 @@ export function StoryHours({ placeholder }: { placeholder: boolean }) {
     vars[`--cap-${k.key}`] = k.filming
     vars[`--story-${k.key}`] = storyTotal(k)
   }
-  const most = Object.fromEntries(KINDS.map((k) => [k.key, Math.max(...k.steps)]))
 
   return (
     <div className="site-sh" style={vars as CSSProperties}>
@@ -84,21 +83,6 @@ export function StoryHours({ placeholder }: { placeholder: boolean }) {
               <summary>
                 <span className="site-sh-srow">
                   <span className="site-sh-nm">{s.name}</span>
-                  <span className="site-sh-hr">
-                    {KINDS.map((k) => (
-                      <span key={k.key} data-k={k.key}>
-                        {hrs(k.steps[i])}
-                      </span>
-                    ))}
-                  </span>
-                  <svg className="site-sh-chev" viewBox="0 0 16 16" aria-hidden="true">
-                    <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <span className="site-sh-mini" aria-hidden="true">
-                    {KINDS.map((k) => (
-                      <i key={k.key} data-k={k.key} style={{ width: `${(100 * k.steps[i]) / most[k.key]}%` }} />
-                    ))}
-                  </span>
                 </span>
               </summary>
               <p>{s.why}</p>

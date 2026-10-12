@@ -20,7 +20,7 @@ const p = (value: number, tag: Tag, label: string, note?: string): Param => ({ v
 // Parameters: one row each, overridable in the Detailed quote by key.
 export const PARAMS = {
   // --- days -----------------------------------------------------------------
-  samShootDay: p(1000, "SAM", "Sam, per shoot day", "Take-home, Sam 9/30"),
+  samShootDay: p(1000, "SAM", "Sam, per shoot day", "Take-home, Sam 9/30; shoot day = 10 hr all-in, Sam 10/11"),
   gearShootDay: p(1000, "SAM", "Owned gear, per shoot day", "Sam 9/30"),
   samPrepDay: p(500, "DRAFT", "Sam, per prep day", "Sam: prep days can be cheaper; amount not ruled"),
   pickupDay: p(1000, "SAM", "Pickup day (camera or drone only)", "Sam 9/24: +$1,000"),
@@ -42,6 +42,10 @@ export const PARAMS = {
   droneCharge: p(500, "DRAFT", "Drone on a shoot day (flat)", "Sam's $1,000 is for a drone-only pickup DAY"),
   extraVideoDays: p(1, "DRAFT", "Each extra finished video: finishing days"),
 
+  // Values retained from 10/7; Sam 10/11 makes selection and inclusion optional per bid.
+  adaptValue: p(300, "SAM", "Each requested social version, value", "Optional per bid; include only when Sam chooses"),
+  adaptEditorHours: p(4, "SAM", "Editor hours per social version", "Sam: about 4 hours each"),
+  editorCostHour: p(30, "SAM", "Editor cost per hour", "Bid-margin doctrine"),
   // --- deadline -----------------------------------------------------------------
   flexibleDiscount: p(0.1, "OPEN", "Flexible dates (booking-window) discount", "Sam decides % and which windows"),
   rushPremium: p(0.2, "DRAFT", "Rush premium"),

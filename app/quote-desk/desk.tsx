@@ -11,10 +11,11 @@ import type { Quote, Spec, Edits, Line } from "@/lib/estimator/engine"
 const money = (n: number) => "$" + Math.round(n).toLocaleString("en-US")
 const PCT_PARAMS = new Set(["markup", "contingency", "flexibleDiscount", "rushPremium", "rangeLow", "rangeHigh"])
 const NUM_SPEC: (keyof Spec)[] = ["prepDays", "shootDays", "pickupDays", "editDays", "extraVideos", "travel"]
-const BOOL_SPEC: (keyof Spec)[] = ["assistant", "secondHand", "rentals"]
+const BOOL_SPEC: (keyof Spec)[] = ["vertical", "square", "socialIncluded", "assistant", "secondHand", "rentals"]
 const SPEC_LABEL: Record<keyof Spec, string> = {
   prepDays: "Prep days", shootDays: "Shoot days", pickupDays: "Pickup days", editDays: "Edit/finishing days",
   extraVideos: "Extra finished videos", assistant: "Assistant", secondHand: "Second hand (DP/gaffer)",
+  vertical: "Vertical 9:16 requested", square: "Square 1:1 requested", socialIncluded: "Include requested social versions at no charge",
   rentals: "Extra rentals", travel: "Travel $ (at cost)",
 }
 

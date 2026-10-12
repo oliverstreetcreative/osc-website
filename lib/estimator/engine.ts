@@ -29,6 +29,9 @@ export type Spec = {
   pickupDays: number
   editDays: number
   extraVideos: number
+  vertical: boolean
+  square: boolean
+  socialIncluded: boolean
   assistant: boolean
   secondHand: boolean
   rentals: boolean
@@ -40,6 +43,9 @@ export const SPEC_LABELS: Record<keyof Spec, string> = {
   pickupDays: "Pickup days",
   editDays: "Edit/finishing days",
   extraVideos: "Extra finished videos",
+  vertical: "Vertical 9:16 requested",
+  square: "Square 1:1 requested",
+  socialIncluded: "Include requested social versions at no charge",
   assistant: "Assistant on shoot days",
   secondHand: "Second hand (DP/gaffer)",
   rentals: "Extra rentals",
@@ -55,7 +61,7 @@ export type Edits = {
 
 export type Line = {
   id: string
-  group: "Days" | "Crew & rentals" | "Oliver Street handles" | "Travel"
+  group: "Social versions" | "Days" | "Crew & rentals" | "Oliver Street handles" | "Travel"
   label: string
   qty: number
   unitCost: number
@@ -117,7 +123,7 @@ export function parseEdits(raw: unknown): Edits {
   for (const k of ["prepDays", "shootDays", "pickupDays", "editDays", "extraVideos", "travel"] as const) {
     if (s[k] != null && Number.isFinite(Number(s[k]))) out.spec![k] = Math.max(0, Math.min(k === "travel" ? 1e6 : 60, Number(s[k])))
   }
-  for (const k of ["assistant", "secondHand", "rentals"] as const) if (typeof s[k] === "boolean") out.spec![k] = s[k]
+  for (const k of ["vertical", "square", "socialIncluded", "assistant", "secondHand", "rentals"] as const) if (typeof s[k] === "boolean") out.spec![k] = s[k]
   for (const [k, v] of Object.entries(r.params ?? {})) {
     if (k in PARAMS && Number.isFinite(Number(v))) out.params![k as ParamKey] = Number(v)
   }
@@ -145,6 +151,9 @@ export function specFromAnswers(a: SimpleAnswers): Spec {
     pickupDays: a.pickupDays ?? 0,
     editDays: has("editing") ? Math.round(k.editDays * q.editFactor * 2) / 2 : 0,
     extraVideos: 0,
+    vertical: false,
+    square: false,
+    socialIncluded: false,
     assistant: crew && q.assistant,
     secondHand: crew && q.secondHand,
     rentals: crew && q.rentals,
@@ -201,6 +210,23 @@ export function quote(answers: SimpleAnswers, edits: Edits = {}): Quote {
   add("pickup", "Days", "Pickup days (camera or drone)", spec.pickupDays, P.pickupDay, 0, "SAM")
   add("edit", "Days", "Sam, edit/finishing days", spec.editDays, P.samFinishDay, 0, dq("SAM"))
   add("extraVideos", "Days", "Extra finished videos (finishing days)", spec.extraVideos * P.extraVideoDays, P.samFinishDay, 0, tagOf("extraVideoDays"))
+
+  // Sam 10/11: optional per bid; inclusion is an explicit desk choice.
+  if (has("editing")) {
+    const films = 1 + spec.extraVideos
+    const cost = P.adaptEditorHours * P.editorCostHour
+    const markup = cost > 0 ? P.adaptValue / cost - 1 : 0
+    if (spec.vertical) add("adaptVertical", "Social versions", "Vertical 9:16 adaptation", films, cost, markup, "SAM")
+    if (spec.square) add("adaptSquare", "Social versions", "Square 1:1 adaptation", films, cost, markup, "SAM")
+    if (spec.socialIncluded) {
+      // A discount changes the charge, never the actual editor cost.
+      const charge = lines.filter((l) => l.group === "Social versions").reduce((sum, l) => sum + l.charge, 0)
+      if (charge) {
+        add("adaptIncluded", "Social versions", "Requested social versions: included", 1, -charge, 0, "SAM")
+        lines[lines.length - 1].cost = 0
+      }
+    }
+  }
 
   // Hired labor + rentals: cost x (1 + markup).
   if (spec.assistant) add("assistant", "Crew & rentals", "Assistant", spec.shootDays, P.assistantCost, M, "SAM")

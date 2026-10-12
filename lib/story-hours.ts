@@ -3,9 +3,8 @@
 // on 10/8 ~10:55 ("I like this little 'what goes into a video' thing"). Sam's point (10/8 08:30): capture is very,
 // very inexpensive today; crafting a story still requires experience and human attention and skill.
 //
-// EVERY HOUR BELOW IS A PLACEHOLDER the mock's worker made up, and the step names, sentences, labels and switch
-// lines are the mock's draft copy too. STORY_PIECE_APPROVED flips only when Sam has OK'd ALL of it (his real hours,
-// the steps, the words); until then the live site never shows the piece (lib/faq.ts showStoryHours).
+// Sam 10/8: 10 editing/finishing + 2 prep hours per finished minute.
+// Sam 10/11: shoot day = 10 hr all-in. Density rates and copy still await approval.
 
 export const STORY_PIECE_APPROVED = false
 
@@ -13,7 +12,7 @@ export const STORY_PIECE_APPROVED = false
 export const PIECE = {
   eyebrow: "What goes into a video",
   heading: "Where the hours go",
-  placeholderPill: "Placeholder hours · Sam’s real numbers coming",
+  placeholderPill: "Sam’s hours · density rates and copy pending",
   kindsLegend: "Kind of video",
   stillCaption: "For a testimonial:",
   filming: "Filming",
@@ -48,19 +47,22 @@ export interface Kind {
   label: string
   /** hours behind the camera on the day(s) */
   filming: number
-  /** hours per STEPS entry, same order */
-  steps: readonly number[]
+  /** Reference finished length for this kind, in minutes. */
+  minutes: number
 }
 
+export const HOURS_PER_SHOOT_DAY = 10 // Sam 10/11: all-in
+export const STORY_HOURS_PER_MINUTE = 12 // Sam 10/8: 10 edit/finish + 2 prep
+export function captureHours(minutes: number, finishedMinutesPerDay: number): number {
+  return Math.max(1, Math.ceil(minutes / finishedMinutesPerDay)) * HOURS_PER_SHOOT_DAY
+}
 export const KINDS: readonly Kind[] = [
-  { key: "testimonial", label: "Testimonial", filming: 2, steps: [1, 1, 1, 2, 3, 8, 2] },
-  { key: "story", label: "A story", filming: 16, steps: [3, 3, 2, 6, 6, 20, 4] },
-  { key: "bigger", label: "Bigger", filming: 24, steps: [4, 4, 4, 10, 10, 32, 6] },
+  { key: "testimonial", label: "Testimonial (1 minute)", filming: captureHours(1, 5), minutes: 1 },
+  { key: "story", label: "A story (3 minutes)", filming: captureHours(3, 3), minutes: 3 },
+  { key: "bigger", label: "Bigger (5 minutes)", filming: captureHours(5, 1.5), minutes: 5 },
 ]
-
-/** The story work is the sum of its steps: computed, never typed twice. */
 export function storyTotal(k: Kind): number {
-  return k.steps.reduce((a, b) => a + b, 0)
+  return k.minutes * STORY_HOURS_PER_MINUTE
 }
 
 export function hrs(n: number): string {
