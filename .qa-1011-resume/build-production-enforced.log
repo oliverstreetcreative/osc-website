@@ -1,0 +1,313 @@
+  ▲ Next.js 14.2.35
+  - Experiments (use with caution):
+    · instrumentationHook
+
+   Creating an optimized production build ...
+(node:20205) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+(node:20273) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20268) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20266) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20277) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20276) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20274) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20270) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20264) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20275) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20280) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20265) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:20267) ExperimentalWarning: localStorage is not available because --localstorage-file was not provided.
+(Use `node --trace-warnings ...` to show where the warning was created)
+   Generating static pages (0/58) ...
+   Generating static pages (14/58) 
+ ⚠ Unsupported metadata viewport is configured in metadata export in /login. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /login. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /_not-found. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /_not-found. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /crew/invoices/new. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /crew/invoices/new. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin/impersonate. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin/impersonate. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin/impersonate. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /village/login. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /village/login. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /faq. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /faq. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /faq. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin/audit/impersonation. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin/audit/impersonation. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin/audit/impersonation. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin/invites. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin/invites. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin/invites. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin/uploads. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin/uploads. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin/uploads. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin/projects. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin/projects. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin/projects. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin/tasks. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin/tasks. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /admin/tasks. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /crew/invoices. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /crew/invoices. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+TMDB credits unavailable: [TypeError: fetch failed] {
+  [cause]: Error: getaddrinfo ENOTFOUND api.themoviedb.org
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'api.themoviedb.org'
+  }
+}
+TMDB credits unavailable: [TypeError: fetch failed] {
+  [cause]: Error: getaddrinfo ENOTFOUND api.themoviedb.org
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'api.themoviedb.org'
+  }
+}
+ ⚠ Unsupported metadata viewport is configured in metadata export in /service-businesses. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /service-businesses. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /crew. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /crew. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+   Generating static pages (28/58) 
+ ⚠ Unsupported metadata viewport is configured in metadata export in /work/phoenixs-story. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /work/phoenixs-story. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /village. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /village. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /work/janells-story. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /work/janells-story. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /work/boone-county-2025. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /work/boone-county-2025. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /work. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /work. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+   Generating static pages (43/58) 
+ ✓ Generating static pages (58/58)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                         Size     First Load JS
+┌ ○ /                                               2.12 kB        98.1 kB
+├ ○ /_not-found                                     877 B          88.2 kB
+├ ƒ /admin                                          165 B          87.5 kB
+├ ƒ /admin/audit/impersonation                      165 B          87.5 kB
+├ ƒ /admin/impersonate                              165 B          87.5 kB
+├ ƒ /admin/invites                                  745 B          88.1 kB
+├ ƒ /admin/projects                                 252 B          96.3 kB
+├ ƒ /admin/projects/[id]/visibility                 583 B          87.9 kB
+├ ƒ /admin/support                                  252 B          96.3 kB
+├ ƒ /admin/support/[id]                             252 B          96.3 kB
+├ ƒ /admin/support/[id]/shot                        0 B                0 B
+├ ƒ /admin/tasks                                    252 B          96.3 kB
+├ ƒ /admin/uploads                                  165 B          87.5 kB
+├ ƒ /api/admin/impersonate/start                    0 B                0 B
+├ ƒ /api/admin/impersonate/stop                     0 B                0 B
+├ ƒ /api/admin/invites/resend                       0 B                0 B
+├ ƒ /api/admin/invites/revoke                       0 B                0 B
+├ ƒ /api/admin/uploads/[id]/review                  0 B                0 B
+├ ƒ /api/admin/visibility                           0 B                0 B
+├ ƒ /api/auth/code                                  0 B                0 B
+├ ƒ /api/auth/logout                                0 B                0 B
+├ ƒ /api/auth/preview                               0 B                0 B
+├ ƒ /api/auth/request-magic-link                    0 B                0 B
+├ ƒ /api/auth/verify                                0 B                0 B
+├ ƒ /api/crew/invoices/submit                       0 B                0 B
+├ ƒ /api/crew/projects                              0 B                0 B
+├ ƒ /api/estimate                                   0 B                0 B
+├ ƒ /api/events                                     0 B                0 B
+├ ƒ /api/intake/[slug]                              0 B                0 B
+├ ƒ /api/portal/activity                            0 B                0 B
+├ ƒ /api/portal/change-orders/[id]/approve          0 B                0 B
+├ ƒ /api/portal/deliverables/[id]/reviews           0 B                0 B
+├ ƒ /api/portal/invoices/[id]/handoff               0 B                0 B
+├ ƒ /api/portal/projects/[id]/reply                 0 B                0 B
+├ ƒ /api/portal/testimonials                        0 B                0 B
+├ ƒ /api/prospect-logo/[file]                       0 B                0 B
+├ ƒ /api/publish                                    0 B                0 B
+├ ƒ /api/quote-desk                                 0 B                0 B
+├ ƒ /api/quote-desk/unlock                          0 B                0 B
+├ ƒ /api/scripts/[id]                               0 B                0 B
+├ ƒ /api/scripts/[id]/approve                       0 B                0 B
+├ ƒ /api/scripts/[id]/awareness                     0 B                0 B
+├ ƒ /api/scripts/[id]/comments                      0 B                0 B
+├ ƒ /api/scripts/[id]/comments/[cid]                0 B                0 B
+├ ƒ /api/scripts/[id]/events                        0 B                0 B
+├ ƒ /api/scripts/[id]/export                        0 B                0 B
+├ ƒ /api/scripts/[id]/hub-key                       0 B                0 B
+├ ƒ /api/scripts/[id]/render                        0 B                0 B
+├ ƒ /api/scripts/[id]/share                         0 B                0 B
+├ ƒ /api/scripts/[id]/updates                       0 B                0 B
+├ ƒ /api/scripts/[id]/versions                      0 B                0 B
+├ ƒ /api/scripts/[id]/versions/[n]                  0 B                0 B
+├ ƒ /api/scripts/[id]/versions/[n]/restore          0 B                0 B
+├ ƒ /api/scripts/import                             0 B                0 B
+├ ƒ /api/scripts/invite/accept                      0 B                0 B
+├ ƒ /api/scripts/invite/renew                       0 B                0 B
+├ ƒ /api/staging/comment                            0 B                0 B
+├ ƒ /api/upload/chunk                               0 B                0 B
+├ ƒ /api/upload/finish                              0 B                0 B
+├ ƒ /api/upload/initiate                            0 B                0 B
+├ ƒ /calendar/[token]                               0 B                0 B
+├ ƒ /casting                                        1.15 kB         429 kB
+├ ƒ /client                                         253 B          96.3 kB
+├ ƒ /client/acceptances/[id]                        253 B          96.3 kB
+├ ƒ /client/account                                 253 B          96.3 kB
+├ ƒ /client/account/revoke                          0 B                0 B
+├ ƒ /client/approvals/[id]                          253 B          96.3 kB
+├ ƒ /client/billing                                 253 B          96.3 kB
+├ ƒ /client/calendar                                253 B          96.3 kB
+├ ƒ /client/calendar/event/[id]                     0 B                0 B
+├ ƒ /client/calendar/reset                          0 B                0 B
+├ ƒ /client/documents                               252 B          96.3 kB
+├ ƒ /client/download/[id]/[n]                       0 B                0 B
+├ ƒ /client/files/[id]                              0 B                0 B
+├ ƒ /client/library/heart                           0 B                0 B
+├ ƒ /client/media/[id]                              0 B                0 B
+├ ƒ /client/org                                     0 B                0 B
+├ ƒ /client/poster/[kind]/[id]                      0 B                0 B
+├ ƒ /client/projects                                252 B          96.3 kB
+├ ƒ /client/projects/[id]                           253 B          96.3 kB
+├ ƒ /client/projects/[id]/approve/[film]            586 B           390 kB
+├ ƒ /client/projects/[id]/footage/[library]         253 B          96.3 kB
+├ ƒ /client/projects/[id]/footage/[library]/[clip]  567 B           390 kB
+├ ƒ /client/proposals/[id]                          252 B          96.3 kB
+├ ƒ /client/proposals/[id]/file                     0 B                0 B
+├ ƒ /client/proposals/accept                        0 B                0 B
+├ ƒ /client/requests/[id]                           252 B          96.3 kB
+├ ƒ /client/requests/[id]/assets                    252 B          96.3 kB
+├ ƒ /client/review/approve                          0 B                0 B
+├ ƒ /client/scripts                                 207 B            99 kB
+├ ƒ /client/scripts/[id]                            188 kB          295 kB
+├ ƒ /client/scripts/[id]/print                      334 B          96.3 kB
+├ ƒ /client/scripts/invite/[token]                  195 B          96.2 kB
+├ ƒ /client/sign/receipt/[id]                       0 B                0 B
+├ ƒ /client/sign/start                              0 B                0 B
+├ ƒ /client/signout                                 0 B                0 B
+├ ƒ /client/start                                   252 B          96.3 kB
+├ ƒ /client/start/[id]/[step]                       252 B          96.3 kB
+├ ƒ /client/start/[id]/review                       252 B          96.3 kB
+├ ƒ /client/start/look/[step]                       252 B          96.3 kB
+├ ƒ /client/start/remove                            0 B                0 B
+├ ƒ /client/start/save                              0 B                0 B
+├ ƒ /client/start/send                              0 B                0 B
+├ ƒ /client/start/sent                              165 B          87.5 kB
+├ ƒ /client/start/upload                            0 B                0 B
+├ ƒ /client/support                                 189 B            99 kB
+├ ƒ /client/support/report                          0 B                0 B
+├ ƒ /client/team/[project]/[member]                 0 B                0 B
+├ ƒ /client/view-as                                 253 B          96.3 kB
+├ ƒ /client/view-as/exit                            0 B                0 B
+├ ƒ /client/view-as/start                           0 B                0 B
+├ ƒ /crew                                           252 B          96.3 kB
+├ ƒ /crew/invoices                                  252 B          96.3 kB
+├ ƒ /crew/invoices/new                              68.3 kB         172 kB
+├ ƒ /crew/projects/[id]                             253 B          96.3 kB
+├ ƒ /crew/projects/[id]/tasks                       958 B            97 kB
+├ ƒ /demo/[token]                                   0 B                0 B
+├ ƒ /f/[slug]                                       1.15 kB         429 kB
+├ ○ /faq                                            215 B          96.2 kB
+├ ƒ /for/[slug]                                     1.34 kB        97.4 kB
+├ ƒ /join-our-crew                                  1.15 kB         429 kB
+├ ƒ /locations                                      1.15 kB         429 kB
+├ ○ /login                                          2.67 kB          90 kB
+├ ƒ /magic                                          165 B          87.5 kB
+├ ƒ /pricing                                        1.8 kB         97.8 kB
+├ ƒ /quote-desk                                     2.72 kB        98.7 kB
+├ ○ /robots.txt                                     0 B                0 B
+├ ○ /service-businesses                             2.12 kB        98.1 kB
+├ ○ /sitemap.xml                                    0 B                0 B
+├ ƒ /staging-gate                                   165 B          87.5 kB
+├ ƒ /staging-gate/enter                             0 B                0 B
+├ ƒ /support/signin-trouble                         0 B                0 B
+├ ○ /village                                        476 B           381 kB
+├ ƒ /village/api/unlock                             0 B                0 B
+├ ○ /village/login                                  1.09 kB        88.5 kB
+├ ○ /work                                           215 B          96.2 kB
+└ ● /work/[slug]                                    215 B          96.2 kB
+    ├ /work/phoenixs-story
+    ├ /work/boone-county-2025
+    └ /work/janells-story
++ First Load JS shared by all                       87.4 kB
+  ├ chunks/04a7189a-2ec457f53b1b093b.js             53.7 kB
+  ├ chunks/6270-74db3ae6ed9a904d.js                 31.7 kB
+  └ other shared chunks (total)                     1.99 kB
+
+
+ƒ Middleware                                        35.9 kB
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses getStaticProps)
+ƒ  (Dynamic)  server-rendered on demand
+
