@@ -1,0 +1,50 @@
+(node:30028) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ Simple range === Detailed range with default values, and contains the Detailed total (22.13975ms)
+✔ Detailed with no overrides flags nothing as overridden (7.849375ms)
+✔ doctrine: shoot day = $1,000 Sam + $1,000 owned gear, no markup (0.120917ms)
+✔ doctrine: hired labor x1.30 (assistant $500 -> $650); travel at cost (0.088291ms)
+✔ doctrine: a finished video never quotes or ranges under $3,999, even flexible (6.009208ms)
+✔ an override wins and is flagged (0.1685ms)
+✔ flexible is cheaper than firm, rush dearer (above the floor) (0.084875ms)
+(node:30029) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ drafts show only where the site KNOWS it's staging or dev: an unknown build is the live site (fail closed) (0.348458ms)
+✔ the live site renders /faq only once it's public; staging and dev always do (0.057792ms)
+✔ the live site shows approved answers only - not drafts in Sam's own words; staging shows every entry (0.587625ms)
+✔ the FAQ is up only with something to show: public with no approved answers stays down (0.130917ms)
+✔ the hours piece, the draft guide link and the markers stay off the live site until approved or final (0.14125ms)
+✔ staging pills say where each answer stands (0.072625ms)
+✔ every entry is well formed; an approval carries its date, and none is invented (0.233958ms)
+✔ the hours model matches price-estimator's table (hours-model.md): story 12/min, capture = shoot days x 10 (0.188625ms)
+✔ house voice: no em dashes and no straight apostrophes in anything a visitor reads (0.223875ms)
+✔ hours and days read naturally; screen readers hear whole words (0.087875ms)
+(node:30030) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ the live site keeps the still: no playback id, no sources (0.595625ms)
+✔ staging plays reel v6: HLS, then the 720p and 1080p static renditions, poster from the reel itself (0.137792ms)
+(node:30031) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ every line carries a source tag (0.737292ms)
+✔ house voice: no em dashes, no straight apostrophes (0.101459ms)
+✔ no superlatives; 'humble' only in Sam's own differentiator line (10/8 12:02) (0.776417ms)
+✔ the headline's pitch and Sam's memo lines are his words, tagged SAM (0.123791ms)
+✔ open lines are few and listed (0.098791ms)
+✔ the close says Sam's own words and names its one action once (step-4 review 10/8) (0.166875ms)
+(node:30032) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ the options are the ones on Sam's page, default d83 (Majordomo's brief) (0.562375ms)
+✔ every key the script accepts has its show / label / lit rules, and no-JS shows the default (0.1285ms)
+✔ option D: 'reative' stands at 76/83/90% of the caps' height (today ~68%) (0.194167ms)
+(node:30033) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ an empty SITE_ENV counts as unset: Railway's name decides (373.160791ms)
+✔ a non-empty SITE_ENV still overrides; nothing set is neither (334.88ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 942.248834
