@@ -9,7 +9,7 @@ import type { Vocab } from "@/lib/estimator/vocab"
 type Range = { low: number; high: number }
 const money = (n: number) => "$" + n.toLocaleString("en-US")
 
-export default function Estimator({ vocab }: { vocab: Vocab }) {
+export default function Estimator({ vocab, socialValue }: { vocab: Vocab; socialValue: number }) {
   const [kind, setKind] = useState(vocab.kinds[0].id)
   const [quality, setQuality] = useState(vocab.qualities[0].id)
   const [deadline, setDeadline] = useState("firm")
@@ -139,6 +139,11 @@ export default function Estimator({ vocab }: { vocab: Vocab }) {
             "…"
           )}
         </p>
+        {handles.includes("editing") && (
+          <p className="pe-incl">
+            Every film includes vertical and square versions for social, a {money(socialValue)} value, at no charge.
+          </p>
+        )}
         <div className="pe-ctas">
           <a className="pe-cta" href="sms:+18595121419">Text Sam · (859) 512-1419</a>
           <a className="pe-cta ghost" href="https://cal.com/oliverstreetcreative" target="_blank" rel="noopener noreferrer">

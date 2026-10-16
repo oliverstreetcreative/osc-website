@@ -55,7 +55,7 @@ export type Edits = {
 
 export type Line = {
   id: string
-  group: "Days" | "Crew & rentals" | "Oliver Street handles" | "Travel"
+  group: "Days" | "Crew & rentals" | "Oliver Street handles" | "Social versions" | "Travel"
   label: string
   qty: number
   unitCost: number
@@ -179,14 +179,20 @@ export function quote(answers: SimpleAnswers, edits: Edits = {}): Quote {
   const has = (h: Handle) => answers.handles.includes(h)
   const lines: Line[] = []
   const M = P.markup
-  const add = (id: string, group: Line["group"], label: string, qty: number, unitCost: number, markup: number, tag: Tag) => {
+  const add = (id: string, group: Line["group"], label: string, qty: number, unitCost: number, markup: number, tag: Tag, fixedUnitCharge?: number) => {
     const o = edits.lines?.[id] ?? {}
     const overridden: Line["overridden"] = []
     if (o.qty != null && o.qty !== qty) { qty = o.qty; overridden.push("qty") }
     if (o.unitCost != null && o.unitCost !== unitCost) { unitCost = o.unitCost; overridden.push("unitCost") }
     if (o.markup != null && o.markup !== markup) { markup = o.markup; overridden.push("markup") }
     if (qty === 0 && overridden.length === 0) return
-    const unitCharge = unitCost * (1 + markup)
+    // A fixed charge (social adaptations: priced at their VALUE, costed at editor
+    // hours) ignores markup; the markup shown is what that charge implies.
+    let unitCharge = unitCost * (1 + markup)
+    if (fixedUnitCharge != null) {
+      unitCharge = fixedUnitCharge
+      markup = unitCost > 0 ? fixedUnitCharge / unitCost - 1 : 0
+    }
     lines.push({ id, group, label, qty, unitCost, markup, unitCharge, cost: qty * unitCost, charge: qty * unitCharge, tag, overridden })
   }
   const tagOf = (...keys: ParamKey[]): Tag =>
@@ -214,6 +220,18 @@ export function quote(answers: SimpleAnswers, edits: Edits = {}): Quote {
   if (has("music")) add("music", "Oliver Street handles", "Music license", 1, P.musicCost, M, tagOf("musicCost"))
   if (has("graphics")) add("graphics", "Oliver Street handles", "Graphics and titles", P.graphicsDays, P.samFinishDay, 0, tagOf("graphicsDays"))
   if (has("drone")) add("drone", "Oliver Street handles", "Drone on the shoot", 1, P.droneCharge, 0, tagOf("droneCharge"))
+
+  // Social versions (Sam C11, 10/7): every finished film SHOWS a vertical 9:16 and a
+  // square 1:1 at their value, then includes them free. Net zero on the price; the
+  // cost column carries the editor hours for job costing.
+  if (has("editing")) {
+    const films = 1 + spec.extraVideos
+    const adaptCost = P.adaptEditorHours * P.editorCostHour
+    const adaptTag = tagOf("adaptValue", "adaptEditorHours", "editorCostHour")
+    add("adaptVertical", "Social versions", "Vertical 9:16 adaptation", films, adaptCost, 0, adaptTag, P.adaptValue)
+    add("adaptSquare", "Social versions", "Square 1:1 adaptation", films, adaptCost, 0, adaptTag, P.adaptValue)
+    add("adaptIncluded", "Social versions", "Included with every film", films, 0, 0, adaptTag, -2 * P.adaptValue)
+  }
 
   // Travel: at cost, no markup, outside contingency and the deadline adjustment.
   add("travel", "Travel", "Travel (at cost)", spec.travel > 0 ? 1 : 0, spec.travel, 0, "SAM")
@@ -251,4 +269,10 @@ export function quote(answers: SimpleAnswers, edits: Edits = {}): Quote {
 // The public Simple quote: the range ONLY. Same formula, default values.
 export function simpleRange(answers: SimpleAnswers): { low: number; high: number } {
   return quote(answers).range
+}
+
+// The value of the social versions included with every finished film, for the
+// Simple page's "included" line (a value statement, not a line item).
+export function includedSocialValue(): number {
+  return 2 * PARAMS.adaptValue.value
 }

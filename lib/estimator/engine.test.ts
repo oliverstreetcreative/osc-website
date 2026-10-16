@@ -79,6 +79,26 @@ test("an override wins and is flagged", () => {
   assert.deepEqual(d.specOverridden, ["shootDays"])
 })
 
+test("C11 (Sam 10/7): social versions shown at $300 each, then included — net zero", () => {
+  const a = parseAnswers({ kind: "story", quality: "clean", deadline: "firm", handles: ["crewGear", "editing", "music"] })
+  const d = quote(a, { spec: { extraVideos: 1 } })
+  const v = d.lines.find((l) => l.id === "adaptVertical")!
+  const s = d.lines.find((l) => l.id === "adaptSquare")!
+  const inc = d.lines.find((l) => l.id === "adaptIncluded")!
+  assert.equal(v.unitCharge, 300); assert.equal(s.unitCharge, 300); assert.equal(v.qty, 2)
+  assert.equal(inc.charge, -1200); assert.equal(inc.cost, 0)
+  assert.equal(v.charge + s.charge + inc.charge, 0)
+  assert.equal(v.unitCost, 120, "costed at 4 editor hours x $30")
+  // price unchanged by the ruling: pinned pre-C11 values
+  assert.equal(quote(parseAnswers({ kind: "story", quality: "clean", deadline: "firm" })).total, 7499)
+  assert.equal(quote(parseAnswers({})).total, 3999)
+})
+
+test("C11: no social versions on a shoot-only job (editing not handled)", () => {
+  const d = quote(parseAnswers({ kind: "testimonial", quality: "clean", deadline: "firm", handles: ["crewGear"] }))
+  assert.ok(!d.lines.some((l) => l.group === "Social versions"))
+})
+
 test("flexible is cheaper than firm, rush dearer (above the floor)", () => {
   const base = { kind: "production", quality: "polished", handles: ["crewGear", "editing"] }
   const f = quote(parseAnswers({ ...base, deadline: "flexible" })).total
