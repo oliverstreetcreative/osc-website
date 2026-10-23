@@ -322,8 +322,9 @@ function scopedElsewhere(req: NextRequest, scope: Scope, appPath: string): NextR
   return NextResponse.redirect(url)
 }
 
-function redirectToLogin(req: NextRequest): NextResponse {
-  const subdomain = getSubdomain(req.headers.get('host') ?? '')
+export function redirectToLogin(req: NextRequest): NextResponse {
+  const host = requestHost(req)
+  const subdomain = getSubdomain(host)
   const returnPath = req.nextUrl.pathname
 
   // Crew sign in on crew.* itself (SPEC §27 P0 v2: the device cookie lands where crew links point).
@@ -335,7 +336,8 @@ function redirectToLogin(req: NextRequest): NextResponse {
   }
   if (subdomain && subdomain !== 'login') {
     const url = new URL(`https://${LOGIN_HOST}/login`)
-    url.searchParams.set('redirect', req.nextUrl.href)
+    // Not req.nextUrl.href: behind Railway's proxy that is the container's localhost:8080 (#42).
+    url.searchParams.set('redirect', `https://${host}${req.nextUrl.pathname}${req.nextUrl.search}`)
     return NextResponse.redirect(url)
   }
 
