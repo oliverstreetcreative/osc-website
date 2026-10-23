@@ -146,13 +146,21 @@ async function applyImpersonation(
   return res
 }
 
-function redirectToLogin(req: NextRequest): NextResponse {
-  const subdomain = getSubdomain(req.headers.get('host') ?? '')
+// The host the person actually asked for. Behind Railway's proxy Next sees the
+// container's internal host (localhost:8080), so prefer x-forwarded-host (#42).
+function requestHost(req: NextRequest): string {
+  const forwarded = req.headers.get('x-forwarded-host')?.split(',')[0]?.trim()
+  return forwarded || req.headers.get('host') || req.nextUrl.host
+}
+
+export function redirectToLogin(req: NextRequest): NextResponse {
+  const host = requestHost(req)
+  const subdomain = getSubdomain(host)
   const returnPath = req.nextUrl.pathname
 
   if (subdomain && subdomain !== 'login') {
     const url = new URL(`https://${LOGIN_HOST}/login`)
-    url.searchParams.set('redirect', req.nextUrl.href)
+    url.searchParams.set('redirect', `https://${host}${req.nextUrl.pathname}${req.nextUrl.search}`)
     return NextResponse.redirect(url)
   }
 
