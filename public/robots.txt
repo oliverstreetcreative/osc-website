@@ -1,3 +1,0 @@
-User-agent: *
-Allow: /
-Sitemap: https://oliverstreetcreative.com/sitemap.xml

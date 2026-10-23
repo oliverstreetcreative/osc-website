@@ -1,25 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { db } from '@/lib/db'
-import { isImpersonating } from '@/lib/auth/impersonation'
+import { getPortalUser } from '@/lib/portal-auth'
 
 interface Params {
   params: Promise<{ id: string }>
 }
 
 export async function POST(_req: NextRequest, { params }: Params) {
-  // Impersonation check — read-only mode
-  if (await isImpersonating()) {
-    return NextResponse.json(
-      { error: 'Impersonation mode is read-only. Stop impersonating to take actions.' },
-      { status: 403 },
-    )
-  }
-
   const { id: obligationId } = await params
 
   const hdrs = await headers()
-  const userId = hdrs.get('x-user-id')
+  const userId = (await getPortalUser())?.id ?? null
   if (!userId) {
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 })
   }
@@ -68,6 +60,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
       summary: `Payment link requested by ${person.name} for obligation ${obligationId}`,
       details: { obligation_id: obligationId },
       occurred_at: new Date(),
+      source: 'portal_client', // required column; was missing, so this insert always failed
       // Publication metadata (required by schema)
       source_bible_id: 0,
       source_bible_table: 'portal',

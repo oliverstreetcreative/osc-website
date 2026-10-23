@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { requirePortalUser } from '@/lib/portal-auth'
+import { getStaffUser } from '@/lib/portal-auth'
 import { db } from '@/lib/db'
 import { formatDate } from '@/lib/portal-utils'
 import { Card, CardContent } from '@/components/ui/card'
@@ -17,11 +17,9 @@ function formatBytes(bytes: bigint | null | undefined): string {
 }
 
 export default async function AdminUploadsPage() {
-  try {
-    await requirePortalUser()
-  } catch {
-    redirect('/login')
-  }
+  // Staff only, checked by the page itself: a layout doesn't re-run on client-side navigation, and the
+  // database decides who is staff (SPEC §27 P0 v2).
+  if (!(await getStaffUser())) redirect('/login')
 
   const uploads = await db.portalUpload.findMany({
     orderBy: { uploaded_at: 'desc' },

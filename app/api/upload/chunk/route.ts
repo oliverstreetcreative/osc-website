@@ -1,18 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { appendDropboxChunk, getDropboxAccessToken } from "../../../../lib/upload";
-import { isImpersonating } from "@/lib/auth/impersonation";
+import { getPortalUser } from "@/lib/portal-auth";
 
 export async function POST(req: NextRequest) {
   try {
-    // Impersonation check — read-only mode
-    if (await isImpersonating()) {
-      return NextResponse.json(
-        { error: "Impersonation mode is read-only. Stop impersonating to take actions." },
-        { status: 403 },
-      );
-    }
-
-    const userId = req.headers.get("x-user-id");
+    const userId = (await getPortalUser())?.id ?? null;
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

@@ -1,12 +1,13 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import {
-  WORK_VIDEOS,
-  getWorkVideo,
-  muxEmbedSrc,
-  muxThumbnail,
-} from "@/lib/work-videos"
+import { WORK_VIDEOS, getWorkVideo, muxEmbedSrc, muxThumbnail } from "@/lib/work-videos"
+import { SiteFrame } from "@/components/site/SiteFrame"
+import { TalkCard, WorkCards } from "@/components/site/WorkCards"
+
+// One film. Restyled 10/3/26 in the hub's vein: the client site's project page
+// (ink hero holding the player, paper below), so a prospect's film page and a
+// client's project page look like the same company.
 
 interface Props {
   params: { slug: string }
@@ -54,181 +55,52 @@ export function generateMetadata({ params }: Props): Metadata {
 export default function WorkVideoPage({ params }: Props) {
   const video = getWorkVideo(params.slug)
   if (!video) notFound()
+  const others = WORK_VIDEOS.filter((v) => v.slug !== video.slug)
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#141412",
-        color: "white",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* Header */}
-      <header
-        style={{
-          padding: "24px clamp(20px, 5vw, 64px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <Link href="/" style={{ display: "flex", alignItems: "center" }}>
-          <img
-            src="/logo.png"
-            alt="Oliver Street Creative"
-            style={{ height: "64px", width: "auto" }}
-          />
-        </Link>
-        <Link
-          href="/#contact"
-          style={{
-            fontSize: "12px",
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: "0.12em",
-            color: "rgba(255,255,255,0.7)",
-            textDecoration: "none",
-          }}
-        >
-          Work with us
-        </Link>
-      </header>
-
-      {/* Player */}
-      <main
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          padding: "16px clamp(16px, 4vw, 48px) 48px",
-        }}
-      >
-        <div style={{ width: "100%", maxWidth: "1200px" }}>
-          <div
-            style={{
-              width: "100%",
-              aspectRatio: "16/9",
-              backgroundColor: "black",
-              overflow: "hidden",
-            }}
-          >
+    <SiteFrame current="work">
+      <section className="site-film">
+        <div className="site-in">
+          <Link className="cs-back" href="/work">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+            All work
+          </Link>
+          <div className="cs-player site-film-player">
             <iframe
               src={muxEmbedSrc(video)}
               title={video.title}
-              style={{ width: "100%", height: "100%", border: 0 }}
               allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
               allowFullScreen
             />
           </div>
-
-          {/* Title block — mirrors the homepage portfolio cards */}
-          <div style={{ padding: "28px 4px 0" }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "14px",
-                marginBottom: "8px",
-                flexWrap: "wrap",
-              }}
-            >
-              <img
-                src={video.clientLogo}
-                alt={video.clientName}
-                style={{
-                  height: "34px",
-                  width: "auto",
-                  filter: video.isLightLogo ? "none" : "brightness(0) invert(1)",
-                }}
-              />
-              <h1
-                style={{
-                  fontSize: "clamp(24px, 4vw, 36px)",
-                  fontWeight: 800,
-                  letterSpacing: "-0.01em",
-                  margin: 0,
-                }}
-              >
-                {video.title}
-              </h1>
-            </div>
-            <p
-              style={{
-                fontSize: "15px",
-                color: "rgba(255,255,255,0.6)",
-                margin: 0,
-              }}
-            >
-              {video.client}
-            </p>
-          </div>
         </div>
+      </section>
 
-        {/* CTA */}
-        <div
-          style={{
-            marginTop: "64px",
-            textAlign: "center",
-            maxWidth: "640px",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "11px",
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.15em",
-              marginBottom: "16px",
-              color: "rgba(255,255,255,0.45)",
-            }}
-          >
-            Oliver Street Creative
+      <section className="site-sec site-film-body">
+        <div className="site-in">
+          <div className="site-logo-row site-film-logo">
+            <img src={video.clientLogo} alt={video.clientName} />
           </div>
-          <p
-            style={{
-              fontSize: "clamp(20px, 3vw, 28px)",
-              fontWeight: 900,
-              letterSpacing: "-0.02em",
-              lineHeight: 1.2,
-              marginBottom: "28px",
-            }}
-          >
-            Let's make something together.
-          </p>
-          <Link
-            href="/#contact"
-            style={{
-              display: "inline-block",
-              padding: "10px 24px",
-              backgroundColor: "transparent",
-              border: "1px solid #E07830",
-              color: "#E07830",
-              fontSize: "12px",
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              textDecoration: "none",
-            }}
-          >
-            Get in touch
-          </Link>
+          <h1 className="site-h2">{video.title}</h1>
+          <p className="site-lede">{video.client}</p>
+          <p className="site-film-desc">{video.description}</p>
+          <TalkCard />
         </div>
-      </main>
+      </section>
 
-      {/* Footer */}
-      <footer
-        style={{
-          padding: "24px clamp(20px, 5vw, 64px)",
-          fontSize: "12px",
-          color: "rgba(255,255,255,0.4)",
-          textAlign: "center",
-        }}
-      >
-        © {new Date().getFullYear()} Oliver Street Creative · Covington, KY
-      </footer>
-    </div>
+      {others.length > 0 ? (
+        <section className="site-sec rule">
+          <div className="site-in">
+            <h2 className="cs-h2">
+              <span>More work</span>
+              <Link href="/work">See all</Link>
+            </h2>
+            <WorkCards videos={others} />
+          </div>
+        </section>
+      ) : null}
+    </SiteFrame>
   )
 }

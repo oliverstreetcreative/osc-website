@@ -1,17 +1,15 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { requirePortalUser } from '@/lib/portal-auth'
+import { getStaffUser } from '@/lib/portal-auth'
 import { db } from '@/lib/db'
 import { Badge } from '@/components/ui/badge'
 
 export const metadata = { title: 'Tasks — OSC Admin' }
 
 export default async function AdminTasksPage() {
-  try {
-    await requirePortalUser()
-  } catch {
-    redirect('/login')
-  }
+  // Staff only, checked by the page itself: a layout doesn't re-run on client-side navigation, and the
+  // database decides who is staff (SPEC §27 P0 v2).
+  if (!(await getStaffUser())) redirect('/login')
 
   const tasks = await db.task.findMany({
     include: {

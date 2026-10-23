@@ -2,6 +2,12 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter, EB_Garamond } from "next/font/google"
 import "./globals.css"
+import dynamic from "next/dynamic"
+import { IS_STAGING } from "@/lib/site-env"
+
+// Staging's Comment button (client-website SPEC §32), loaded lazily so production never downloads its code: it is
+// fetched only when rendered, and it renders only on staging.
+const StagingComment = dynamic(() => import("./staging-comment").then((m) => m.StagingComment))
 
 const inter = Inter({
   subsets: ["latin"],
@@ -19,9 +25,9 @@ const ebGaramond = EB_Garamond({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://oliverstreetcreative.com"),
-  title: "Oliver Street Creative | Brand Story Video Production | Cincinnati & Northern Kentucky",
+  title: "Oliver Street Creative | Stories that move hearts, open minds, and build trust | Cincinnati & Northern Kentucky",
   description:
-    "Full-service video production in Covington, KY serving Greater Cincinnati. Strategic brand stories for businesses and nonprofits — concept to delivery.",
+    "Stories that move hearts, open minds, and build trust. Fundraising story films, campaign and advocacy work, testimonials and brand films from Covington, KY, serving Greater Cincinnati.",
   keywords:
     "video production Cincinnati, corporate video production, nonprofit video production, brand storytelling, Covington KY video, marketing video, full-service video production, documentary, commercial video, Northern Kentucky videographer",
   authors: [{ name: "Oliver Street Creative" }],
@@ -29,8 +35,8 @@ export const metadata: Metadata = {
     canonical: "https://oliverstreetcreative.com/",
   },
   openGraph: {
-    title: "Oliver Street Creative — Strategic Video for Businesses & Nonprofits",
-    description: "Full-service video production in Covington, KY. We craft cinematic stories that build trust, drive donations, and close deals. Serving Cincinnati & Northern Kentucky.",
+    title: "Oliver Street Creative - Stories that move hearts, open minds, and build trust",
+    description: "Stories that move hearts, open minds, and build trust. Video production in Covington, KY, serving Cincinnati & Northern Kentucky.",
     url: "https://oliverstreetcreative.com",
     siteName: "Oliver Street Creative",
     images: [
@@ -46,11 +52,13 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Oliver Street Creative — Strategic Video for Businesses & Nonprofits",
-    description: "Full-service video production in Covington, KY. Cinematic stories that build trust and drive results.",
+    title: "Oliver Street Creative - Stories that move hearts, open minds, and build trust",
+    description: "Stories that move hearts, open minds, and build trust. Video production in Covington, KY.",
     images: ["/og-image.png"],
   },
   viewport: "width=device-width, initial-scale=1",
+  // Staging only: belt to the X-Robots-Tag braces set in middleware.ts.
+  ...(IS_STAGING ? { robots: { index: false, follow: false } } : {}),
 }
 
 export default function RootLayout({
@@ -59,7 +67,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${ebGaramond.variable}`}>
+    <html lang="en" className={`${inter.variable} ${ebGaramond.variable}`} suppressHydrationWarning>
       <head>
         <script
           type="application/ld+json"
@@ -102,7 +110,11 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        {children}
+        {/* Staging only (client-website SPEC §32 v2): Sam's Comment button. It shows only past the password form. */}
+        {IS_STAGING ? <StagingComment /> : null}
+      </body>
     </html>
   )
 }

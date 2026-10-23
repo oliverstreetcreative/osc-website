@@ -36,10 +36,18 @@ model Person {
   role           Role
 
   // Publication metadata
-  source_bible_id     Int
-  source_bible_table  String
-  published_at        DateTime
+  source_bible_id     Int?
+  source_bible_table  String?
+  published_at        DateTime @default(now())
   publication_version Int      @default(1)
+
+  // Client site (2026-10)
+  memberships    Membership[]
+  project_requests ProjectRequest[]
+  calendar_token String?      @unique // private ICS feed: /calendar/<token>.ics
+  script_clients ScriptClient[]
+  script_access  ScriptAccess[]
+  script_notices ScriptNotice[]
 
   // Relations
   project_contacts      ProjectContact[]
@@ -50,6 +58,7 @@ model Person {
   portal_events         PortalEvent[]
   portal_invites        PortalInvite[]
   portal_sessions       PortalSession[]
+  support_tickets       SupportTicket[]
   testimonials          Testimonial[]
   trips                 Trip[]
   assigned_tasks        Task[]
@@ -74,15 +83,38 @@ model Project {
   crew_visible          Boolean @default(false)
 
   // Publication metadata
-  source_bible_id     Int
-  source_bible_table  String
-  published_at        DateTime
+  source_bible_id     Int?
+  source_bible_table  String?
+  published_at        DateTime @default(now())
   publication_version Int      @default(1)
+
+  // Client site (2026-10): curated, client-safe fields from the client book
+  ext_key         String?       @unique
+  organization_id String?       @db.Uuid
+  slug            String?
+  kind            String?
+  summary         String?
+  status_line     String?
+  next_step       String?
+  poster_path     String?
+  poster_mux_id   String?
+  poster_time     Float?
+  dates           Json?
+  team            Json?
+  money           Json? // a third-party payer's flow (SPEC §28 v2): {as_of, pattern, campaign?, legs[]}; re-checked with Zod on read
+  sort_date       DateTime?
+  hidden          Boolean       @default(false)
+  from_request    String? // a client's "Start a new project" request this project answers (SPEC §17)
+  organization    Organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull)
+  invoices        Invoice[]
+  documents       Document[]
+  scripts         Script[]
 
   // Relations
   project_contacts     ProjectContact[]
   project_participants ProjectParticipant[]
   deliverables         Deliverable[]
+  libraries            Library[]
   project_updates      ProjectUpdate[]
   change_orders        ChangeOrder[]
   obligations          Obligation[]
@@ -168,15 +200,39 @@ model Deliverable {
   shared_at          DateTime?
 
   // Publication metadata
-  source_bible_id     Int
-  source_bible_table  String
-  published_at        DateTime
+  source_bible_id     Int?
+  source_bible_table  String?
+  published_at        DateTime @default(now())
   publication_version Int      @default(1)
+
+  // Client site (2026-10)
+  ext_key         String?   @unique
+  mux_playback_id String?
+  file_path       String?
+  aspect          String?
+  poster_path     String?
+  poster_time     Float?
+  duration_s      Int?
+  version_label   String?
+  watch_url       String?
+  review_url      String?
+  // SPEC §13 v4: the Review share link's asset (versions are read live from Review), who approves, and what Sam asks
+  review_asset_id String?
+  version_review_id String? // the Review version Sam's version_label names (shown/frozen only for that one)
+  approvers       Json? // emails (gated: book people only)
+  approval        String    @default("any") // any | all
+  ask             String    @default("none") // none | notes | ok
+  version_approvals VersionApproval[]
+  downloads       Json?
+  delivered_at    DateTime?
+  sort            Int       @default(0)
+  hidden          Boolean   @default(false)
 
   // Relations
   project               Project               @relation(fields: [project_id], references: [id], onDelete: Cascade)
   deliverable_reviews   DeliverableReview[]
   deliverable_approvals DeliverableApproval[]
+  scripts               Script[]
 
   @@index([project_id])
   @@index([source_bible_id, source_bible_table], name: "idx_deliverables_source_bible")
@@ -345,10 +401,17 @@ model ShootPeriod {
   crew_visible   Boolean  @default(false)
 
   // Publication metadata
-  source_bible_id     Int
-  source_bible_table  String
-  published_at        DateTime
+  source_bible_id     Int?
+  source_bible_table  String?
+  published_at        DateTime @default(now())
   publication_version Int      @default(1)
+
+  // Client site (2026-10)
+  ext_key  String? @unique
+  location String?
+  address  String?
+  bring    String?
+  hidden   Boolean @default(false)
 
   // Relations
   project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
@@ -491,10 +554,17 @@ model PortalInvite {
   expires_at      DateTime
   accepted_at     DateTime?
   created_at      DateTime  @default(now())
+  // SPEC §27 P0 v2: the link signs in only the browser that asked (its osc_device cookie, hashed); the code is the way
+  // in from anywhere else (an HMAC bound to this invite; tries reserved before comparing); where it lands after.
+  device_hash     String?
+  code_hash       String?
+  code_tries      Int       @default(0)
+  redirect        String?
 
   // Relations
   person Person @relation(fields: [person_id], references: [id], onDelete: Cascade)
 
+  @@index([person_id, accepted_at])
   @@map("portal_invites")
 }
 
@@ -506,14 +576,40 @@ model PortalSession {
   id             String    @id @default(uuid()) @db.Uuid
   person_id      String    @db.Uuid
   token_hash     String    @unique
-  expires_at     DateTime
+  expires_at     DateTime // SPEC §27 P0 v2: the ABSOLUTE end; idle 30 days is checked against last_active_at
   last_active_at DateTime?
   created_at     DateTime  @default(now())
+  revoked_at     DateTime?
+  kind           String    @default("person") // person | preview | demo | script
+  scope          String? // script:<uuid> for a script invite's session
+  device_hash    String? // the browser's osc_device cookie, hashed (the new-device notice; the devices page)
+  device_label   String? // enums only: "iPhone · Safari"
+  ip_hash        String?
 
   // Relations
   person Person @relation(fields: [person_id], references: [id], onDelete: Cascade)
 
+  @@index([person_id, revoked_at])
+  @@index([person_id, device_hash])
   @@map("portal_sessions")
+}
+
+/// The front door's counts (SPEC §27 P0 v2): link requests, sends, code failures. Hashes only (no address, no IP), kept
+/// three days. Counted inside one advisory-lock transaction so a parallel burst can't read stale counts.
+model AuthEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  kind        String // link_request | link_sent | code_fail | code_ok | link_ok | alarm
+  email_hash  String?
+  ip_hash     String?
+  device_hash String?
+  known       Boolean  @default(false) // the address belongs to someone who may sign in (or, for code_fail, a LIVE code)
+  trusted     Boolean  @default(false) // asked from a device this person has signed in with before
+  created_at  DateTime @default(now())
+
+  @@index([kind, email_hash, created_at])
+  @@index([kind, ip_hash, created_at])
+  @@index([kind, created_at])
+  @@map("auth_events")
 }
 
 // ---------------------------------------------------------------------------
@@ -574,4 +670,557 @@ model Testimonial {
   @@index([project_id])
   @@index([source_bible_id, source_bible_table], name: "idx_testimonials_source_bible")
   @@map("testimonials")
+}
+
+// ---------------------------------------------------------------------------
+// CLIENT SITE (2026-10). Organizations, memberships, invoices, documents.
+// Rows are upserted from the per-client "book" in Dropbox
+// (_admin/client-site/books/<slug>.json) by lib/client/sync.ts. The book is
+// the allowlist: nothing reaches a client page unless it is in the book.
+// ---------------------------------------------------------------------------
+
+enum MemberRole {
+  OWNER
+  APPROVER
+  BILLING
+  VIEWER
+}
+
+model Organization {
+  id            String       @id @default(uuid()) @db.Uuid
+  slug          String       @unique
+  name          String
+  short_name    String?
+  logo_path     String?
+  website       String?
+  billing_email String?
+  hidden        Boolean      @default(false)
+  synced_at     DateTime     @default(now())
+  created_at    DateTime     @default(now())
+  memberships   Membership[]
+  projects      Project[]
+  invoices      Invoice[]
+  documents     Document[]
+  requests      ProjectRequest[]
+  scripts       Script[]
+  support_tickets SupportTicket[]
+  script_access ScriptAccess[]
+
+  @@map("organizations")
+}
+
+model Membership {
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
+  person_id       String       @db.Uuid
+  role            MemberRole   @default(VIEWER)
+  title           String?
+  hidden          Boolean      @default(false)
+  created_at      DateTime     @default(now())
+  organization    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  person          Person       @relation(fields: [person_id], references: [id], onDelete: Cascade)
+
+  @@unique([organization_id, person_id])
+  @@index([person_id])
+  @@map("memberships")
+}
+
+model Invoice {
+  id              String       @id @default(uuid()) @db.Uuid
+  number          String       @unique
+  organization_id String       @db.Uuid
+  project_id      String?      @db.Uuid
+  title           String
+  amount          Decimal      @db.Decimal(10, 2)
+  issued_on       DateTime     @db.Date
+  due_on          DateTime?    @db.Date
+  paid_on         DateTime?    @db.Date
+  status          String       @default("open") // open | paid | void
+  pay_url         String?
+  pdf_path        String?
+  memo            String?
+  hidden          Boolean      @default(false)
+  organization    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  project         Project?     @relation(fields: [project_id], references: [id], onDelete: SetNull)
+
+  @@index([organization_id])
+  @@map("invoices")
+}
+
+model Document {
+  id              String       @id @default(uuid()) @db.Uuid
+  ext_key         String       @unique
+  organization_id String       @db.Uuid
+  project_id      String?      @db.Uuid
+  kind            String // agreement | proposal | release | call-sheet | license | invoice | receipt | w9 | coi | other
+  title           String
+  description     String?
+  dated_on        DateTime?    @db.Date
+  dropbox_path    String?
+  url             String?
+  mime_type       String?
+  size_bytes      Int?
+  signed_by       String?
+  signed_on       DateTime?    @db.Date
+  signatures      Json? // {osc?, client?} dates (SPEC §28 v2): "Signed by OSC Jan 12 · needs your signature"
+  sha256          String?
+  // SPEC §24 v2, proposals: Sam asks the named acceptors for a yes to exactly the frozen file (sha256 above = the
+  // gate's frozen copy, _admin/client-site/frozen/<sha256>.pdf). `total` is office-side, never rendered.
+  ask             String       @default("none") // none | accept
+  acceptors       Json? // emails (gated: book people only)
+  good_until      DateTime?    @db.Date
+  total           Decimal?     @db.Decimal(10, 2)
+  hidden          Boolean      @default(false)
+  organization    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  project         Project?     @relation(fields: [project_id], references: [id], onDelete: SetNull)
+  acceptance      ProposalAcceptance?
+
+  @@index([organization_id])
+  @@map("documents")
+}
+
+// ---------------------------------------------------------------------------
+// A client's yes to a proposal (SPEC §24 v2; the old portal's doctrine): a plain
+// tap, frozen, ONE per document, bound to the exact bytes served. The ledger
+// file (ledger/acceptances*/) is what Majordomo reads to tell Sam; the gate's
+// lock reads it too (an accepted proposal can't change or disappear).
+// ---------------------------------------------------------------------------
+model ProposalAcceptance {
+  id                String    @id @default(uuid()) @db.Uuid
+  document_id       String    @unique @db.Uuid
+  organization_id   String    @db.Uuid
+  project_id        String?   @db.Uuid
+  job               String?
+  doc_key           String
+  title             String
+  sha256            String
+  total             Decimal?  @db.Decimal(10, 2)
+  good_until        DateTime? @db.Date
+  person_id         String    @db.Uuid
+  name              String
+  email             String
+  org_name          String
+  org_slug          String
+  member_role       String
+  ip                String?
+  user_agent        String?
+  accepted_at       DateTime  @default(now())
+  ledger_path       String?
+  ledger_written_at DateTime?
+  withdrawn_at      DateTime?
+  document          Document  @relation(fields: [document_id], references: [id], onDelete: Restrict)
+
+  @@index([organization_id])
+  @@map("proposal_acceptances")
+}
+
+/// Every serve of a proposal's frozen file to a client (SPEC §24 v2): the record can show the file was opened.
+model ProposalView {
+  id          String   @id @default(uuid()) @db.Uuid
+  document_id String   @db.Uuid
+  person_id   String   @db.Uuid
+  sha256      String
+  at          DateTime @default(now())
+
+  @@index([document_id, at])
+  @@map("proposal_views")
+}
+
+// ---------------------------------------------------------------------------
+// "Start a new project" requests (SPEC §17). Client-made; never synced from a
+// book. Delivered to the existing intake queue (_admin/intake-queue/_new/).
+// ---------------------------------------------------------------------------
+model ProjectRequest {
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
+  person_id       String       @db.Uuid
+  person_name     String
+  person_email    String
+  kind            String? // the one-page form (v4) only
+  like_project    String?
+  timing          String? // the one-page form (v4) only
+  due_on          DateTime?    @db.Date
+  about           String?
+  form_key        String       @unique
+  status          String       @default("pending") // draft | pending | sent | in_review | closed
+  // SPEC §31 v2: Start a project v3 (the old form's v5 questions), saved as she goes. Defaults keep db push safe.
+  form_version    Int          @default(4)
+  answers         Json? // one object per screen, keyed by v5's own names
+  step            String? // where a draft stands
+  assets          Json? // [{n, name, stored, type, size, path, at, state, removed_at?}]
+  assets_later    Boolean      @default(false)
+  sent_at         DateTime?
+  // "<person>:<org>" while a draft; null once sent. One draft per person per org is kept by an advisory lock in code,
+  // NOT a unique index: db push refuses a new unique index on a filled table without --accept-data-loss (built review).
+  draft_slot      String?
+  queue_file      String?
+  queued_at       DateTime?
+  picked_up_at    DateTime?
+  closed_at       DateTime?
+  attempts        Int          @default(0)
+  last_error      String?
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+  organization    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  person          Person       @relation(fields: [person_id], references: [id], onDelete: Cascade)
+
+  @@index([organization_id])
+  @@index([status])
+  @@index([draft_slot])
+  @@map("project_requests")
+}
+
+// ---------------------------------------------------------------------------
+// The approval of record for a cut (SPEC §13 v4): FROZEN at the moment of
+// approval, bound to the exact Review version the client watched. Never
+// edited; withdrawing is Sam's explicit act (withdrawn_at). The ledger file in
+// Dropbox (_admin/client-site/ledger/approvals/) is what the publish gate's
+// lock reads; it is written after the row, retried until it lands.
+// ---------------------------------------------------------------------------
+model VersionApproval {
+  id                String      @id @default(uuid()) @db.Uuid
+  deliverable_id    String      @db.Uuid
+  organization_id   String      @db.Uuid
+  job               String?
+  film_key          String // the book's film key
+  film_title        String
+  review_asset_id   String
+  review_version_id String
+  review_version_n  Int
+  review_posted_at  DateTime?
+  version_label     String? // Sam's v-number from the book ("v4")
+  filename          String?
+  checksum          String?
+  person_id         String      @db.Uuid
+  name              String
+  email             String
+  org_name          String
+  member_role       String // their role with the client at the time
+  note              String?
+  how               String      @default("portal") // portal | email (recorded by staff)
+  ip                String?
+  user_agent        String?
+  approved_at       DateTime    @default(now())
+  ledger_path       String?
+  ledger_written_at DateTime?
+  withdrawn_at      DateTime?
+  deliverable       Deliverable @relation(fields: [deliverable_id], references: [id], onDelete: Restrict)
+
+  @@unique([deliverable_id, review_version_id, person_id])
+  @@index([organization_id])
+  @@map("version_approvals")
+}
+
+// ---------------------------------------------------------------------------
+// FOOTAGE FROM STACKS (SPEC §23 v2): one Library per published package
+// (published/library/<org>/<key>.json, written only by the gate). Each clip is
+// its own SIGNED Mux asset Stacks rendered from a range Sam favorited; the site
+// mints short-lived tokens per page view. Hidden when it leaves, never deleted.
+// Hearts are append-only (a person's current heart = their latest row) and are
+// written to the ledger for Stacks to import as its `client` layer.
+// ---------------------------------------------------------------------------
+model Library {
+  id              String        @id @default(uuid()) @db.Uuid
+  organization_id String        @db.Uuid
+  project_id      String        @db.Uuid
+  ext_key         String        @unique // <org slug>/<library key>
+  title           String
+  description     String?
+  job             String?
+  clip_count      Int           @default(0)
+  first_day       DateTime?     @db.Date
+  last_day        DateTime?     @db.Date
+  source_rev      String? // the snapshot's Dropbox rev: an unchanged package isn't read again
+  sort            Int           @default(0)
+  hidden          Boolean       @default(false)
+  synced_at       DateTime      @default(now())
+  created_at      DateTime      @default(now())
+  project         Project       @relation(fields: [project_id], references: [id], onDelete: Restrict)
+  clips           LibraryClip[]
+
+  @@index([organization_id])
+  @@index([project_id])
+  @@map("libraries")
+}
+
+model LibraryClip {
+  id              String         @id @default(uuid()) @db.Uuid
+  library_id      String         @db.Uuid
+  ext_key         String         @unique // <org slug>/<library key>/<clip key>
+  clip_key        String // <stacks clip id>@<in frame>-<out frame>
+  sam_event       String
+  title           String
+  taken_on        DateTime?      @db.Date
+  fps             Float
+  mux_playback_id String // SIGNED only
+  duration_s      Float
+  thumb_s         Float?
+  aspect          String?
+  sort            Int            @default(0)
+  hidden          Boolean        @default(false)
+  library         Library        @relation(fields: [library_id], references: [id], onDelete: Restrict)
+  hearts          LibraryHeart[]
+
+  @@index([library_id, hidden, sort])
+  @@map("library_clips")
+}
+
+model LibraryHeart {
+  id                String      @id @default(uuid()) @db.Uuid
+  clip_id           String      @db.Uuid
+  person_id         String      @db.Uuid
+  organization_id   String      @db.Uuid
+  favorite          Boolean // true = hearted, false = un-hearted (append-only: the latest row wins)
+  seq               Int         @unique @default(autoincrement()) // the order of taps (timestamps can tie)
+  at                DateTime    @default(now())
+  ledger_written_at DateTime?
+  clip              LibraryClip @relation(fields: [clip_id], references: [id], onDelete: Restrict)
+
+  @@index([person_id, clip_id, at])
+  @@index([ledger_written_at])
+  @@map("library_hearts")
+}
+
+// ---------------------------------------------------------------------------
+// SCRIPTS (SPEC §14 v4 "Data model v4, as Prisma", + v5): the client's front
+// door for scripting, live co-editing in Yjs. Scripts are ARCHIVED, never
+// deleted (archived_at). History tables (updates, versions, comments,
+// approvals) keep person ids as plain uuids, no foreign key, so a person
+// leaving never erases who wrote what.
+// ---------------------------------------------------------------------------
+
+model Script {
+  id              String        @id @default(uuid()) @db.Uuid
+  organization_id String?       @db.Uuid // the client it's shared within (null = OSC-only draft)
+  project_id      String?       @db.Uuid
+  deliverable_id  String?       @db.Uuid // v1: one script per deliverable
+  job             String? // "26-037"
+  title           String // "02 Appropriation :30"
+  format          String        @default("av") // av | screenplay (v2)
+  target_seconds  Int? // from the deliverable's length; null = "no target set"
+  pace_wpm        Int           @default(150)
+  reader          String? // "Mike Harmon"
+  audience        String        @default("office") // office until Sam shares it
+  status          String        @default("draft") // draft | ready_for_notes | ready_for_ok | approved
+  canonical       String        @default("dropbox") // dropbox (files canonical until Sam OKs production) | portal | gdoc
+  read_only       Boolean       @default(false) // true while a Google Doc is canonical (v4 #4)
+  shoot_version   Int? // ScriptVersion.n the hub serves on a shoot day
+  approvers       Json? // emails, gated like §13
+  approval        String        @default("any") // any | all
+  source          Json? // import provenance {adapter, path, sha256, label}
+  created_by      String        @db.Uuid
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
+  archived_at     DateTime?
+  organization    Organization? @relation(fields: [organization_id], references: [id], onDelete: SetNull)
+  project         Project?      @relation(fields: [project_id], references: [id], onDelete: SetNull)
+  deliverable     Deliverable?  @relation(fields: [deliverable_id], references: [id], onDelete: SetNull)
+  updates         ScriptUpdate[]
+  snapshots       ScriptSnapshot[]
+  clients         ScriptClient[]
+  versions        ScriptVersion[]
+  access          ScriptAccess[]
+  comments        ScriptComment[]
+  approvals       ScriptApproval[]
+  notices         ScriptNotice[]
+
+  @@index([organization_id])
+  @@index([project_id])
+  @@map("scripts")
+}
+
+model ScriptUpdate {
+  // EVERY update kept; id is the DB-assigned seq (v4 #1)
+  id         BigInt   @id @default(autoincrement())
+  script_id  String   @db.Uuid
+  update     Bytes
+  person_id  String   @db.Uuid
+  client_id  BigInt // the Yjs clientID that made it (bound in ScriptClient)
+  created_at DateTime @default(now())
+  script     Script   @relation(fields: [script_id], references: [id], onDelete: Cascade)
+
+  @@index([script_id, id])
+  @@map("script_updates")
+}
+
+model ScriptSnapshot {
+  // a cache of state up to an update id; rebuilt from rows, never the only copy
+  id         String   @id @default(uuid()) @db.Uuid
+  script_id  String   @db.Uuid
+  upto_id    BigInt
+  state      Bytes
+  created_at DateTime @default(now())
+  script     Script   @relation(fields: [script_id], references: [id], onDelete: Cascade)
+
+  @@index([script_id, upto_id])
+  @@map("script_snapshots")
+}
+
+model ScriptClient {
+  // a Yjs clientID belongs to exactly one person, for every role (v4 #5)
+  script_id  String   @db.Uuid
+  client_id  BigInt
+  person_id  String   @db.Uuid
+  created_at DateTime @default(now())
+  script     Script   @relation(fields: [script_id], references: [id], onDelete: Cascade)
+  person     Person   @relation(fields: [person_id], references: [id], onDelete: Cascade)
+
+  @@id([script_id, client_id])
+  @@index([person_id])
+  @@map("script_clients")
+}
+
+model ScriptVersion {
+  id            String   @id @default(uuid()) @db.Uuid
+  script_id     String   @db.Uuid
+  n             Int
+  name          String? // "Mike's edits"; lint refuses internal markers
+  kind          String // auto | named | restore | approved | import
+  upto_id       BigInt // last ScriptUpdate included
+  state         Bytes
+  text          String // the BASE text, no pending suggestions (v4 #7)
+  rows          Json // render rows for history and exports
+  total_seconds Float?
+  authors       Json // person ids since the previous version
+  created_by    String?  @db.Uuid // null = autosave
+  created_at    DateTime @default(now())
+  script        Script   @relation(fields: [script_id], references: [id], onDelete: Cascade)
+
+  @@unique([script_id, n])
+  @@map("script_versions")
+}
+
+model ScriptAccess {
+  id              String         @id @default(uuid()) @db.Uuid
+  script_id       String         @db.Uuid
+  person_id       String?        @db.Uuid
+  organization_id String?        @db.Uuid // "Beech Acres · everyone"
+  email           String?
+  role            String // viewer | commenter | suggester | editor
+  invited_by      String         @db.Uuid
+  invited_at      DateTime       @default(now())
+  accepted_at     DateTime?
+  revoked_at      DateTime?
+  expires_at      DateTime? // the job's end (freelancer test, §16)
+  script          Script         @relation(fields: [script_id], references: [id], onDelete: Cascade)
+  person          Person?        @relation(fields: [person_id], references: [id], onDelete: Cascade)
+  organization    Organization?  @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  invites         ScriptInvite[]
+
+  @@index([script_id])
+  @@index([person_id])
+  @@map("script_access")
+}
+
+model ScriptInvite {
+  // 14 days; spent only by a TAP on its page, never on load (v4 #10)
+  id         String       @id @default(uuid()) @db.Uuid
+  access_id  String       @db.Uuid
+  token_hash String       @unique
+  created_at DateTime     @default(now())
+  expires_at DateTime
+  spent_at   DateTime?
+  access     ScriptAccess @relation(fields: [access_id], references: [id], onDelete: Cascade)
+
+  @@index([access_id])
+  @@map("script_invites")
+}
+
+model ScriptComment {
+  id          String    @id @default(uuid()) @db.Uuid
+  script_id   String    @db.Uuid
+  thread_id   String    @db.Uuid
+  parent_id   String?   @db.Uuid
+  author_id   String    @db.Uuid
+  body        String
+  anchor      Json? // Yjs relative positions {from, to}
+  quote       String? // the text it was on, kept if the text goes
+  suggestion  String? // a reply ON a suggestion: its id (v4 #12)
+  audience    String    @default("office") // replies inherit the thread's (v4 #11)
+  resolved_at DateTime?
+  resolved_by String?   @db.Uuid
+  created_at  DateTime  @default(now())
+  script      Script    @relation(fields: [script_id], references: [id], onDelete: Cascade)
+
+  @@index([script_id, thread_id])
+  @@map("script_comments")
+}
+
+model ScriptApproval {
+  // frozen, like §13's VersionApproval
+  id          String   @id @default(uuid()) @db.Uuid
+  script_id   String   @db.Uuid
+  version_n   Int
+  text_sha256 String // hash of the approved text (v4 #7)
+  person_id   String   @db.Uuid
+  name        String
+  email       String
+  ip          String?
+  user_agent  String?
+  note        String?
+  created_at  DateTime @default(now())
+  script      Script   @relation(fields: [script_id], references: [id], onDelete: Cascade)
+
+  @@index([script_id])
+  @@map("script_approvals")
+}
+
+model ScriptNotice {
+  // batched: one email per person per 15 minutes
+  id         String    @id @default(uuid()) @db.Uuid
+  person_id  String    @db.Uuid
+  script_id  String    @db.Uuid
+  kind       String // mention | comment | suggestion | shared
+  created_at DateTime  @default(now())
+  sent_at    DateTime?
+  person     Person    @relation(fields: [person_id], references: [id], onDelete: Cascade)
+  script     Script    @relation(fields: [script_id], references: [id], onDelete: Cascade)
+
+  @@index([person_id, sent_at])
+  @@map("script_notices")
+}
+
+// "Something's wrong?" (SPEC §29 v2): a client's report, UNTRUSTED DATA. Kept private here; only a sanitized summary
+// (lib/support/safety.ts) ever leaves for the machines, and the screenshot is for Sam's eyes only (staff page).
+model SupportTicket {
+  id              String              @id @default(uuid()) @db.Uuid
+  number          Int                 @unique @default(autoincrement())
+  env             String // production | staging | local
+  person_id       String?             @db.Uuid
+  organization_id String?             @db.Uuid
+  role            String? // their role in the org, or STAFF; null = signed out
+  reporter_email  String? // signed out only: what they typed, unverified, never emailed by the site
+  surface         String              @default("portal")
+  route           String // a route TEMPLATE (never the real path: paths carry tokens)
+  message         String
+  context         Json? // private: viewport, device, redacted errors and failed requests (capped)
+  has_screenshot  Boolean             @default(false)
+  ip_hash         String? // HMAC of the last-hop IP (IPv6 by /64), for limits only
+  status          String              @default("open") // open | working | fixed | wont_fix
+  status_at       DateTime?
+  client_note     String? // published through the gate (a book's support_notes), plain text
+  mirrored_at     DateTime? // when its sanitized summary reached Dropbox
+  created_at      DateTime            @default(now())
+  updated_at      DateTime            @updatedAt
+  person          Person?             @relation(fields: [person_id], references: [id], onDelete: SetNull)
+  organization    Organization?       @relation(fields: [organization_id], references: [id], onDelete: SetNull)
+  attachments     SupportAttachment[]
+
+  @@index([person_id, created_at])
+  @@index([ip_hash, created_at])
+  @@index([created_at])
+  @@map("support_tickets")
+}
+
+model SupportAttachment {
+  id         String        @id @default(uuid()) @db.Uuid
+  ticket_id  String        @db.Uuid
+  mime       String // image/jpeg only
+  bytes      Bytes
+  size       Int
+  created_at DateTime      @default(now())
+  ticket     SupportTicket @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+
+  @@index([ticket_id])
+  @@map("support_attachments")
 }

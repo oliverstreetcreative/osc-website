@@ -1,74 +1,43 @@
-'use client'
+// The sign-in link's page (SPEC §27 P0 v2): NOTHING happens on load. One button; its tap is a plain form POST (works
+// without JavaScript) that signs in only the browser that asked for the link. A mail scanner that opens the page,
+// runs its scripts, even submits the form, holds no device cookie, so it spends nothing and gets nothing. The page
+// never looks the token up: a GET reveals nothing about it.
+import type { Metadata, Viewport } from "next"
 
-import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
+export const metadata: Metadata = { title: "Finish signing in · Oliver Street Creative", robots: { index: false, follow: false } }
+export const viewport: Viewport = { themeColor: "#141412", width: "device-width", initialScale: 1 }
+export const dynamic = "force-dynamic"
 
-function MagicVerify() {
-  const router = useRouter()
-  const params = useSearchParams()
-  const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying')
-  const [errorMsg, setErrorMsg] = useState('')
-
-  useEffect(() => {
-    const token = params.get('token')
-    if (!token) {
-      setErrorMsg('No token provided.')
-      setStatus('error')
-      return
-    }
-
-    fetch('/api/auth/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }),
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}))
-          throw new Error(body.error ?? 'Verification failed')
-        }
-        return res.json()
-      })
-      .then(({ redirectTo }) => {
-        setStatus('success')
-        router.replace(redirectTo ?? '/')
-      })
-      .catch((err) => {
-        setErrorMsg(err.message)
-        setStatus('error')
-      })
-  }, [params, router])
-
+export default function MagicPage({ searchParams }: { searchParams: { token?: string } }) {
+  const token = typeof searchParams.token === "string" && /^[0-9a-f]{64}$/.test(searchParams.token) ? searchParams.token : ""
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--ink)] px-4">
-      <div className="text-center space-y-3">
-        {status === 'verifying' && (
+    <div className="cs-login">
+      <div className="cs-login-box">
+        <span className="cs-mark" aria-label="Oliver Street Creative" style={{ display: "flex", justifyContent: "center" }}>
+          <b>Oliver Street</b>
+          <i>Creative</i>
+        </span>
+        {token ? (
           <>
-            <p className="text-[var(--paper)]">Verifying your link…</p>
+            <h1>Finish signing in.</h1>
+            <p>Tap the button to sign in on this device.</p>
+            <form method="post" action="/api/auth/verify">
+              <input type="hidden" name="token" value={token} />
+              <button type="submit" className="cs-btn light">Sign in</button>
+            </form>
+            <p className="cs-login-foot">
+              On another phone or computer than the one you asked from? <a href="/login?code=1" style={{ textDecoration: "underline" }}>Type the code from the email</a> instead.
+            </p>
           </>
-        )}
-        {status === 'success' && (
-          <p className="text-[var(--paper)]">Signed in. Redirecting…</p>
-        )}
-        {status === 'error' && (
+        ) : (
           <>
-            <p className="text-[var(--paper)]">This link is invalid or has expired.</p>
-            {errorMsg && <p className="text-[var(--quiet)] text-sm">{errorMsg}</p>}
-            <a href="/login" className="text-sm text-[var(--paper)] underline underline-offset-4">
-              Request a new link
-            </a>
+            <h1>That link doesn&rsquo;t look right.</h1>
+            <p>
+              <a href="/login" style={{ textDecoration: "underline" }}>Ask for a new one</a>, or type the code from your email.
+            </p>
           </>
         )}
       </div>
     </div>
-  )
-}
-
-export default function MagicPage() {
-  return (
-    <Suspense>
-      <MagicVerify />
-    </Suspense>
   )
 }

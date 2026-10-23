@@ -1,25 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { db } from '@/lib/db'
-import { isImpersonating } from '@/lib/auth/impersonation'
+import { getPortalUser } from '@/lib/portal-auth'
 
 interface Params {
   params: Promise<{ id: string }>
 }
 
 export async function POST(req: NextRequest, { params }: Params) {
-  // Impersonation check — read-only mode
-  if (await isImpersonating()) {
-    return NextResponse.json(
-      { error: 'Impersonation mode is read-only. Stop impersonating to take actions.' },
-      { status: 403 },
-    )
-  }
-
   const { id: deliverableId } = await params
 
   const hdrs = await headers()
-  const userId = hdrs.get('x-user-id')
+  const userId = (await getPortalUser())?.id ?? null
   if (!userId) {
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 })
   }

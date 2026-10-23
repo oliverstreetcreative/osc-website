@@ -71,7 +71,6 @@ app/
 ├── api/                  # Route handlers
 │   ├── auth/             # Magic-link / session (public)
 │   ├── intake/           # Form intake (public)
-│   ├── publish/          # Bible → Portal sync (public, secret-gated by PUBLISH_SECRET)
 │   └── upload/           # Uppy upload target (auth required)
 ├── casting/              # Public
 ├── client/               # Client portal (client.* subdomain rewrites here)
@@ -99,7 +98,6 @@ Required for `pnpm dev` to do anything beyond render the marketing homepage:
 | `SESSION_JWT_SECRET` | HS256 secret for `osc_session` JWTs |
 | `LOGIN_HOST` | Hostname for cross-subdomain login redirects (default `login.oliverstreetcreative.com`) |
 | `CREW_PORTAL_URL` | Origin of the separate crew-portal app; if unset, the `/crew/*` rewrite is disabled |
-| `PUBLISH_SECRET` | Bearer token for `POST /api/publish` (Bible → Portal sync) |
 | `DROPBOX_APP_KEY` / `DROPBOX_APP_SECRET` / `DROPBOX_REFRESH_TOKEN` / `DROPBOX_ACCESS_TOKEN` / `DROPBOX_LOCAL_ROOT` / `DROPBOX_ROOT_PREFIX` | Dropbox integration for asset/upload flows |
 
 Legacy / probably removable: `BASEROW_TOKEN`, `BASEROW_URL` (Baserow was retired April 2026).

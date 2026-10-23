@@ -32,3 +32,9 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Prisma client output (prisma generate; rebuilt on install)
+/generated/
+
+# Python caches from the gate, importer and timing scripts
+__pycache__/

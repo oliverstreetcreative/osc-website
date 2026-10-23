@@ -4,7 +4,9 @@ import '@uppy/core/css/style.min.css'
 import '@uppy/dashboard/css/style.min.css'
 
 import Uppy, { BasePlugin, type PluginOpts, type UppyFile } from '@uppy/core'
-import { Dashboard } from '@uppy/react'
+// @uppy/react 5 moved Dashboard to its own entry point (a default export); the old named import was undefined at
+// runtime, so this uploader crashed whatever page rendered it.
+import Dashboard from '@uppy/react/dashboard'
 import { MutableRefObject, useEffect, useRef, useState } from 'react'
 
 interface PortalUploaderProps {

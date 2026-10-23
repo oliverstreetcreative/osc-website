@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { db } from '@/lib/db'
-import { isImpersonating } from '@/lib/auth/impersonation'
+import { getStaffUser } from '@/lib/portal-auth'
+import { getPortalUser } from '@/lib/portal-auth'
 
 // ---------------------------------------------------------------------------
 // POST /api/admin/invites/revoke
@@ -9,23 +10,15 @@ import { isImpersonating } from '@/lib/auth/impersonation'
 // ---------------------------------------------------------------------------
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  // Impersonation check — read-only mode
-  if (await isImpersonating()) {
-    return NextResponse.json(
-      { error: 'Impersonation mode is read-only. Stop impersonating to take actions.' },
-      { status: 403 },
-    )
-  }
-
   // 1. Auth
   const headersList = await headers()
-  const userId  = headersList.get('x-user-id')
-  const isStaff = headersList.get('x-user-is-staff')
+  const userId  = (await getPortalUser())?.id ?? null
 
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  if (isStaff !== 'true') {
+  // Staff status from the database, not the session token (which can be weeks stale).
+  if (!(await getStaffUser())) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

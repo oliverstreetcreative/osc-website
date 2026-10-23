@@ -1,143 +1,34 @@
-import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { getPortalUser } from '@/lib/portal-auth'
-import { SignOutButton } from './components/SignOutButton'
-import { ImpersonationBanner } from '@/components/ImpersonationBanner'
-import { ActivityFeed } from '@/components/portal/ActivityFeed'
+import type { Metadata, Viewport } from "next"
+import { Barlow_Condensed, Lobster } from "next/font/google"
+import { LOOK_SCRIPT } from "@/lib/client/theme"
+import { DIAG_SCRIPT } from "@/lib/support/recorder"
+import { LookApplier } from "./look"
+import "./client.css"
 
-export default async function ClientPortalLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const user = await getPortalUser()
+// The thin outer frame for everything under /client: fonts, the design system,
+// no auth. The signed-in shell lives in (app)/layout.tsx; the staff "View as
+// client" picker (view-as/) has its own. Appearance (SPEC §20, the hub's
+// conventions): .cs-app marks a portal root (the public site's .cs never
+// darkens); the inline script applies this device's choice before paint.
+const barlow = Barlow_Condensed({ subsets: ["latin"], weight: ["600"], variable: "--font-barlow", display: "swap" })
+const lobster = Lobster({ subsets: ["latin"], weight: ["400"], variable: "--font-lobster", display: "swap" })
 
-  if (!user) {
-    redirect('/login')
-  }
-
-  return (
-    <div
-      style={{
-        minHeight: '100dvh',
-        background: 'var(--ink)',
-        color: 'var(--paper)',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <ImpersonationBanner />
-      {/* Sticky top header */}
-      <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 50,
-          background: '#111',
-          borderBottom: '1px solid rgba(138,138,132,0.2)',
-          padding: '0 24px',
-          height: '56px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '16px',
-        }}
-      >
-        {/* Brand */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Link
-            href="/client"
-            style={{
-              fontFamily: 'var(--font-garamond)',
-              fontStyle: 'italic',
-              fontSize: '18px',
-              color: 'var(--paper)',
-              textDecoration: 'none',
-              fontWeight: 400,
-            }}
-          >
-            Oliver Street Creative
-          </Link>
-          <span
-            style={{
-              fontSize: '10px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-              color: 'var(--quiet)',
-              background: 'rgba(138,138,132,0.15)',
-              padding: '2px 8px',
-              borderRadius: '4px',
-            }}
-          >
-            Portal
-          </span>
-        </div>
-
-        {/* User info + sign out */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span
-            style={{
-              fontSize: '13px',
-              color: 'var(--quiet)',
-            }}
-          >
-            {user.email}
-          </span>
-          <SignOutButton />
-        </div>
-      </header>
-
-      {/* Body: sidebar + main */}
-      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        {/* Left sidebar */}
-        <nav
-          style={{
-            width: '200px',
-            flexShrink: 0,
-            borderRight: '1px solid rgba(138,138,132,0.15)',
-            padding: '24px 0',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '4px',
-          }}
-        >
-          <NavLink href="/client">Dashboard</NavLink>
-          <ActivityFeed />
-        </nav>
-
-        {/* Main content */}
-        <main
-          style={{
-            flex: 1,
-            minWidth: 0,
-            padding: '32px 40px',
-            overflowY: 'auto',
-          }}
-        >
-          {children}
-        </main>
-      </div>
-    </div>
-  )
+export const metadata: Metadata = {
+  title: { default: "Your account · Oliver Street Creative", template: "%s · Oliver Street Creative" },
+  robots: { index: false, follow: false },
 }
+// The header is dark in both appearances, so one theme colour for the phone's status bar.
+export const viewport: Viewport = { themeColor: "#141412", width: "device-width", initialScale: 1 }
+export const dynamic = "force-dynamic"
 
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+export default function ClientFrame({ children }: { children: React.ReactNode }) {
   return (
-    <Link
-      href={href}
-      style={{
-        display: 'block',
-        padding: '8px 20px',
-        fontSize: '13px',
-        fontWeight: 600,
-        color: 'var(--quiet)',
-        textDecoration: 'none',
-        letterSpacing: '0.03em',
-        transition: 'color 0.15s',
-      }}
-    >
+    <div className={`cs cs-app ${barlow.variable} ${lobster.variable}`}>
+      <script dangerouslySetInnerHTML={{ __html: LOOK_SCRIPT }} />
+      {/* "Something's wrong?" (SPEC §29 v2): the page's recent errors, recorded from the start. */}
+      <script dangerouslySetInnerHTML={{ __html: DIAG_SCRIPT }} />
+      <LookApplier />
       {children}
-    </Link>
+    </div>
   )
 }

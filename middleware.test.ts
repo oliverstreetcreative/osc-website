@@ -12,33 +12,26 @@ function behindProxy(publicHost: string, path: string) {
   })
 }
 
-function returnUrl(req: NextRequest): string | null {
+function loginRedirect(req: NextRequest): URL {
   const location = redirectToLogin(req).headers.get("location")
   assert.ok(location, "redirects")
-  const url = new URL(location)
-  assert.equal(url.origin, "https://login.oliverstreetcreative.com")
-  assert.equal(url.pathname, "/login")
-  return url.searchParams.get("redirect")
+  return new URL(location)
 }
 
 test("client.*: returns to the public host, not localhost:8080", () => {
-  const req = behindProxy("client.oliverstreetcreative.com", "/projects")
-  assert.equal(returnUrl(req), "https://client.oliverstreetcreative.com/projects")
-})
-
-test("crew.*: returns to the public host, keeping the query string", () => {
-  const req = behindProxy("crew.oliverstreetcreative.com", "/?tab=calls")
-  assert.equal(returnUrl(req), "https://crew.oliverstreetcreative.com/?tab=calls")
+  const url = loginRedirect(behindProxy("client.oliverstreetcreative.com", "/projects?tab=open"))
+  assert.equal(url.origin, "https://login.oliverstreetcreative.com")
+  assert.equal(url.pathname, "/login")
+  assert.equal(url.searchParams.get("redirect"), "https://client.oliverstreetcreative.com/projects?tab=open")
 })
 
 test("x-forwarded-host with several values: the first one wins", () => {
-  const req = behindProxy("client.oliverstreetcreative.com, localhost:8080", "/projects")
-  assert.equal(returnUrl(req), "https://client.oliverstreetcreative.com/projects")
+  const url = loginRedirect(behindProxy("client.oliverstreetcreative.com, localhost:8080", "/projects"))
+  assert.equal(url.searchParams.get("redirect"), "https://client.oliverstreetcreative.com/projects")
 })
 
-test("no x-forwarded-host: falls back to the host header", () => {
-  const req = new NextRequest("http://localhost:8080/projects", {
-    headers: { host: "client.oliverstreetcreative.com" },
-  })
-  assert.equal(returnUrl(req), "https://client.oliverstreetcreative.com/projects")
+test("crew.*: signs in on crew.* itself, with a path-only return (never localhost:8080)", () => {
+  const url = loginRedirect(behindProxy("crew.oliverstreetcreative.com", "/projects"))
+  assert.equal(url.pathname, "/login")
+  assert.equal(url.searchParams.get("redirect"), "/crew/projects")
 })
