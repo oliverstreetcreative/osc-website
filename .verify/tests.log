@@ -1,0 +1,90 @@
+(node:36589) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ a sign-in lands only on this host, under /client, /crew or /admin (0.487083ms)
+✔ a script scope: its own script, its print view, its API, and the way out (0.308375ms)
+✔ link requests: per address and per network; a known device skips both (0.074292ms)
+✔ code tries: per code and per network always; per address unless it's a known device (0.054542ms)
+✔ global numbers raise an alarm, never switch sign-in off (0.075875ms)
+✔ sign-in counts an IPv6 by its /48 (0.131291ms)
+✔ device ids are random and stored only as hashes (0.177916ms)
+✔ the code: six digits, bound to its invite, checked in constant time (0.455167ms)
+✔ where a sign-in lands when nothing asked for a page (0.06375ms)
+(node:36590) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ production: a client always signs in on the apex, wherever they asked from (0.31775ms)
+✔ production: crew sign in on crew.* (0.049375ms)
+✔ production: staff sign in where they asked (the admin on login.*, View as client on the apex) (0.038583ms)
+✔ production: a staff link never points at a host this app doesn't serve (0.042458ms)
+✔ staging and local keep the host they asked from (0.051ms)
+(node:36591) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ a token without a session id is no session (every pre-row cookie signs out once) (0.344792ms)
+✔ a script invite's token is never a person, even if it claims to be staff (0.334208ms)
+✔ a row counts only while it's live, for its own token, for its own scope (0.72575ms)
+(node:36592) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ drafts show only where the site KNOWS it's staging or dev: an unknown build is the live site (fail closed) (0.347541ms)
+✔ the live site renders /faq only once it's public; staging and dev always do (0.057125ms)
+✔ the live site shows approved answers only - not drafts in Sam's own words; staging shows every entry (0.306208ms)
+✔ the FAQ is up only with something to show: public with no approved answers stays down (0.052292ms)
+✔ the hours piece, the draft guide link and the markers stay off the live site until approved or final (0.064208ms)
+✔ staging pills say where each answer stands (0.048083ms)
+✔ every entry is well formed; an approval carries its date, and none is invented (0.199ms)
+✔ the hours model matches price-estimator's table (hours-model.md): story 12/min, capture = shoot days x 10 (0.176333ms)
+✔ house voice: no em dashes and no straight apostrophes in anything a visitor reads (0.213791ms)
+✔ hours and days read naturally; screen readers hear whole words (0.084ms)
+(node:36593) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ the live site keeps the still: no playback id, no sources (0.506958ms)
+✔ staging plays reel v6: HLS, then the 720p and 1080p static renditions, poster from the reel itself (0.127375ms)
+(node:36594) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ every line carries a source tag (0.590666ms)
+✔ house voice: no em dashes, no straight apostrophes (0.134ms)
+✔ no superlatives; 'humble' only in Sam's own differentiator line (10/8 12:02) (0.657542ms)
+✔ the headline's pitch and Sam's memo lines are his words, tagged SAM (0.06925ms)
+✔ open lines are few and listed (0.073ms)
+✔ the close says Sam's own words and names its one action once (step-4 review 10/8) (0.059625ms)
+(node:36595) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ the options are the ones on Sam's page, default d83 (Majordomo's brief) (0.507333ms)
+✔ every key the script accepts has its show / label / lit rules, and no-JS shows the default (0.121458ms)
+✔ option D: 'reative' stands at 76/83/90% of the caps' height (today ~68%) (0.072375ms)
+(node:36596) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ an empty SITE_ENV counts as unset: Railway's name decides (310.052583ms)
+✔ a non-empty SITE_ENV still overrides; nothing set is neither (303.220959ms)
+(node:36597) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ a pass verifies with its signing key until it expires, and never with another signing key (3.50375ms)
+✔ a pass can't be stretched, forged or stuffed (0.796375ms)
+✔ a short or missing signing key closes staging (the gate fails closed) (0.095292ms)
+✔ exemptions are exact: path AND method (0.161292ms)
+✔ without a pass: page reads see the gate; everything else is refused (0.04825ms)
+✔ next is a path on this site or / (0.074917ms)
+✔ cookies: the __Host- pass everywhere, the plain one only on localhost (8.345209ms)
+✔ the pass format is pinned (purpose-bound HMAC bytes) (0.621584ms)
+(node:36598) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ corporate domain is exact; mixed case/plus addresses normalize (0.373958ms)
+✔ any OSC address can request without a Person; only hashes stored (1.003875ms)
+✔ production, bad domains, missing signing key, rate cap send nothing (0.098708ms)
+✔ link verification spends once, keeps destination, never mints a portal session (0.513792ms)
+✔ scanner/other device does not spend link; code works on another device (0.174958ms)
+✔ host-bound, expiry boundary, malformed token, wrong domain all fail (0.113834ms)
+✔ parallel link/code redemption has exactly one winner (0.102541ms)
+✔ five wrong codes exhaust the invite, including parallel guesses (0.416333ms)
+✔ verified redirect is sanitized; even a changed stored path cannot escape (0.105417ms)
+✔ gate exceptions open only the specific email endpoints/methods (0.139166ms)
+✔ cookie sharing is restricted to staging, never the production parent (2.435375ms)
+✔ native forms enforce streaming cap and same-origin (7.023792ms)
+✔ signout clears host and shared cookies without collapsing UI duplicates (0.080334ms)
+✔ shared grant works only on staging hosts, old password cookies never work (1.092583ms)
+ℹ tests 62
+ℹ suites 0
+ℹ pass 62
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 762.639041
