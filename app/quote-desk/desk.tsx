@@ -8,7 +8,7 @@ import type { Quote, Spec, Edits, Line } from "@/lib/estimator/engine"
 // is an input: change it and it becomes an override (orange, with a reset).
 // All math happens on the server (/api/quote-desk); this only displays.
 
-const money = (n: number) => "$" + Math.round(n).toLocaleString("en-US")
+const money = (n: number) => (n < 0 ? "−$" : "$") + Math.abs(Math.round(n)).toLocaleString("en-US")
 const PCT_PARAMS = new Set(["markup", "contingency", "flexibleDiscount", "rushPremium", "rangeLow", "rangeHigh"])
 const NUM_SPEC: (keyof Spec)[] = ["prepDays", "shootDays", "pickupDays", "editDays", "extraVideos", "travel"]
 const BOOL_SPEC: (keyof Spec)[] = ["assistant", "secondHand", "rentals"]

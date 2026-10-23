@@ -25,6 +25,7 @@ const CSS = `
   .pe input[type=range] { width: 100%; accent-color: #E07830; height: 28px; }
   .pe-check { display:flex; gap: 10px; align-items:center; font-size: 16px; padding: 6px 0; }
   .pe input[type=checkbox] { width: 22px; height: 22px; accent-color: #E07830; flex: none; }
+  .pe-incl { margin: 12px auto 0; max-width: 34ch; font-size: 14px; line-height: 1.4; color: rgba(247,246,243,.7); }
   .pe-checks { display:grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
   .pe-seg { display:grid; grid-template-columns: repeat(3, 1fr); border: 2px solid rgba(247,246,243,.2); }
   .pe-seg button { background: transparent; color: inherit; border: 0; padding: 12px 6px; font: inherit; font-weight: 700; font-size: 16px; cursor: pointer; }

@@ -42,6 +42,15 @@ export const PARAMS = {
   droneCharge: p(500, "DRAFT", "Drone on a shoot day (flat)", "Sam's $1,000 is for a drone-only pickup DAY"),
   extraVideoDays: p(1, "DRAFT", "Each extra finished video: finishing days"),
 
+  // --- social adaptations: SHOWN at value, then INCLUDED (Sam C11, 10/7 23:15) --
+  // "when we can give these away at almost no marginal cost, that becomes a
+  // distinguishing feature." Every finished film shows Vertical 9:16 + Square 1:1
+  // at their value, then "Included with every film" takes the same amount off.
+  // Net price unchanged. Cost = editor hours, for job costing only.
+  adaptValue: p(300, "SAM", "Each social adaptation (9:16 or 1:1), value shown", "Sam 10/7: $300 each, included free"),
+  adaptEditorHours: p(4, "SAM", "Editor hours per adaptation (job costing)", "Sam 10/7: ~4 hrs each"),
+  editorCostHour: p(30, "SAM", "Editor cost per hour", "Bid-margin doctrine: editor $30/h cost"),
+
   // --- deadline -----------------------------------------------------------------
   flexibleDiscount: p(0.1, "OPEN", "Flexible dates (booking-window) discount", "Sam decides % and which windows"),
   rushPremium: p(0.2, "DRAFT", "Rush premium"),

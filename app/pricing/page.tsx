@@ -3,6 +3,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { IS_STAGING } from "@/lib/site-env"
 import { vocab } from "@/lib/estimator/vocab"
+import { includedSocialValue } from "@/lib/estimator/engine"
 import Estimator from "./estimator"
 
 // ---------------------------------------------------------------------------
@@ -37,7 +38,7 @@ export default function PricingPage() {
         <div className="pe-eyebrow">Video pricing</div>
         <h1 className="pe-h1">What will it cost?</h1>
         <p className="pe-lede">Tell us about your video. We&rsquo;ll show you where projects like yours usually land.</p>
-        <Estimator vocab={vocab()} />
+        <Estimator vocab={vocab()} socialValue={includedSocialValue()} />
         <p className="pe-fine">
           Every project gets a real quote after we talk. Travel outside Cincinnati and Northern Kentucky is extra, at cost.
         </p>
